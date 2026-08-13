@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>知識小花園·作業守護台 使用說明書</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang TC", "Hiragino Sans TC", "Microsoft YaHei", "Heiti TC", sans-serif;
+    background: linear-gradient(160deg, #e8f7ee 0%, #fffdf8 60%);
+    color: #34473f;
+    padding: 18px 14px 28px;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 452px; margin: 0 auto; }
+  .cover {
+    background: linear-gradient(135deg, #3fae7a, #2e9e6b);
+    color: #fff;
+    border-radius: 22px;
+    padding: 26px 22px;
+    text-align: center;
+    box-shadow: 0 10px 26px rgba(46,158,107,.28);
+    margin-bottom: 16px;
+  }
+  .cover .big { font-size: 46px; line-height: 1; }
+  .cover h1 { font-size: 22px; margin: 10px 0 6px; letter-spacing: .5px; }
+  .cover p { font-size: 13px; opacity: .92; }
+  .card {
+    background: #fffdf8;
+    border-radius: 18px;
+    padding: 16px 16px 15px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.06);
+    border: 1px solid #eef3ee;
+  }
+  .card h2 {
+    font-size: 17px;
+    color: #2e9e6b;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card h2 .ico { font-size: 22px; }
+  .card p { font-size: 13.5px; color: #45564e; }
+  .steps { list-style: none; counter-reset: s; }
+  .steps li {
+    position: relative;
+    padding: 7px 10px 7px 38px;
+    margin-bottom: 6px;
+    background: #f3faf5;
+    border-radius: 12px;
+    font-size: 13.5px;
+  }
+  .steps li::before {
+    counter-increment: s;
+    content: counter(s);
+    position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+    width: 22px; height: 22px; border-radius: 50%;
+    background: #3fae7a; color: #fff; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tips { background: #fff6e9; border-radius: 12px; padding: 10px 12px; font-size: 12.5px; color: #8a5a20; margin-top: 8px; }
+  .tips b { color: #c9740f; }
+  .sun { color: #e09b1a; font-weight: 700; }
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: #6b7d74;
+    margin-top: 6px;
+    padding: 12px;
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,.05);
+  }
+  .footer .link { color: #2e9e6b; font-weight: 700; word-break: break-all; }
+  .row { display: flex; gap: 10px; }
+  .row .card { flex: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="cover">
+    <div class="big">🌿</div>
+    <h1>知識小花園·作業守護台</h1>
+    <p>📖 使用說明書（家長與孩子都看這篇）</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="ico">🎯</span>遊戲在幹嘛</h2>
+    <p>把「寫功課」變成一場守護戰！孩子完成真實的學校功課，爸媽在後台簽名，遊戲裡的食蟲植物就會把瞌睡怪打退。每天進步一點點，小花園就越來越茂盛 🌱</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="ico">🌟</span>三個主角</h2>
+    <p>🪤 <b>食蟲植物小花園</b>：孩子種的守護隊，會發射露珠趕走瞌睡怪<br>
+    😴 <b>瞌睡怪</b>：代表「不想寫功課」的惰性，要靠完成功課打退牠<br>
+    🌟 <b>陽光</b>：完成功課、練習答對賺到的點數，可以換真實獎勵</p>
+  </div>
+
+  <div class="card">
+    <h2><span class="ico">🕹️</span>每天這樣玩（3 步）</h2>
+    <ul class="steps">
+      <li><b>寫功課</b> → 在「今日功課」勾選完成、送出家長簽名</li>
+      <li><b>爸媽簽名</b> → 打開家長後台，確認孩子送出的功課，按「通過」（+30 陽光、瞌睡怪後退）</li>
+      <li><b>點植物發射</b> → 在首頁花園點一下防禦植物，發射露珠把怪打退，還能 <span class="sun">+1 陽光</span> 互動獎勵</li>
+    </ul>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <h2><span class="ico">🎮</span>練習場</h2>
+      <p>國語 / 數學 / 英文 / 知識 答題練習，答對賺陽光。</p>
+      <div class="tips">💡 同一題重複刷，獎勵會越來越少喔</div>
+    </div>
+    <div class="card">
+      <h2><span class="ico">🏆</span>收藏</h2>
+      <p>用陽光在獎勵商店兌換真實獎勵（如多看 10 分鐘動畫、去公園玩）。</p>
+      <div class="tips">🎁 獎勵由家長設定</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="ico">☀️</span>陽光小提醒</h2>
+    <p>
+      • 每天最多拿 <span class="sun">250 陽光</span>（防刷題），隔天自動重置<br>
+      • 重複刷同一題，獎勵會遞減（第 1 次全額 → 第 2 次半額 → 第 3 次起 1/4）<br>
+      • 陽光是用來換獎勵的，鼓勵「寫功課」而不是「無限刷題」
+    </p>
+  </div>
+
+  <div class="card">
+    <h2><span class="ico">👨‍👩‍👧</span>家長後台</h2>
+    <p>
+      • <b>簽名功課</b>：確認孩子完成的真實功課<br>
+      • <b>一鍵備份</b>：把整套存檔下載成檔案，換手機 / 清快取都不怕丟<br>
+      • 設定獎勵、作息、難度
+    </p>
+  </div>
+
+  <div class="card">
+    <h2><span class="ico">📱</span>裝到手機桌面（當 APP 用）</h2>
+    <ul class="steps">
+      <li>用手機瀏覽器打開遊戲連結</li>
+      <li>點「分享」→「加入主畫面」</li>
+      <li>桌面上就多了一個遊戲圖示，點開全螢幕玩</li>
+    </ul>
+    <div class="tips">
+      ⚠️ <b>兩個小提醒：</b><br>
+      1. 不要用「私密 / 無痕」模式，那邊存檔關掉就消失<br>
+      2. 固定用同一個入口（都從桌面圖示，或都從瀏覽器書籤），不要混用，存檔才接得上
+    </div>
+  </div>
+
+  <div class="footer">
+    🌐 線上版：<span class="link">https://7be7457855cd452ebde3c9cfb22f7209.app.workbuddy.link</span><br>
+    💡 遊戲首頁點「❓ 怎麼玩」隨時可再看這篇
+  </div>
+
+</div>
+</body>
+</html>
