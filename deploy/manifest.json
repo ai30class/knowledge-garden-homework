@@ -1,0 +1,20 @@
+{
+  "name": "知識小花園 · 作業守護台",
+  "short_name": "知識小花園",
+  "description": "種食蟲植物打瞌睡怪，讓孩子主動完成功課、愛上練習。",
+  "lang": "zh-Hant",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#bfe7ff",
+  "theme_color": "#ffd54a",
+  "icons": [
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
