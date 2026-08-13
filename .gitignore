@@ -1,0 +1,6 @@
+node_modules/
+.cache/
+.workbuddy/
+package.json
+package-lock.json
+pvz-homework.html
