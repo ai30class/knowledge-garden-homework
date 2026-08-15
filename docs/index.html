@@ -415,6 +415,11 @@
   .man-sec{ background:#faf6ea; border:2px solid #ece0c4; border-radius:16px; padding:12px 14px; margin:10px 0; }
   .man-sec h3{ margin:0 0 6px; font-size:15px; color:#3a6b4a; }
   .man-sec p{ margin:4px 0; font-size:14px; line-height:1.55; color:#5a4a2e; }
+  .src-tbl{ width:100%; border-collapse:collapse; margin:6px 0; font-size:13px; }
+  .src-tbl th, .src-tbl td{ border:1px solid #e3d6b6; padding:6px 8px; text-align:left; vertical-align:top; color:#4a3c22; }
+  .src-tbl th{ background:#f0e7cf; color:#3a6b4a; font-weight:700; }
+  .src-tbl td:first-child{ white-space:nowrap; font-weight:600; }
+  .src-note{ font-size:12px; color:#8a7a55; margin-top:6px; }
   .man-sec ol{ padding-left:20px; margin:6px 0; }
   .man-sec li{ font-size:14px; line-height:1.55; color:#5a4a2e; margin:4px 0; }
   .man-warn{ background:#fff3e0; border-color:#ffcc80; }
@@ -1221,7 +1226,17 @@ const CREATOR_INFO = {
   ig:       'https://www.instagram.com/ai30class/',
   line:     'https://line.me/R/ti/p/@914blqcf',
   fb:       'https://www.facebook.com/ai30class/',
-  year:     2026
+  year:     2026,
+  // 資料來源：可驗證者標具體出處，其餘標為本遊戲原創整理（部分經 AI 輔助生成）
+  sources: [
+    { item: '注音對照表（BOPOMO）', from: 'moedict 國語辭典（CC0 公有領域授權）' },
+    { item: '成語題庫（449 則）', from: '本遊戲原創整理編寫（部分經 AI 輔助生成）' },
+    { item: '國語詞語卡（314 張）', from: '本遊戲原創整理編寫（部分經 AI 輔助生成）' },
+    { item: '分齡閱讀（39 篇）與閱讀測驗（31 篇）', from: '本遊戲原創撰寫（部分經 AI 輔助生成）' },
+    { item: '英文單字 / 文法 / 閱讀', from: '本遊戲原創整理編寫（部分經 AI 輔助生成）' },
+    { item: '生活常識 / 百科小知識', from: '本遊戲原創整理編寫（部分經 AI 輔助生成）' },
+    { item: '數學 / 數感心算 / 邏輯推理', from: '題目由程式動態生成，規則為本遊戲原創設計' }
+  ]
 };
 function openAbout(){
   if(document.querySelector('.modal-ov.about-ov')) return; // 避免重複彈出
@@ -1249,6 +1264,16 @@ function openAbout(){
     <div class="man-sec">
       <h3>⚖️ 版權與授權</h3>
       <p>© ${ci.year} ${ci.gameName}。本遊戲由 ${ci.author} 原創，歡迎個人與教育場域免費使用；轉載、改作或商業合作請聯絡作者。</p>
+    </div>
+    <div class="man-sec">
+      <h3>📚 資料來源</h3>
+      <table class="src-tbl">
+        <thead><tr><th>內容</th><th>出處</th></tr></thead>
+        <tbody>
+          ${ci.sources.map(s=>`<tr><td>${s.item}</td><td>${s.from}</td></tr>`).join('')}
+        </tbody>
+      </table>
+      <p class="src-note">若您發現任何內容出自特定受版權保護的出版品而未正確標示，請聯絡作者協助更正。</p>
     </div>
     <div style="text-align:center;margin-top:14px;">
       <button class="next-btn" id="aboutClose" style="width:100%;">✅ 知道啦</button>
