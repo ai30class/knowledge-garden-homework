@@ -1212,6 +1212,51 @@ function openManual(){
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
 }
 
+/* 關於／製作者資料 modal（欄位集中在 CREATOR_INFO，便於日後修改） */
+const CREATOR_INFO = {
+  gameName: '知識小花園·作業守護台',
+  author:   'Janice（AI30class 創辦人）',
+  ig:       'https://www.instagram.com/ai30class/',
+  line:     'https://line.me/R/ti/p/@914blqcf',
+  fb:       'https://www.facebook.com/ai30class/',
+  year:     2026
+};
+function openAbout(){
+  if(document.querySelector('.modal-ov.about-ov')) return; // 避免重複彈出
+  const ci=CREATOR_INFO;
+  const ov=document.createElement('div'); ov.className='modal-ov about-ov';
+  ov.innerHTML=`<div class="modal">
+    <h2 style="text-align:center;margin:0 0 4px;">🌻 關於這款遊戲</h2>
+    <p style="text-align:center;color:#8a7a55;font-size:13px;margin:0 0 12px;">陪孩子一起守護植物，把寫功課變成冒險！</p>
+    <div class="man-sec">
+      <h3>🎮 遊戲名稱</h3>
+      <p>${ci.gameName}</p>
+    </div>
+    <div class="man-sec">
+      <h3>🧑‍💻 製作者 / 工作室</h3>
+      <p>${ci.author}</p>
+    </div>
+    <div class="man-sec">
+      <h3>📡 社群與聯絡</h3>
+      <p style="line-height:2;">
+        <a href="${ci.ig}" target="_blank" rel="noopener" style="color:#2e7d32;word-break:break-all;">📸 Instagram</a> ｜
+        <a href="${ci.line}" target="_blank" rel="noopener" style="color:#2e7d32;word-break:break-all;">💬 LINE</a> ｜
+        <a href="${ci.fb}" target="_blank" rel="noopener" style="color:#2e7d32;word-break:break-all;">📘 Facebook</a>
+      </p>
+    </div>
+    <div class="man-sec">
+      <h3>⚖️ 版權與授權</h3>
+      <p>© ${ci.year} ${ci.gameName}。本遊戲為家庭原創學習工具，僅供個人非商業使用；轉載、改作或商業用途請先聯絡作者。</p>
+    </div>
+    <div style="text-align:center;margin-top:14px;">
+      <button class="next-btn" id="aboutClose" style="width:100%;">✅ 知道啦</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#aboutClose').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+}
+
 function freshState(){
   const ch=defaultChild('');
   return {
@@ -3705,6 +3750,7 @@ function renderHome(){
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
       <button class="reset-btn" id="homeCustomBtn">⚙️ 自訂首頁顯示</button>
       <button class="reset-btn" id="homeManualBtn">❓ 怎麼玩</button>
+      <button class="reset-btn" id="homeAboutBtn">ℹ️ 關於</button>
       <button class="reset-btn" id="homeDiffBtn">🎚 功課難易度</button>
       <button class="reset-btn" id="bgmBtn">${state.bgm?'🎵 音樂：開':'🎵 音樂：關'}</button>
     </div>
@@ -3816,6 +3862,7 @@ function renderHome(){
   const hcb=$('#homeCustomBtn'); if(hcb) hcb.onclick=openHomeCustom;
   const hdb=$('#homeDiffBtn'); if(hdb) hdb.onclick=openDiffModal;
   const hmb=$('#homeManualBtn'); if(hmb) hmb.onclick=openManual;
+  const hab=$('#homeAboutBtn'); if(hab) hab.onclick=openAbout;
   const rvb=$('#reviewBtn'); if(rvb) rvb.onclick=()=>{ if(!dueReviews().length){ toast('🎉 目前沒有錯題要複習，你超棒！'); } else renderReviewDrill(); };
   const bbm=$('#bgmBtn'); if(bbm) bbm.onclick=toggleBgm;
   const dqb=$('#dailyQuizBtn'); if(dqb) dqb.onclick=renderDailyQuiz;
