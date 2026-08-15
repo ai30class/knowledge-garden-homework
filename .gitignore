@@ -4,3 +4,6 @@ node_modules/
 package.json
 package-lock.json
 pvz-homework.html
+# 錄影 / 截圖素材不進版控
+capture_game.js
+promo/
