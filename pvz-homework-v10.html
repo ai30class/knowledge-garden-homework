@@ -418,7 +418,7 @@
   .src-tbl{ width:100%; border-collapse:collapse; margin:6px 0; font-size:13px; }
   .src-tbl th, .src-tbl td{ border:1px solid #e3d6b6; padding:6px 8px; text-align:left; vertical-align:top; color:#4a3c22; }
   .src-tbl th{ background:#f0e7cf; color:#3a6b4a; font-weight:700; }
-  .src-tbl td:first-child{ white-space:nowrap; font-weight:600; }
+  .src-tbl td:first-child{ font-weight:600; word-break:break-all; }
   .src-note{ font-size:12px; color:#8a7a55; margin-top:6px; }
   .man-sec ol{ padding-left:20px; margin:6px 0; }
   .man-sec li{ font-size:14px; line-height:1.55; color:#5a4a2e; margin:4px 0; }
@@ -1269,7 +1269,7 @@ function openAbout(){
       <table class="src-tbl">
         <thead><tr><th>內容</th><th>出處</th></tr></thead>
         <tbody>
-          ${ci.sources.map(s=>`<tr><td>${s.item}</td><td>${s.from}</td></tr>`).join('')}
+          ${ci.sources.map(s=>`<tr><td>${s.item.replace(/、/g,'、<br>')}</td><td>${s.from}</td></tr>`).join('')}
         </tbody>
       </table>
       <p class="src-note">若您發現任何內容出自特定受版權保護的出版品而未正確標示，請聯絡作者協助更正。</p>
