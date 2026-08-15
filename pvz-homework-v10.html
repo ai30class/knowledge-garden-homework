@@ -666,11 +666,18 @@ function flashSaved(){
 
 /* 啟動時以 IndexedDB 為優先，並把舊 localStorage 資料遷移進 IDB */
 function hydrateFromIDB(){
+  const hadName = !!C().name;   // 首屏（localStorage）時的名字狀態，用來判斷是否要重決策
   idbGet().then(raw=>{
+    if(_onboardStarted) return; // 用戶已在建立新檔（onboarding 已輸入名字），不允許 IDB 非同步覆蓋
     if(raw){
       try{
         const s=JSON.parse(raw);
-        if(s && typeof s==='object'){ state=s; if(typeof renderHome==='function') renderHome(); setTimeout(()=>{ if(typeof renderHome==='function') renderHome(); },80); }
+        if(s && typeof s==='object'){
+          state = load(s);   // 走 load() 做欄位遷移補預設值，避免舊檔缺欄位
+          if(!!C().name !== hadName) bootApp();   // IDB 有檔但首屏無名字 → 重新決策（跳過引導）
+          if(typeof renderHome==='function') renderHome();
+          setTimeout(()=>{ if(typeof renderHome==='function') renderHome(); },80);
+        }
       }catch(e){}
     } else {
       try{ idbSet(localStorage.getItem(SAVE_KEY)||JSON.stringify(state)); }catch(e){}
@@ -679,6 +686,7 @@ function hydrateFromIDB(){
 }
 
 let state = load();
+let _onboardStarted=false;   // onboarding 已開始建立新檔（用戶輸入名字），防止 IDB 非同步覆蓋
 let currentTab='home';
 let currentHWId=null;
 let eyeTimerOn=false;
@@ -1216,9 +1224,9 @@ function freshState(){
     schedule:[], scheduleDate:'', schedCheckin:5, schedOnTime:10
   };
 }
-function load(){
+function load(seed){
   try{
-    const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem('pvz_homework_v10');
+    const raw = seed ? JSON.stringify(seed) : (localStorage.getItem(SAVE_KEY) || localStorage.getItem('pvz_homework_v10'));
     const s=JSON.parse(raw);
     if(s){
       if(Array.isArray(s.rewards)){
@@ -3573,7 +3581,7 @@ function renderOnboarding(){
       $('#startBtn').onclick=()=>{
         const n=$('#nameInput').value.trim();
         if(!n){ badSound(); toast('請先輸入名字喔！'); return; }
-        C().name=n; save(); goodSound(); step=1; paint();
+        _onboardStarted=true; C().name=n; save(); goodSound(); step=1; paint();
       };
       $('#nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#startBtn').click(); });
     } else {
@@ -5781,7 +5789,7 @@ function renderParent(){
   $('#importFile').onchange=(e)=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader();
-    rd.onload=()=>{ try{ const s=JSON.parse(rd.result); if(s&&Array.isArray(s.children)){ state=s; parentUnlocked=false; save(); toast('✅ 存檔已還原'); showTab('home'); } else toast('檔案格式不正確'); }catch(err){ toast('讀取失敗'); } };
+    rd.onload=()=>{ try{ const s=JSON.parse(rd.result); if(s&&Array.isArray(s.children)){ state=load(s); parentUnlocked=false; save(); toast('✅ 存檔已還原'); showTab('home'); } else toast('檔案格式不正確'); }catch(err){ toast('讀取失敗'); } };
     rd.readAsText(f);
   };
 
@@ -5831,8 +5839,11 @@ function weekChartSVG(c){
 $$('.tab-btn').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
 applyActiveSubjects();
 applySubjectIcons();
-if(!C().name){ renderOnboarding(); }
-else { showTab('home'); playIntro(); }
+function bootApp(){
+  if(!C().name){ renderOnboarding(); }
+  else { showTab('home'); playIntro(); }
+}
+bootApp();
 /* 若上次背景音樂是開啟的，則在使用者第一次互動時自動續播（瀏覽器需手勢才能播放） */
 if(state.bgm){
   const resumeBgm=()=>{ startBgm(); document.removeEventListener('pointerdown',resumeBgm); };

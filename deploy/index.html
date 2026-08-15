@@ -597,6 +597,34 @@ function applyActiveSubjects(){
 }
 
 /* ---------- 進度存檔 ---------- */
+/* ---------- 獎勵梯度（sink 平衡）：小獎 / 中獎 / 大獎，成本分佈讓陽光長期有價值 ---------- */
+const REWARD_TIERS = {
+  small:  { label:'小獎', tag:'🟢', color:'#2e7d32' },
+  medium: { label:'中獎', tag:'🔵', color:'#1565c0' },
+  large:  { label:'大獎', tag:'🟣', color:'#6a1b9a' }
+};
+/* 成本自動歸檔：<160 小獎，160~360 中獎，>360 大獎（即便家長自訂也能對應徽章） */
+function rewardTier(cost){ const c=Number(cost)||0; return c>360 ? 'large' : c>=160 ? 'medium' : 'small'; }
+/* 預設梯度獎勵：小獎吸每日收入、大獎需長期存，陽光才有持續目標（防通膨） */
+const PRESET_REWARDS = [
+  { name:'多看 10 分鐘動畫',   cost:80,  tier:'small'  },
+  { name:'選今天晚餐菜色',     cost:100, tier:'small'  },
+  { name:'多玩 15 分鐘平板',   cost:120, tier:'small'  },
+  { name:'吃一份喜歡的點心',   cost:140, tier:'small'  },
+  { name:'去公園玩 30 分鐘',   cost:200, tier:'medium' },
+  { name:'買一個小玩具',       cost:260, tier:'medium' },
+  { name:'晚睡 30 分鐘',       cost:300, tier:'medium' },
+  { name:'邀朋友來家裡玩',     cost:340, tier:'medium' },
+  { name:'買一本喜歡的書',     cost:440, tier:'large'  },
+  { name:'去動物園或半日遊',   cost:480, tier:'large'  },
+  { name:'周末去吃喜歡的餐廳', cost:520, tier:'large'  },
+  { name:'選一份大禮物',       cost:580, tier:'large'  }
+];
+function tierBadge(tier){
+  const t = REWARD_TIERS[tier] || REWARD_TIERS.small;
+  return `<span style="display:inline-block;font-size:12px;font-weight:800;color:#fff;background:${t.color};border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:middle;">${t.tag} ${t.label}</span>`;
+}
+
 const SAVE_KEY='bloom_homework_v10';
 
 /* ---------- IndexedDB 主存層（localStorage 兜底） ---------- */
@@ -638,11 +666,18 @@ function flashSaved(){
 
 /* 啟動時以 IndexedDB 為優先，並把舊 localStorage 資料遷移進 IDB */
 function hydrateFromIDB(){
+  const hadName = !!C().name;   // 首屏（localStorage）時的名字狀態，用來判斷是否要重決策
   idbGet().then(raw=>{
+    if(_onboardStarted) return; // 用戶已在建立新檔（onboarding 已輸入名字），不允許 IDB 非同步覆蓋
     if(raw){
       try{
         const s=JSON.parse(raw);
-        if(s && typeof s==='object'){ state=s; if(typeof renderHome==='function') renderHome(); setTimeout(()=>{ if(typeof renderHome==='function') renderHome(); },80); }
+        if(s && typeof s==='object'){
+          state = load(s);   // 走 load() 做欄位遷移補預設值，避免舊檔缺欄位
+          if(!!C().name !== hadName) bootApp();   // IDB 有檔但首屏無名字 → 重新決策（跳過引導）
+          if(typeof renderHome==='function') renderHome();
+          setTimeout(()=>{ if(typeof renderHome==='function') renderHome(); },80);
+        }
       }catch(e){}
     } else {
       try{ idbSet(localStorage.getItem(SAVE_KEY)||JSON.stringify(state)); }catch(e){}
@@ -651,6 +686,7 @@ function hydrateFromIDB(){
 }
 
 let state = load();
+let _onboardStarted=false;   // onboarding 已開始建立新檔（用戶輸入名字），防止 IDB 非同步覆蓋
 let currentTab='home';
 let currentHWId=null;
 let eyeTimerOn=false;
@@ -1181,16 +1217,16 @@ function freshState(){
   return {
     children:[ch], activeChildId:ch.id,
     homeworkList:defaultHomeworkList(), weekRoutine:defaultWeekRoutine(),
-    manualHolidays:[], rewards:[], parentPIN:'1234', customBanks:[], eyeRestOn:true, quizLimitMin:30, restMin:10,
+    manualHolidays:[], rewards: PRESET_REWARDS.map((p,i)=>({id:'r'+i, name:p.name, cost:p.cost, tier:p.tier, status:'none'})), parentPIN:'1234', customBanks:[], eyeRestOn:true, quizLimitMin:30, restMin:10,
     tts:true, sleepLock:true, sleepOverrideTonight:false, notifiedDate:'',
     homeModules:defaultHomeModules(), activeSubjects:defaultActiveSubjects(), subjectIcons:defaultSubjectIcons(), subjectNames:defaultSubjectNames(), bgm:false,
     routineLimit:{eat:40,bath:30}, routineStep:5, routinePenalty:5,
     schedule:[], scheduleDate:'', schedCheckin:5, schedOnTime:10
   };
 }
-function load(){
+function load(seed){
   try{
-    const raw = localStorage.getItem(SAVE_KEY) || localStorage.getItem('pvz_homework_v10');
+    const raw = seed ? JSON.stringify(seed) : (localStorage.getItem(SAVE_KEY) || localStorage.getItem('pvz_homework_v10'));
     const s=JSON.parse(raw);
     if(s){
       if(Array.isArray(s.rewards)){
@@ -3522,29 +3558,60 @@ function renderCollection(){
   $('#clHome').onclick=()=>showTab('home');
 }
 
-/* 開場：輸入名字 */
+/* 開場引導：名字 → 4 張世界觀引導卡（含進度點） */
 function renderOnboarding(){
-  app.innerHTML = `
-  <div class="panel" style="text-align:center;">
-    <h2>🌻 歡迎來到小花園</h2>
-    <p class="hint">先告訴我你的名字，我們一起種下屬於你的小花園吧！</p>
-    <div style="margin:20px 0;">
-      <input id="nameInput" class="name-input" placeholder="輸入你的名字" maxlength="10">
-    </div>
-    <button class="next-btn" id="startBtn">🌱 開始種花園</button>
-  </div>`;
-  $('#startBtn').onclick=()=>{
-    const n=$('#nameInput').value.trim();
-    if(!n){ badSound(); toast('請先輸入名字喔！'); return; }
-    C().name=n; save(); goodSound(); showTab('home'); playIntro();
-  };
-  $('#nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#startBtn').click(); });
+  const TOUR=[
+    { e:'🌻', t:'這是你的小花園', b:'你種下的食蟲植物，會一起對抗想偷走專注力的「瞌睡怪」。把牠們打退，花園就長得越好！' },
+    { e:'✍️', t:'寫功課 → 賺陽光', b:'完成今天的功課並請爸媽簽名，就能獲得陽光；簽名前，也可以點首頁的植物「發射露珠」把瞌睡怪打退！' },
+    { e:'🎁', t:'陽光換真獎勵', b:'把陽光存起來，到「獎勵商店」兌換爸媽設定的獎勵。小獎便宜、大獎要存很久——這就是存錢的樂趣！' },
+    { e:'🚀', t:'準備出發！', b:'隨時點首頁的「❓ 怎麼玩」都能再看說明書。現在，去種下你的第一朵花吧 🌱' }
+  ];
+  let step = C().name ? 1 : 0;
+  function paint(){
+    if(step===0){
+      app.innerHTML = `
+      <div class="panel" style="text-align:center;">
+        <h2>🌻 歡迎來到小花園</h2>
+        <p class="hint">先告訴我你的名字，我們一起種下屬於你的小花園吧！</p>
+        <div style="margin:20px 0;">
+          <input id="nameInput" class="name-input" placeholder="輸入你的名字" maxlength="10">
+        </div>
+        <button class="next-btn" id="startBtn">🌱 開始種花園</button>
+      </div>`;
+      $('#startBtn').onclick=()=>{
+        const n=$('#nameInput').value.trim();
+        if(!n){ badSound(); toast('請先輸入名字喔！'); return; }
+        _onboardStarted=true; C().name=n; save(); goodSound(); step=1; paint();
+      };
+      $('#nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#startBtn').click(); });
+    } else {
+      const i=step-1, t=TOUR[i], isLast=step===TOUR.length;
+      const dots=TOUR.map((_,k)=>`<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 4px;background:${k===i?'#7cb342':'#d9d2bf'};"></span>`).join('');
+      app.innerHTML=`
+      <div class="panel" style="text-align:center;">
+        <div style="font-size:66px;line-height:1;margin:6px 0 8px;animation:plantBob 2.2s ease-in-out infinite;">${t.e}</div>
+        <h2>${t.t}</h2>
+        <p class="hint" style="font-size:15px;line-height:1.75;margin:14px 6px;">${t.b}</p>
+        <div style="margin:16px 0 4px;">${dots}</div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:10px;">
+          ${step>1?'<button class="reset-btn" id="obPrev">← 上一步</button>':''}
+          <button class="next-btn" id="obNext">${isLast?'🚀 開始玩！':'下一步 →'}</button>
+        </div>
+      </div>`;
+      const prev=$('#obPrev'); if(prev) prev.onclick=()=>{ step--; paint(); };
+      $('#obNext').onclick=()=>{
+        if(isLast){ state.seenTour=true; save(); showTab('home'); playIntro(); }
+        else { step++; paint(); }
+      };
+    }
+  }
+  paint();
 }
 
 /* 小花園首頁 */
 function renderHome(){
   ensureSchedule();
-  if(!manualAutoShown && !state.seenManual){ manualAutoShown=true; state.seenManual=true; save(); setTimeout(()=>{ if(typeof openManual==='function') openManual(); },1000); }
+  if(!manualAutoShown && !state.seenManual && !state.seenTour){ manualAutoShown=true; state.seenManual=true; save(); setTimeout(()=>{ if(typeof openManual==='function') openManual(); },1000); }
   const c=C();
   const finished = visibleHW().filter(it=>c.homework[it.id]===true).length;
   const unfinished = visibleHW().length - finished;
@@ -5293,12 +5360,12 @@ function renderShop(){
     const div=document.createElement('div'); div.className='reward';
     const status = r.status || 'none';
     if(status==='approved'){
-      div.innerHTML=`<div><div class="nm">🎁 ${r.name}</div><div class="cost" style="color:#2e7d32;">✅ 已發放，去跟爸媽拿獎勵！</div></div>`;
+      div.innerHTML=`<div><div class="nm">🎁 ${r.name}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost" style="color:#2e7d32;">✅ 已發放，去跟爸媽拿獎勵！</div></div>`;
     } else if(status==='pending'){
-      div.innerHTML=`<div><div class="nm">🎁 ${r.name}</div><div class="cost" style="color:#e08e0b;">⏳ 申請中，請找爸媽確認發放</div></div>`;
+      div.innerHTML=`<div><div class="nm">🎁 ${r.name}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost" style="color:#e08e0b;">⏳ 申請中，請找爸媽確認發放</div></div>`;
     } else {
       const can = c.sun>=r.cost;
-      div.innerHTML=`<div><div class="nm">${r.name}</div><div class="cost">💰 ${r.cost} 陽光</div></div>
+      div.innerHTML=`<div><div class="nm">${r.name}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${r.cost} 陽光</div></div>
         <button class="next-btn" ${can?'':'disabled'}>兌換</button>`;
       const btn=div.querySelector('button');
       if(can) btn.onclick=()=>{
@@ -5353,7 +5420,7 @@ function renderParent(){
   state.rewards.forEach(r=>{
     const st = r.status||'none';
     const badge = st==='approved' ? '· 已發放' : st==='pending' ? '· 待確認' : '';
-    rewardMgmt+=`<div class="reward"><div><div class="nm">${r.name}</div><div class="cost">💰 ${r.cost} 陽光 ${badge}</div></div>`;
+    rewardMgmt+=`<div class="reward"><div><div class="nm">${r.name}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${r.cost} 陽光 ${badge}</div></div>`;
     if(st==='pending'){
       rewardMgmt+=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="next-btn" id="appr${r.id}" style="padding:8px 12px;font-size:14px;">✅ 確認發放</button>
@@ -5366,7 +5433,8 @@ function renderParent(){
     rewardMgmt+=`</div>`;
   });
   rewardMgmt+=`</div>
-    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <div style="margin:10px 0;"><button class="next-btn" id="addPreset" style="background:#6a1b9a;">🎁 一鍵加入梯度獎勵（小 / 中 / 大獎）</button></div>
+    <div style="margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <input id="rName" class="in" placeholder="獎勵名稱（如：去公園玩30分鐘）" style="max-width:240px;">
       <input id="rCost" class="in" type="number" placeholder="陽光成本" style="max-width:120px;">
       <button class="next-btn" id="addReward">${editingRewardId?'💾 更新獎勵':'➕ 新增獎勵'}</button>
@@ -5582,11 +5650,18 @@ function renderParent(){
     const j=$('#rej'+r.id); if(j) j.onclick=()=>{ r.status='none'; c.sun+=r.cost; save(); $$('.sunCount').forEach(e=>e.textContent=c.sun); toast('↩ 已退回，陽光已歸還'); renderParent(); };
     const e=$('#edt'+r.id); if(e) e.onclick=()=>{ editingRewardId=r.id; const n=$('#rName'),cc2=$('#rCost'); if(n) n.value=r.name; if(cc2) cc2.value=r.cost; renderParent(); };
   });
+  const addPreset=$('#addPreset'); if(addPreset) addPreset.onclick=()=>{
+    const have=new Set(state.rewards.map(r=>r.name));
+    let added=0;
+    PRESET_REWARDS.forEach(p=>{ if(!have.has(p.name)){ state.rewards.push({id:'r'+Date.now()+'_'+added, name:p.name, cost:p.cost, tier:p.tier, status:'none'}); added++; } });
+    save(); renderParent();
+    toast(added? ('🎁 已加入 '+added+' 個梯度獎勵（小 / 中 / 大獎都有）') : '梯度獎勵都已經在清單裡囉');
+  };
   $('#addReward').onclick=()=>{
     const name=$('#rName').value.trim(); const cost=parseInt($('#rCost').value);
     if(!name||!cost||cost<=0){ toast('請填寫獎勵名稱與正確陽光數'); return; }
-    if(editingRewardId){ const r=state.rewards.find(x=>x.id===editingRewardId); if(r){ r.name=name; r.cost=cost; } editingRewardId=null; toast('✅ 獎勵已更新'); }
-    else { state.rewards.push({id:'r'+Date.now(), name, cost, status:'none'}); toast('🎁 已新增獎勵'); }
+    if(editingRewardId){ const r=state.rewards.find(x=>x.id===editingRewardId); if(r){ r.name=name; r.cost=cost; r.tier=rewardTier(cost); } editingRewardId=null; toast('✅ 獎勵已更新'); }
+    else { state.rewards.push({id:'r'+Date.now(), name, cost, tier:rewardTier(cost), status:'none'}); toast('🎁 已新增獎勵'); }
     save(); renderParent();
   };
   const ce=$('#cancelEdit'); if(ce) ce.onclick=()=>{ editingRewardId=null; renderParent(); };
@@ -5714,7 +5789,7 @@ function renderParent(){
   $('#importFile').onchange=(e)=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader();
-    rd.onload=()=>{ try{ const s=JSON.parse(rd.result); if(s&&Array.isArray(s.children)){ state=s; parentUnlocked=false; save(); toast('✅ 存檔已還原'); showTab('home'); } else toast('檔案格式不正確'); }catch(err){ toast('讀取失敗'); } };
+    rd.onload=()=>{ try{ const s=JSON.parse(rd.result); if(s&&Array.isArray(s.children)){ state=load(s); parentUnlocked=false; save(); toast('✅ 存檔已還原'); showTab('home'); } else toast('檔案格式不正確'); }catch(err){ toast('讀取失敗'); } };
     rd.readAsText(f);
   };
 
@@ -5764,8 +5839,11 @@ function weekChartSVG(c){
 $$('.tab-btn').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
 applyActiveSubjects();
 applySubjectIcons();
-if(!C().name){ renderOnboarding(); }
-else { showTab('home'); playIntro(); }
+function bootApp(){
+  if(!C().name){ renderOnboarding(); }
+  else { showTab('home'); playIntro(); }
+}
+bootApp();
 /* 若上次背景音樂是開啟的，則在使用者第一次互動時自動續播（瀏覽器需手勢才能播放） */
 if(state.bgm){
   const resumeBgm=()=>{ startBgm(); document.removeEventListener('pointerdown',resumeBgm); };
