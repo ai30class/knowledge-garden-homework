@@ -41,6 +41,7 @@
   }
   header h1{font-size:21px; margin:0; text-shadow:1px 2px 0 #fff7d6; letter-spacing:.5px; font-weight:800; line-height:1.25;}
   header .sub{font-size:12px; color:#7a5a00; margin-top:2px; font-weight:600;}
+  header .byline{font-size:11px; color:#9a8a5a; margin-top:3px; font-weight:600; letter-spacing:.3px;}
   .sun-box{
     margin-left:auto; display:flex; align-items:center; gap:8px;
     background:#fff; padding:7px 16px; border-radius:30px; font-weight:800;
@@ -481,6 +482,7 @@
 <header>
   <span style="font-size:30px">🌻</span>
   <h1>知識小花園 · 作業守護台<br><span class="sub">邊玩邊學 · 守護你的知識花園</span></h1>
+  <div class="byline" id="homeByline"></div>
   <div class="sun-box"><span class="sun-emoji">☀️</span><span id="sunCount" class="sunCount">0</span> 陽光</div>
 </header>
 
@@ -1256,6 +1258,7 @@ function openAbout(){
   ov.querySelector('#aboutClose').onclick=()=>ov.remove();
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
 }
+(function(){ const bl=document.getElementById('homeByline'); if(bl) bl.textContent='by '+CREATOR_INFO.author; })();
 
 function freshState(){
   const ch=defaultChild('');
