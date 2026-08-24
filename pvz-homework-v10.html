@@ -119,7 +119,7 @@
   .lp.dead{ filter:grayscale(1) brightness(.5); transform:rotate(-16deg); opacity:.7; }
   .zombie.eating{ animation:chomp .42s ease-in-out infinite; }
   .zombie.hit{ animation:zHit .18s ease-out; }
-  /* —— 向量角色：瞌睡怪 —— */
+  /* —— 向量角色：拖延怪 —— */
   .z-svg{ width:56px; height:84px; overflow:visible; display:block; }
   .zombie.mega .z-svg{ width:76px; height:114px; }
   .z-leg{ transform-origin:31px 57px; }
@@ -199,6 +199,17 @@
 
   .q-row{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:14px 0;}
   .q-hint{font-size:15px; color:#2e7d32; background:#eafbe7; border:1px dashed #9ccc65; border-radius:10px; padding:6px 12px; margin:8px 0; font-weight:700;}
+  .q-explain{font-size:14px; color:#7a6a45; background:#fff8e6; border:1px dashed #e0c98a; border-radius:10px; padding:6px 12px; margin-top:6px; font-weight:600;}
+  /* 資料與不確定性題型：表格／長條圖／圓形圖 */
+  .d-table{border-collapse:collapse; margin:8px auto; font-size:15px;}
+  .d-table th,.d-table td{border:2px solid #cfe3b0; padding:6px 14px; text-align:center;}
+  .d-table th{background:#eafbe7; color:#2e7d32;}
+  .bar-chart{margin:10px auto; max-width:280px; text-align:left;}
+  .bar-row{display:flex; align-items:center; gap:8px; margin:6px 0;}
+  .bar-label{width:56px; font-weight:800; font-size:14px; flex-shrink:0;}
+  .bar-fill{background:linear-gradient(90deg,#66bb6a,#43a047); color:#fff; font-weight:800; font-size:13px; padding:3px 8px; border-radius:6px; min-width:24px; white-space:nowrap;}
+  .pie-wrap{text-align:center; margin:8px auto;}
+  .pie-legend{font-size:14px; margin-top:6px; color:#7a6a45;}
   .q-text{font-size:26px; font-weight:800; cursor:pointer; transition:color .15s;}
   .q-text:hover{color:var(--accent);}
   .q-text .spk{font-size:18px; opacity:.55;}
@@ -560,7 +571,7 @@ function playIntro(){
 }
 function openHomeCustom(){
   const items=[
-    {k:'zombie', t:'😴 瞌睡怪戰鬥與植物血量'},
+    {k:'zombie', t:'😴 拖延怪戰鬥與植物血量'},
     {k:'routine', t:'🕐 今日作息'},
     {k:'homework', t:'📝 今日功課（國語那些小圖）'},
     {k:'badges', t:'🏅 我的徽章'},
@@ -760,7 +771,7 @@ function defaultChild(name){
     routine:{}, routineDate:dateKey(),
     sched:{}, bonusSun:0,
     age:7, levelOverride:'',
-    wrongQuestions:[], accWin:[], badges:{}, lastDoneDate:'', streak:0, _reviewIdx:0,
+    wrongQuestions:[], accWin:[], badges:{}, lastDoneDate:'', streak:0, streakShields:0, wrongStreak:0, _reviewIdx:0,
     quizLog:{}, quizStreak:0,
     subjectDiff:{},
     eyeRestUntil:0, studyMs:0, studyMsDate:dateKey()
@@ -776,6 +787,8 @@ function makeChildFromOld(s){
   c.sched=s.sched||{}; c.bonusSun=s.bonusSun||0;
   c.age=s.age||7; c.levelOverride=normLevel(s.levelOverride||'');
   c.accWin=s.accWin||[]; c.quizLog=s.quizLog||{}; c.quizStreak=s.quizStreak||0;
+  c.streakShields=s.streakShields||0;
+  c.wrongStreak=s.wrongStreak||0;
   c.subjectDiff=s.subjectDiff||{};
   c.eyeRestUntil=s.eyeRestUntil||0; c.studyMs=s.studyMs||0; c.studyMsDate=s.studyMsDate||dateKey();
   return c;
@@ -924,7 +937,7 @@ function renderChoices(cfg){
         logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:String(o), String(o), correctVal, arr);
         if(cfg.onWrong) cfg.onWrong();
         $$('.choice',box).forEach(x=>{ if(compare(x.textContent)) x.classList.add('correct'); });
-        if(fb) fb.textContent = (cfg.wrongPrefix||'💡 正確是：') + correctVal;
+        if(fb) fb.innerHTML = escapeHtml((cfg.wrongPrefix||'💡 正確是：') + correctVal) + (cfg.explain? `<div class="q-explain">📖 ${escapeHtml(cfg.explain)}</div>` : '');
       }
       clearQTimer();
       if(cfg.onDone) cfg.onDone(ok);
@@ -965,7 +978,7 @@ function startQTimer(onTimeout){
 function timeoutMiss(cfg, correctVal, opts){
   record(cfg.moduleKey,false);
   logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', '（超時未作答）', correctVal, opts||[]);
-  if(cfg.fb){ cfg.fb.textContent='⏰ 時間到！正確是：'+correctVal; }
+  if(cfg.fb){ cfg.fb.innerHTML = escapeHtml('⏰ 時間到！正確是：'+correctVal) + (cfg.explain? `<div class="q-explain">📖 ${escapeHtml(cfg.explain)}</div>` : ''); }
   if(cfg.onWrong) cfg.onWrong();
   if(cfg.onDone) cfg.onDone(false);
   else if(!quizCount(false)) renderQuizDone(quizSess);
@@ -1089,10 +1102,11 @@ function renderQ(q, cfg){
   if(q.type==='order') return renderOrder(Object.assign(base,{order:q.order}));
   return renderChoices(Object.assign(base,{opts:q.opts}));
 }
-function renderReviewDrill(){
+function renderReviewDrill(viaCareless){
   const c=C(); const pool=dueReviews();  if(!pool.length){ app.innerHTML=`<div class="panel"><h2>🔁 錯題複習</h2><p class="hint">目前沒有錯題可以複習，你超棒！🎉</p><button class="next-btn" id="rvBack">⬅ 回首頁</button></div>`; $('#rvBack').onclick=renderHome; return; }
   const queue=pool.slice().sort(()=>Math.random()-.5);
   let i=0, right=0;
+  const carelessNote=viaCareless?'<p class="hint" style="color:#c0392b;">🤴 粗心大王出現：連續答錯 2 題，先把剛剛的題目複習一遍再繼續！</p>':'';
   const renderOne=()=>{
     if(i>=queue.length){
       app.innerHTML=`<div class="panel" style="text-align:center;"><h2>🎉 複習完成！</h2><p style="font-size:18px;font-weight:800;">共 ${queue.length} 題，答對 ${right} 題</p><button class="next-btn" id="rvBack">⬅ 回首頁</button></div>`;
@@ -1102,6 +1116,7 @@ function renderReviewDrill(){
     const opts=shuffleOpts(w.opts, w.correct);
     app.innerHTML=`<div class="panel">
       <h2>🔁 錯題複習（${i+1}/${queue.length}）</h2>
+      ${carelessNote}
       <div class="q-row"><span class="q-text">${escapeHtml(w.q)}</span></div>
       <div class="choices" id="rvc"></div>
       <div class="feedback" id="rvf"></div>
@@ -1169,20 +1184,20 @@ function openManual(){
     <p style="text-align:center;color:#8a7a55;font-size:13px;margin:0 0 12px;">3 分鐘搞懂，陪孩子一起守護植物！</p>
     <div class="man-sec">
       <h3>🎯 這款遊戲在幹嘛</h3>
-      <p>「知識小花園·作業守護台」把<b>寫功課</b>變成一場守護戰。孩子的真實功課寫完、練習答對，就能驅趕偷懶的瞌睡怪，讓食蟲植物小花園平安長大。</p>
+      <p>「知識小花園·作業守護台」把<b>寫功課</b>變成一場守護戰。孩子的真實功課寫完、練習答對，就能驅趕偷懶的拖延怪，讓食蟲植物小花園平安長大。</p>
     </div>
     <div class="man-sec">
       <h3>🌟 三個主角</h3>
       <p>🌿 <b>植物小花園</b>：8 種雨林食蟲植物（捕蠅草、瓶子草…），靠陽光解鎖、升級。<br>
-      😴 <b>瞌睡怪</b>：偷懶怪獸，會隨著「沒寫功課 / 遲到」慢慢逼近；功課寫完、作息打卡，牠就會被推退。<br>
+      😴 <b>拖延怪</b>：偷懶怪獸，會隨著「沒寫功課 / 遲到」慢慢逼近；功課寫完、作息打卡，牠就會被推退。<br>
       ☀️ <b>陽光</b>：遊戲裡的錢幣。寫功課、練習答對、打卡都會賺到，用來解鎖植物、兌換真實獎勵。</p>
     </div>
     <div class="man-sec">
       <h3>🕹 每天這樣玩（3 步）</h3>
       <ol>
         <li>在學校把功課寫完 → 首頁點「⚔️ 開始打怪」→ 勾選每一項（寫字端正 / 錯字檢查 / 格式完整）→ 點「完成」申請簽名。</li>
-        <li>請爸媽打開「家長後台」→ 點「簽名完成」→ 立刻 <b>+30 陽光</b>、瞌睡怪後退！</li>
-        <li>點戰場上任何一株植物 👉 會發射露珠把瞌睡怪打退一點點，還有 +1 互動陽光（隨手玩都行）。</li>
+        <li>請爸媽打開「家長後台」→ 點「簽名完成」→ 立刻 <b>+30 陽光</b>、拖延怪後退！</li>
+        <li>點戰場上任何一株植物 👉 會發射露珠把拖延怪打退一點點，還有 +1 互動陽光（隨手玩都行）。</li>
       </ol>
     </div>
     <div class="man-sec">
@@ -1289,7 +1304,7 @@ function freshState(){
   return {
     children:[ch], activeChildId:ch.id,
     homeworkList:defaultHomeworkList(), weekRoutine:defaultWeekRoutine(),
-    manualHolidays:[], rewards: PRESET_REWARDS.map((p,i)=>({id:'r'+i, name:p.name, cost:p.cost, tier:p.tier, status:'none'})), parentPIN:'1234', customBanks:[], eyeRestOn:true, quizLimitMin:30, restMin:10,
+    manualHolidays:[], rewards: PRESET_REWARDS.map((p,i)=>({id:'r'+i, name:p.name, cost:p.cost, tier:p.tier, status:'none'})), redemptions:[], parentPIN:'1234', customBanks:[], eyeRestOn:true, quizLimitMin:30, restMin:10,
     tts:true, sleepLock:true, sleepOverrideTonight:false, notifiedDate:'',
     homeModules:defaultHomeModules(), activeSubjects:defaultActiveSubjects(), subjectIcons:defaultSubjectIcons(), subjectNames:defaultSubjectNames(), bgm:false,
     routineLimit:{eat:40,bath:30}, routineStep:5, routinePenalty:5,
@@ -1304,6 +1319,7 @@ function load(seed){
       if(Array.isArray(s.rewards)){
         s.rewards.forEach(r=>{ if(r.claimed!==undefined && r.status===undefined){ r.status=r.claimed?'approved':'none'; delete r.claimed; } if(r.status===undefined) r.status='none'; });
       }
+      if(!Array.isArray(s.redemptions)) s.redemptions=[];
       if(s.weekRoutine===undefined){
         const d=defaultWeekRoutine();
         if(s.routine){ for(let i=0;i<7;i++) s.weekRoutine[i]={...d[i], ...s.routine}; }
@@ -1502,7 +1518,7 @@ document.addEventListener('pointerdown', unlockAudioOnce, {once:true});
 document.addEventListener('keydown', unlockAudioOnce, {once:true});
 window.addEventListener('beforeunload', save);
 
-/* 瞌睡怪隨時間逼近（每 2 秒更新一次，讓移動看得見） */
+/* 拖延怪隨時間逼近（每 2 秒更新一次，讓移動看得見） */
 setInterval(()=>{
   if(currentTab==='home'){ updateClock(); updateZombie(unfinishedCount()); tickEnergy(); }
   if(practiceLocked() && state.notifiedDate!==dateKey() && Notification&&Notification.permission==='granted'){
@@ -1869,9 +1885,9 @@ function toggleDeck(id){
 }
 
 /* ================= 向量角色（取代 emoji）================= */
-/* 瞌睡怪：圓滾滾的瞌睡小怪，動作全由 CSS 驅動 */
+/* 拖延怪：圓滾滾的瞌睡小怪，動作全由 CSS 驅動 */
 function zombieSVG(){
-  return `<svg class="z-svg" viewBox="0 0 60 92" xmlns="http://www.w3.org/2000/svg" aria-label="瞌睡怪">
+  return `<svg class="z-svg" viewBox="0 0 60 92" xmlns="http://www.w3.org/2000/svg" aria-label="拖延怪">
     <ellipse cx="30" cy="88" rx="16" ry="3.6" fill="rgba(0,0,0,.22)"/>
     <g class="z-leg z-leg-b">
       <rect x="25" y="60" width="10" height="22" rx="5" fill="#6a5a8e"/>
@@ -2693,7 +2709,7 @@ function isHolidayToday(){
   return null;
 }
 
-/* ---------- 每週作息 / 瞌睡怪計時逼近 ---------- */
+/* ---------- 每週作息 / 拖延怪計時逼近 ---------- */
 function todayWeekdayIndex(){ return (new Date().getDay()+6)%7; }
 function todayRoutine(){ const wr=state.weekRoutine||defaultWeekRoutine(); return wr[todayWeekdayIndex()]; }
 function zombieBounds(){
@@ -2717,8 +2733,9 @@ function fmtRemain(min){
   return h+' 小時 '+(m<10?'0':'')+m+' 分';
 }
 function fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return m+' 分 '+(s<10?'0':'')+s+' 秒'; }
+function fmtDT(ts){ if(!ts) return ''; const d=new Date(ts); return d.toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}); }
 
-/* ---------- 今日行程（排程系統）：自動產生 + 準時打卡 + 時間內完成獎勵 + 瞌睡怪跟時間軸走 ---------- */
+/* ---------- 今日行程（排程系統）：自動產生 + 準時打卡 + 時間內完成獎勵 + 拖延怪跟時間軸走 ---------- */
 function toMin(t){ const a=(t||'0:0').split(':'); const h=parseInt(a[0])||0, m=parseInt(a[1])||0; return h*60+m; }
 function defaultSchedule(){
   const r=todayRoutine(); const lim=state.routineLimit||{eat:40,bath:30};
@@ -2768,12 +2785,12 @@ function scheduleOverdue(){
   return n;
 }
 /* ===== 位置模型：時鐘 vs 進度 的賽跑 =====
-   瞌睡怪 x = 「現在時間」在作戰窗口中的比例（誠實可讀，走到哪 = 現在該做哪件事）
-   防線 x = 「今日完成度」的比例（完成一項，防線就往右推一格，把瞌睡怪實體推退）
-   瞌睡怪被防線擋住不會穿過；一旦時間超前於進度（落後），瞌睡怪就抵在防線上啃食扣血。 */
+   拖延怪 x = 「現在時間」在作戰窗口中的比例（誠實可讀，走到哪 = 現在該做哪件事）
+   防線 x = 「今日完成度」的比例（完成一項，防線就往右推一格，把拖延怪實體推退）
+   拖延怪被防線擋住不會穿過；一旦時間超前於進度（落後），拖延怪就抵在防線上啃食扣血。 */
 const LANE_R = 92, LANE_L = 6;                       // 戰場左右邊界（%）
 function laneX(ratio){ return LANE_R - Math.max(0,Math.min(1,ratio))*(LANE_R-LANE_L); }
-/* 作戰窗口：從「第一個還沒完成的行程」到「睡覺」。隨著一天推進自動收窄，瞌睡怪相對移動才看得出來。 */
+/* 作戰窗口：從「第一個還沒完成的行程」到「睡覺」。隨著一天推進自動收窄，拖延怪相對移動才看得出來。 */
 function activeWindow(){
   const sw=scheduleWindow(); if(!sw) return null;
   const c=C(); const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
@@ -2783,7 +2800,7 @@ function activeWindow(){
     if(st.status!=='done'){ const m=toMin(it.time); if(first===null||m<first) first=m; }
   });
   let start = (first===null? sw.start : first);
-  if(nowMin < start) start = nowMin - 5;             // 還沒開跑：瞌睡怪待在最右邊
+  if(nowMin < start) start = nowMin - 5;             // 還沒開跑：拖延怪待在最右邊
   let end = sw.end;
   if(end - start < 45) start = end - 45;             // 窗口至少 45 分，避免比例暴衝
   return {start, end, total:Math.max(1,end-start)};
@@ -2798,8 +2815,8 @@ function doneRatio(){
   return Math.max(0, Math.min(1, d/sc.length));
 }
 /* 一次算出戰場幾何
-   threat = 時間進度 − 完成進度：0 = 完全跟上（瞌睡怪被推到最遠），1 = 時間用光卻沒做（瞌睡怪到家門口）
-   → 完成一項行程，doneR 跳升，瞌睡怪就「被實體推退」一大段，回饋非常直接。 */
+   threat = 時間進度 − 完成進度：0 = 完全跟上（拖延怪被推到最遠），1 = 時間用光卻沒做（拖延怪到家門口）
+   → 完成一項行程，doneR 跳升，拖延怪就「被實體推退」一大段，回饋非常直接。 */
 function laneGeom(){
   const c=C(); const aw=activeWindow();
   const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
@@ -2900,7 +2917,7 @@ function renderSchedulePanel(){
   return `
     <div class="home-sec">
       <h2 style="font-size:17px;margin-top:16px;">📋 今日行程（${sc.length} 項）</h2>
-      <p class="hint" style="margin-bottom:8px;">起床/吃飯/洗澡/睡覺是<b>固定作息</b>，<b>功課</b>是今天要寫的，<b>額外</b>是家長加的。準時打卡完成會把瞌睡怪推退並賺獎勵，遲到沒做牠就加速逼近。</p>
+      <p class="hint" style="margin-bottom:8px;">起床/吃飯/洗澡/睡覺是<b>固定作息</b>，<b>功課</b>是今天要寫的，<b>額外</b>是家長加的。準時打卡完成會把拖延怪推退並賺獎勵，遲到沒做牠就加速逼近。</p>
       <div id="schedList">${cards}</div>
       <div style="text-align:center;margin-top:10px;">
         <button class="reset-btn" id="addSched">➕ 新增行程</button>
@@ -2962,7 +2979,7 @@ function updateZombie(unfinished){
   const hol=isHolidayToday();
   if(hol){
     z.style.left='94%'; z.style.right=''; z.className='zombie sleepy';
-    st.textContent='🎉 今天'+hol+'，瞌睡怪放假去囉！功課可以休息～'; st.style.color='#2e7d32';
+    st.textContent='🎉 今天'+hol+'，拖延怪放假去囉！功課可以休息～'; st.style.color='#2e7d32';
     battle.classList.remove('danger','defeated');
     if(heartTimer){ clearTimeout(heartTimer); heartTimer=null; }
     battleState='playing'; battleDismissed=false; clearOverlay();
@@ -2982,7 +2999,7 @@ function updateZombie(unfinished){
   }
   if(unfinished===0){
     z.style.left='94%'; z.style.right=''; z.className='zombie dazed';
-    st.textContent='🎉 全部寫完！瞌睡怪被打退，植物安全！'; st.style.color='#2e7d32';
+    st.textContent='🎉 全部寫完！拖延怪被打退，植物安全！'; st.style.color='#2e7d32';
     battle.classList.remove('danger','defeated');
     if(heartTimer){ clearTimeout(heartTimer); heartTimer=null; }
     if(battleState!=='won'){ battleState='won'; battleDismissed=false; }
@@ -3017,14 +3034,14 @@ function updateZombie(unfinished){
   renderTimeline(g);
   const r=todayRoutine();
   const hp='（植物 '+Math.round(c.plantHP)+'%）';
-  if(overdue>0){ st.innerHTML='⚠️ 有 <b>'+overdue+'</b> 項行程超時還沒完成，瞌睡怪趁機逼近！'+hp; st.style.color='#c0392b'; }
-  else if(mega){ st.textContent='👹 巨型瞌睡怪出現！快寫功課發射露珠打退牠！'+hp; st.style.color='#c0392b'; }
-  else if(pos>=0.9){ st.textContent='🚨 時間快用完了，瞌睡怪已經咬到植物！快去補完行程把牠推退！'+hp; st.style.color='#c0392b'; }
-  else if(pos>=0.62){ st.textContent='⚠️ 進度落後了，瞌睡怪逼近中（'+r.sleep+' 睡覺前還剩 '+fmtRemain(remainMin)+'）'+hp; st.style.color='#e08e0b'; }
-  else if(g.gapMin>=5){ st.textContent='😎 進度超前！瞌睡怪被推到好遠，安心慢慢寫～'+hp; st.style.color='#2e7d32'; }
-  else { st.textContent='😴 瞌睡怪在時間軸上慢慢走… 距離 '+r.sleep+' 睡覺還有 '+fmtRemain(remainMin)+'，保持進度就安全！'+hp; st.style.color='#7a6a45'; }
+  if(overdue>0){ st.innerHTML='⚠️ 有 <b>'+overdue+'</b> 項行程超時還沒完成，拖延怪趁機逼近！'+hp; st.style.color='#c0392b'; }
+  else if(mega){ st.textContent='😎 週末魔王出現！快寫功課發射露珠打退牠！'+hp; st.style.color='#c0392b'; }
+  else if(pos>=0.9){ st.textContent='🚨 時間快用完了，拖延怪已經咬到植物！快去補完行程把牠推退！'+hp; st.style.color='#c0392b'; }
+  else if(pos>=0.62){ st.textContent='⚠️ 進度落後了，拖延怪逼近中（'+r.sleep+' 睡覺前還剩 '+fmtRemain(remainMin)+'）'+hp; st.style.color='#e08e0b'; }
+  else if(g.gapMin>=5){ st.textContent='😎 進度超前！拖延怪被推到好遠，安心慢慢寫～'+hp; st.style.color='#2e7d32'; }
+  else { st.textContent='😴 拖延怪在時間軸上慢慢走… 距離 '+r.sleep+' 睡覺還有 '+fmtRemain(remainMin)+'，保持進度就安全！'+hp; st.style.color='#7a6a45'; }
   setHeartbeat(pos);
-  if(!mega && Math.random()<0.05 && remainMin>5 && pos<0.9){ megaUntil=Date.now()+40000; toast('👹 巨型瞌睡怪出現！'); }
+  if(!mega && [0,6].includes(new Date().getDay()) && Math.random()<0.05 && remainMin>5 && pos<0.9){ megaUntil=Date.now()+40000; toast('😎 週末魔王出現了！快寫功課打退牠！'); }
 }
 /* ---------- 行程時間軸尺（與戰場共用一套右→左的時間座標） ---------- */
 function renderTimeline(g){
@@ -3061,7 +3078,7 @@ function renderTimeline(g){
   if(tag){
     if(g.gapMin>=5){ tag.className='lead-tag good'; tag.textContent='😎 進度超前 '+g.gapMin+' 分鐘'; }
     else if(g.gapMin>=-5){ tag.className='lead-tag warn'; tag.textContent='⏱ 剛好跟上進度'; }
-    else { tag.className='lead-tag bad'; tag.textContent='⚠️ 落後 '+Math.abs(g.gapMin)+' 分鐘，瞌睡怪逼近中'; }
+    else { tag.className='lead-tag bad'; tag.textContent='⚠️ 落後 '+Math.abs(g.gapMin)+' 分鐘，拖延怪逼近中'; }
   }
 }
 function pushZombie(amt){ const c=C(); c.zombiePush=Math.min(1.3,(c.zombiePush||0)+amt); save(); }
@@ -3079,7 +3096,7 @@ function shootPea(){
   requestAnimationFrame(()=>{ pea.style.left=(zr.left-br.left+12)+'px'; pea.style.top=(zr.top-br.top+10)+'px'; });
   setTimeout(()=>pea.remove(),420);
 }
-/* 孩子主動操作瞬間：點防禦植物 → 發射露珠打退瞌睡怪（小額互動獎勵，受每日上限約束）。
+/* 孩子主動操作瞬間：點防禦植物 → 發射露珠打退拖延怪（小額互動獎勵，受每日上限約束）。
    不改變 zombieDrift 時間軸模型，只是把「看」變成「玩」的參與感。 */
 let _lastFire=0;
 function childFire(){
@@ -3103,7 +3120,7 @@ function renderLawnBattle(){
   const z=document.getElementById('homeZombie');
   if(z && !z.querySelector('.z-svg')) z.innerHTML=zombieSVG();
 }
-/* 植物自動發射露珠（視覺防守；真正把瞌睡怪打退的是「寫完功課」與「能量豆」） */
+/* 植物自動發射露珠（視覺防守；真正把拖延怪打退的是「寫完功課」與「能量豆」） */
 function lawnPeaLoop(){
   const battle=document.getElementById('homeBattle'); if(!battle) return;
   const z=battle.querySelector('#homeZombie'); if(!z) return;
@@ -3152,7 +3169,7 @@ function monsterTrack(current, total){
   return html+'</div>';
 }
 function onCorrect(base){
-  const c=C(); c.combo=(c.combo||0)+1; pushZombie(0.05); shootPea();
+  const c=C(); c.combo=(c.combo||0)+1; c.wrongStreak=0; pushZombie(0.05); shootPea();
   screenShake('.battle, .lawn-battle'); const fb=document.querySelector('.feedback'); if(fb) burstAt(fb);
   if(fb) flySunToHeader(fb);
   if(c.combo>=3){ const mult=c.combo>=6?3:2; const bonus=base*(mult-1); addSun(bonus); toast('🔥 連擊 x'+mult+'！額外 +'+bonus+' 陽光'); }
@@ -3161,14 +3178,14 @@ function onCorrect(base){
 }
 function onWrong(){ const c=C(); if(c.combo>=3) toast('💔 連擊中斷'); c.combo=0; save(); }
 /* 真正輸贏閉環：勝負狀態機 + 彈出 overlay。
-   - 勝利：今日功課全部寫完（瞌睡怪被打退）→ 🎉 守護成功
-   - 失敗：植物血量歸零 / 瞌睡怪抵達房子（pos>=0.985）→ 💥 防線被突破，可一鍵重新種下防線 */
+   - 勝利：今日功課全部寫完（拖延怪被打退）→ 🎉 守護成功
+   - 失敗：植物血量歸零 / 拖延怪抵達房子（pos>=0.985）→ 💥 防線被突破，可一鍵重新種下防線 */
 function clearOverlay(){
   const ov=document.getElementById('battleOverlay'); if(ov){ ov.className='battle-overlay'; ov.dataset.kind=''; ov.innerHTML=''; }
 }
 function showBattleOverlay(kind){
   const ov=document.getElementById('battleOverlay');
-  if(!ov){ if(kind==='won') toast('🎉 守護成功！全部功課寫完，瞌睡怪被打退！'); else toast('💥 防線被突破！瞌睡怪吃掉了植物，快重新種下防線！'); return; }
+  if(!ov){ if(kind==='won') toast('🎉 守護成功！全部功課寫完，拖延怪被打退！'); else toast('💥 防線被突破！拖延怪吃掉了植物，快重新種下防線！'); return; }
   if(ov.dataset.kind===kind) return;   // 同一結果只彈一次
   ov.dataset.kind=kind;
   if(kind==='won'){
@@ -3176,7 +3193,7 @@ function showBattleOverlay(kind){
     ov.innerHTML=`<div class="bo-card">
       <div class="bo-emoji">🎉</div>
       <h2>守護成功！</h2>
-      <p>所有功課都寫完了，瞌睡怪被你的露珠打退，植物安全長大！</p>
+      <p>所有功課都寫完了，拖延怪被你的露珠打退，植物安全長大！</p>
       <button class="next-btn" id="boBtn">🏡 回到小花園</button></div>`;
     const btn=document.getElementById('boBtn'); if(btn) btn.onclick=()=>{ battleDismissed=true; clearOverlay(); };
     setTimeout(()=>{ for(let i=0;i<6;i++) sunBurstAt(Math.random()*Math.min(window.innerWidth,520)+20, Math.random()*window.innerHeight*0.5); }, 80);
@@ -3185,7 +3202,7 @@ function showBattleOverlay(kind){
     ov.innerHTML=`<div class="bo-card">
       <div class="bo-emoji">💥</div>
       <h2>防線被突破了…</h2>
-      <p>瞌睡怪吃掉了植物。別難過，重新種下防線，再挑戰一次！</p>
+      <p>拖延怪吃掉了植物。別難過，重新種下防線，再挑戰一次！</p>
       <button class="next-btn" id="boBtn">🌱 重新種下防線</button></div>`;
     const btn=document.getElementById('boBtn'); if(btn) btn.onclick=()=>{ const c=C(); c.plantHP=100; c.zombieDrift=0; c.zombiePush=0; battleState='playing'; battleDismissed=false; save(); clearOverlay(); renderHome(); };
   }
@@ -3210,6 +3227,12 @@ function logWrong(moduleKey, qText, yourAns, correct, opts){
   if(!exist) c.wrongQuestions.push({q:qText, correct, opts:(opts||[]).slice(), module:moduleKey, ts:Date.now(), due:0, reps:0});
   else { exist.opts=(opts||[]).slice(); }
   screenShake('.battle, .lawn-battle'); flashRed('.battle, .lawn-battle'); onWrong(); save();
+  // 粗心大王：連續答錯 2 題就跳轉錯題複習，讓孩子冷靜下來重練
+  c.wrongStreak=(c.wrongStreak||0)+1;
+  if(c.wrongStreak>=2){
+    c.wrongStreak=0; save();
+    setTimeout(()=>{ toast('🤴 粗心大王出現了！連續碰上 2 題，先冷靜複習一下剛剛的錯題'); renderReviewDrill(true); }, 1200);
+  }
 }
 
 /* ---------- 點讀發音 ---------- */
@@ -3313,15 +3336,42 @@ function completeHomework(){
 function completeBtnHTML(){ return ''; }
 function attachComplete(){ }
 
+/* 簽到連勝加成：固定陽光加碼，沿用專案「固定陽光數」風格（不用百分比） */
+function streakBonus(streak){
+  if(streak>=14) return 10;
+  if(streak>=7) return 6;
+  if(streak>=3) return 3;
+  return 0;
+}
 /* 家長簽名：核准/退回 */
 function approveHomework(id){
   const c=C(); if(c.homework[id]!=='pending') return;
+  const megaActive = Date.now()<megaUntil;
   c.homework[id]=true; addSun(30); pushZombie(0.18);
   c.plantHP=Math.min(100,c.plantHP+25); shootPea(); goodSound();
-  // 連續完成天數
+  // 連續完成天數：加成／中斷懲罰／護盾豆補救
+  let msg='✅ 已簽名完成，+30 陽光！';
+  if(megaActive){ megaUntil=0; addSun(20, true); msg+=' 😎 打退週末魔王！加碼 +20 陽光！'; }
   const today=dateKey();
-  if(c.lastDoneDate!==today){ c.streak = (c.lastDoneDate===dateKey(-1)) ? (c.streak||0)+1 : 1; c.lastDoneDate=today; }
-  checkBadges(); save(); toast('✅ 已簽名完成，+30 陽光！');
+  if(c.lastDoneDate!==today){
+    if(c.lastDoneDate===''){
+      c.streak=1;
+    } else if(c.lastDoneDate===dateKey(-1)){
+      c.streak=(c.streak||0)+1;
+    } else if((c.streakShields||0)>0){
+      c.streakShields--; c.streak=(c.streak||0)+1;
+      msg+=' 🛡️ 護盾豆生效，連續紀錄保住了！';
+    } else {
+      const lost=Math.min(10, c.sun);
+      c.sun-=lost; c.streak=1;
+      $$('.sunCount').forEach(e=>e.textContent=c.sun);
+      msg+=' 💧 連續紀錄中斷了，扣 '+lost+' 陽光（買🛡️護盾豆可以保護下次中斷）';
+    }
+    c.lastDoneDate=today;
+    const bonus=streakBonus(c.streak);
+    if(bonus>0){ addSun(bonus, true); msg+=' 🔥 連續 '+c.streak+' 天，加碼 +'+bonus+' 陽光！'; }
+  }
+  checkBadges(); save(); toast(msg);
 }
 function rejectHomework(id){ const c=C(); c.homework[id]=false; save(); toast('↩ 已退回，請繼續努力'); }
 
@@ -3372,7 +3422,7 @@ function useEnergy(){
   const c=C();
   if(Date.now()<energyReadyAt){ toast('能量豆冷卻中…'); return; }
   pushZombie(0.45); c.plantHP=Math.min(100,c.plantHP+30); shootPea(); goodSound();
-  energyReadyAt=Date.now()+25000; award('bean'); toast('💥 能量豆！瞌睡怪被炸退一大段！');
+  energyReadyAt=Date.now()+25000; award('bean'); toast('💥 能量豆！拖延怪被炸退一大段！');
   updateZombie(unfinishedCount()); tickEnergy();
 }
 function tickEnergy(){
@@ -3486,7 +3536,7 @@ function renderTodayTasks(){
   app.innerHTML = `
   <div class="panel">
     <h2 class="title-sticker">📝 今日功課</h2>
-    <p class="hint">把今天的功課寫完，瞌睡怪就會被打退！選一個開始寫吧。</p>
+    <p class="hint">把今天的功課寫完，拖延怪就會被打退！選一個開始寫吧。</p>
     ${banner}
     <div class="home-sec">
       <h2 style="font-size:17px;margin-top:10px;">要寫的功課（${finished}/${total} 完成）</h2>
@@ -3550,7 +3600,7 @@ function renderHomeworkCheck(hwId){
   app.innerHTML=`
   <div class="panel">
     <h2 class="title-sticker">${subjectIcon(it.type)} ${nm}</h2>
-    <p class="hint">這是在學校寫的功課。寫完後在這裡確認完成，請爸媽簽名就能賺陽光打退瞌睡怪！</p>
+    <p class="hint">這是在學校寫的功課。寫完後在這裡確認完成，請爸媽簽名就能賺陽光打退拖延怪！</p>
     ${body}
     <div style="text-align:center;margin-top:10px;"><button class="reset-btn" id="hwBack">⬅ 回功課清單</button></div>
   </div>`;
@@ -3633,8 +3683,8 @@ function renderCollection(){
 /* 開場引導：名字 → 4 張世界觀引導卡（含進度點） */
 function renderOnboarding(){
   const TOUR=[
-    { e:'🌻', t:'這是你的小花園', b:'你種下的食蟲植物，會一起對抗想偷走專注力的「瞌睡怪」。把牠們打退，花園就長得越好！' },
-    { e:'✍️', t:'寫功課 → 賺陽光', b:'完成今天的功課並請爸媽簽名，就能獲得陽光；簽名前，也可以點首頁的植物「發射露珠」把瞌睡怪打退！' },
+    { e:'🌻', t:'這是你的小花園', b:'你種下的食蟲植物，會一起對抗想偷走專注力的「拖延怪」。把牠們打退，花園就長得越好！' },
+    { e:'✍️', t:'寫功課 → 賺陽光', b:'完成今天的功課並請爸媽簽名，就能獲得陽光；簽名前，也可以點首頁的植物「發射露珠」把拖延怪打退！' },
     { e:'🎁', t:'陽光換真獎勵', b:'把陽光存起來，到「獎勵商店」兌換爸媽設定的獎勵。小獎便宜、大獎要存很久——這就是存錢的樂趣！' },
     { e:'🚀', t:'準備出發！', b:'隨時點首頁的「❓ 怎麼玩」都能再看說明書。現在，去種下你的第一朵花吧 🌱' }
   ];
@@ -3702,7 +3752,7 @@ function renderHome(){
   const HM = state.homeModules;
   const secZombie = HM.zombie ? `
     <div class="home-sec" style="animation-delay:.05s;">
-      <div class="threat-label">⏰ 瞌睡怪倒數：每天 ${r.wake} 起床後出發，${r.sleep} 睡覺前寫完就能打退牠！你的植物會自動發射露珠保衛花園，點掉下來的 ☀️ 還能收集陽光！</div>
+      <div class="threat-label">⏰ 拖延怪倒數：每天 ${r.wake} 起床後出發，${r.sleep} 睡覺前寫完就能打退牠！你的植物會自動發射露珠保衛花園，點掉下來的 ☀️ 還能收集陽光！</div>
       <div class="battle lawn-battle" id="homeBattle">
         <div class="house">🏠</div>
         <div class="lane"></div>
@@ -3712,7 +3762,7 @@ function renderHome(){
         <div class="sun-layer" id="homeSunLayer"></div>
         <div class="battle-overlay" id="battleOverlay"></div>
       </div>
-      <div style="text-align:center;margin:4px 0 2px;color:#d98a00;font-weight:800;font-size:14px;">👆 點植物可以發射露珠，把瞌睡怪打退！</div>
+      <div style="text-align:center;margin:4px 0 2px;color:#d98a00;font-weight:800;font-size:14px;">👆 點植物可以發射露珠，把拖延怪打退！</div>
       <div class="timeline" id="homeTimeline"></div>
       <div style="text-align:center;margin-top:6px;"><span class="lead-tag warn" id="leadTag">⏱ 計算中…</span></div>
       <div class="hp-wrap"><span>🌻 植物血量</span><div class="hp-bar"><i id="hpFill"></i></div></div>
@@ -3766,7 +3816,7 @@ function renderHome(){
   app.innerHTML = `
   <div class="panel">
     <h2 class="title-sticker">🌻 ${name} 的小花園</h2>
-    <p class="hint">把今天的功課都寫完（請爸媽簽名），瞌睡怪就會被打退，植物就安全囉！陽光會一直累積，不會消失。</p>
+    <p class="hint">把今天的功課都寫完（請爸媽簽名），拖延怪就會被打退，植物就安全囉！陽光會一直累積，不會消失。</p>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
       <div class="sun-box" style="position:static;display:inline-flex;margin:0;">
         <span class="sun-emoji">☀️</span><span class="sunCount">${c.sun}</span> 陽光</div>
@@ -3958,57 +4008,12 @@ function renderReadTest(){
   renderReadInto('readBox','readtest', READTEST[band]);
   attachComplete();
 }
-/* 國語：注音練習 + 閱讀 */
-let zhuyinTimer=null;
-function renderChinese(){
-  app.innerHTML=`
-  <div class="panel">
-    <h2>${subjectIcon('chinese')} ${subjectName('chinese')} · 注音練習</h2>
-    <p class="hint">下面出現一個詞，選出正確的注音符號 ㄅㄆㄇ，就能發射露珠打瞌睡怪！答對 +3 陽光。</p>
-    <div class="battle" style="height:150px;">
-      <div class="plant-def">${plantSVG('flytrap')}</div>
-      <div class="zombie" id="zC" style="left:72%;">${zombieSVG()}</div>
-    </div>
-    <div class="q-row"><span class="q-text" id="cq"></span> <span class="spk" id="cqSpk">🔊</span></div>
-    <div id="cHint"></div>
-    ${timerHTML()}
-    <div class="choices" id="cc"></div>
-    <div class="feedback" id="cf"></div>
-    <button class="next-btn" id="cn">下一題 ▶</button>
-  </div>
-  <div class="panel">
-    <h2>📖 國語 · 閱讀理解</h2>
-    <p class="hint">讀一讀小故事，回答問題。答對 +5 陽光。（共 ${READING[readLevelKey()].chinese.length} 篇，依年齡自動選文）</p>
-    <div id="readBox"></div>
-  </div>
-  ${completeBtnHTML()}`;
-  zhuyinRound();
-  $('#cn').onclick=zhuyinRound;
-  $('#cqSpk').onclick=()=>{ const w=WORDS.find(x=>x.ch===$('#cq').dataset.ch); if(w) speak(w.ch); };
-  renderReadInto('readBox','chinese',READING[readLevelKey()].chinese);
-  attachComplete();
-}
-function zhuyinRound(){
-  ensureQuiz('chinese');
-  const w=WORDS[Math.floor(Math.random()*WORDS.length)];
-  const cq=$('#cq'); cq.textContent='這個詞怎麼念？  '+w.ch; cq.dataset.ch=w.ch;
-  $('#cqSpk').onclick=()=>speak(w.ch);
-  const correct=w.zh;
-  const opts=new Set([correct]);
-  while(opts.size<4){ const o=WORDS[Math.floor(Math.random()*WORDS.length)].zh; if(o!==correct) opts.add(o); }
-  const hint=document.getElementById('cHint'); if(hint) hint.innerHTML = hintLine('這個詞的注音是「'+w.zh+'」');
-  $('#cf').textContent=''; $('#cf').className='feedback';
-  renderChoices({ box:$('#cc'), opts:[...opts], correct, moduleKey:'chinese', sun:3, fb:$('#cf'),
-    qText:'注音：「'+w.ch+'」', rightMsg:'🎉 答對了！瞌睡怪被露珠打退！', wrongPrefix:'💡 正確是：' });
-  const z=$('#zC'); if(z){ z.style.transform='translateX(0)'; }
-}
-
 /* 數學 */
 function renderMath(){
   app.innerHTML=`
   <div class="panel">
     <h2>${subjectIcon('math')} ${subjectName('math')} · 算術防線</h2>
-    <p class="hint">算出正確答案發射露珠，每答對一題打退一隻瞌睡怪，+4 陽光。</p>
+    <p class="hint">算出正確答案發射露珠，每答對一題打退一隻拖延怪，+4 陽光。</p>
     <div class="battle" style="height:150px;">
       <div class="plant-def">${plantSVG('flytrap')}</div>
       <div class="zombie" id="zM" style="left:72%;">${zombieSVG()}</div>
@@ -4028,34 +4033,34 @@ function renderMath(){
 function mathRound(){
   ensureQuiz('math');
   const li=levelIdx();
-  let q, ans;
+  let q, ans, steps='';
   if(li<=0){ // 幼幼 3-5：10 以內加減
     const a=1+Math.floor(Math.random()*5), b=1+Math.floor(Math.random()*5);
-    if(Math.random()<.5){ ans=a+b; q=''+a+' ＋ '+b+' ＝ ?'; }
-    else { const hi=Math.max(a,b), lo=Math.min(a,b); ans=hi-lo; q=''+hi+' － '+lo+' ＝ ?'; }
+    if(Math.random()<.5){ ans=a+b; q=''+a+' ＋ '+b+' ＝ ?'; steps=a+' ＋ '+b+' ＝ '+ans; }
+    else { const hi=Math.max(a,b), lo=Math.min(a,b); ans=hi-lo; q=''+hi+' － '+lo+' ＝ ?'; steps=hi+' － '+lo+' ＝ '+ans; }
   } else if(li===1){ // 低年級 6-8：20 以內加減、2~5 乘法
     const r=Math.random();
-    if(r<0.4){ const a=1+Math.floor(Math.random()*20), b=1+Math.floor(Math.random()*20); ans=Math.max(a,b)-Math.min(a,b); q=''+Math.max(a,b)+' － '+Math.min(a,b)+' ＝ ?'; }
-    else if(r<0.7){ const a=1+Math.floor(Math.random()*20), b=1+Math.floor(Math.random()*20); ans=a+b; q=''+a+' ＋ '+b+' ＝ ?'; }
-    else { const a=2+Math.floor(Math.random()*4), b=2+Math.floor(Math.random()*4); ans=a*b; q=''+a+' × '+b+' ＝ ?'; }
+    if(r<0.4){ const a=1+Math.floor(Math.random()*20), b=1+Math.floor(Math.random()*20); ans=Math.max(a,b)-Math.min(a,b); q=''+Math.max(a,b)+' － '+Math.min(a,b)+' ＝ ?'; steps=Math.max(a,b)+' － '+Math.min(a,b)+' ＝ '+ans; }
+    else if(r<0.7){ const a=1+Math.floor(Math.random()*20), b=1+Math.floor(Math.random()*20); ans=a+b; q=''+a+' ＋ '+b+' ＝ ?'; steps=a+' ＋ '+b+' ＝ '+ans; }
+    else { const a=2+Math.floor(Math.random()*4), b=2+Math.floor(Math.random()*4); ans=a*b; q=''+a+' × '+b+' ＝ ?'; steps=a+' × '+b+' ＝ '+ans; }
   } else if(li===2){ // 中年級 9-10：100 以內加減、九九乘法、簡單除法
     const r=Math.random();
-    if(r<0.35){ const a=10+Math.floor(Math.random()*90), b=10+Math.floor(Math.random()*90); ans=Math.max(a,b)-Math.min(a,b); q=''+Math.max(a,b)+' － '+Math.min(a,b)+' ＝ ?'; }
-    else if(r<0.65){ const a=10+Math.floor(Math.random()*90), b=10+Math.floor(Math.random()*90); ans=a+b; q=''+a+' ＋ '+b+' ＝ ?'; }
-    else if(r<0.85){ const a=2+Math.floor(Math.random()*8), b=2+Math.floor(Math.random()*8); ans=a*b; q=''+a+' × '+b+' ＝ ?'; }
-    else { const b=2+Math.floor(Math.random()*8); const ans0=2+Math.floor(Math.random()*8); ans=ans0; q=''+(ans0*b)+' ÷ '+b+' ＝ ?'; }
+    if(r<0.35){ const a=10+Math.floor(Math.random()*90), b=10+Math.floor(Math.random()*90); ans=Math.max(a,b)-Math.min(a,b); q=''+Math.max(a,b)+' － '+Math.min(a,b)+' ＝ ?'; steps=Math.max(a,b)+' － '+Math.min(a,b)+' ＝ '+ans; }
+    else if(r<0.65){ const a=10+Math.floor(Math.random()*90), b=10+Math.floor(Math.random()*90); ans=a+b; q=''+a+' ＋ '+b+' ＝ ?'; steps=a+' ＋ '+b+' ＝ '+ans; }
+    else if(r<0.85){ const a=2+Math.floor(Math.random()*8), b=2+Math.floor(Math.random()*8); ans=a*b; q=''+a+' × '+b+' ＝ ?'; steps=a+' × '+b+' ＝ '+ans; }
+    else { const b=2+Math.floor(Math.random()*8); const ans0=2+Math.floor(Math.random()*8); ans=ans0; q=''+(ans0*b)+' ÷ '+b+' ＝ ?'; steps=ans0+' × '+b+' ＝ '+(ans0*b)+'，所以 '+(ans0*b)+' ÷ '+b+' ＝ '+ans0; }
   } else if(li===3){ // 高年級 11-12：兩位數×兩位數、除法、1000 加減、分數
     const r=Math.random();
-    if(r<0.4){ const a=11+Math.floor(Math.random()*89), b=11+Math.floor(Math.random()*89); ans=a*b; q=''+a+' × '+b+' ＝ ?'; }
-    else if(r<0.65){ const b=11+Math.floor(Math.random()*89); const ans0=2+Math.floor(Math.random()*9); ans=ans0; q=''+(ans0*b)+' ÷ '+b+' ＝ ?'; }
-    else if(r<0.85){ const a=100+Math.floor(Math.random()*900), b=100+Math.floor(Math.random()*900); ans=Math.max(a,b)-Math.min(a,b); q=''+Math.max(a,b)+' － '+Math.min(a,b)+' ＝ ?'; }
-    else { const a=100+Math.floor(Math.random()*900), b=100+Math.floor(Math.random()*900); ans=a+b; q=''+a+' ＋ '+b+' ＝ ?'; }
+    if(r<0.4){ const a=11+Math.floor(Math.random()*89), b=11+Math.floor(Math.random()*89); ans=a*b; q=''+a+' × '+b+' ＝ ?'; steps=a+' × '+b+' ＝ '+ans; }
+    else if(r<0.65){ const b=11+Math.floor(Math.random()*89); const ans0=2+Math.floor(Math.random()*9); ans=ans0; q=''+(ans0*b)+' ÷ '+b+' ＝ ?'; steps=ans0+' × '+b+' ＝ '+(ans0*b)+'，所以 '+(ans0*b)+' ÷ '+b+' ＝ '+ans0; }
+    else if(r<0.85){ const a=100+Math.floor(Math.random()*900), b=100+Math.floor(Math.random()*900); ans=Math.max(a,b)-Math.min(a,b); q=''+Math.max(a,b)+' － '+Math.min(a,b)+' ＝ ?'; steps=Math.max(a,b)+' － '+Math.min(a,b)+' ＝ '+ans; }
+    else { const a=100+Math.floor(Math.random()*900), b=100+Math.floor(Math.random()*900); ans=a+b; q=''+a+' ＋ '+b+' ＝ ?'; steps=a+' ＋ '+b+' ＝ '+ans; }
   } else { // 國中 13-15：三位數乘、兩步驟、百分比、小數
     const r=Math.random();
-    if(r<0.3){ const a=101+Math.floor(Math.random()*899), b=2+Math.floor(Math.random()*9); ans=a*b; q=''+a+' × '+b+' ＝ ?'; }
-    else if(r<0.55){ const b=2+Math.floor(Math.random()*9); const ans0=1+Math.floor(Math.random()*9); ans=ans0*10; q='('+(ans0*b)+' × 10) ÷ '+b+' ＝ ?'; }
-    else if(r<0.78){ const pct=kPick([10,20,50]); const base=10+10*Math.floor(Math.random()*20); ans=base*pct/100; q=base+' 的 '+pct+'% 是多少？'; }
-    else { const a=1+Math.floor(Math.random()*9), b=1+Math.floor(Math.random()*9), c=10+Math.floor(Math.random()*90); ans=a*b+c; q=''+a+' × '+b+' ＋ '+c+' ＝ ?'; }
+    if(r<0.3){ const a=101+Math.floor(Math.random()*899), b=2+Math.floor(Math.random()*9); ans=a*b; q=''+a+' × '+b+' ＝ ?'; steps=a+' × '+b+' ＝ '+ans; }
+    else if(r<0.55){ const b=2+Math.floor(Math.random()*9); const ans0=1+Math.floor(Math.random()*9); ans=ans0*10; q='('+(ans0*b)+' × 10) ÷ '+b+' ＝ ?'; steps=ans0+' × '+b+' ＝ '+(ans0*b)+'，'+(ans0*b)+' × 10 ＝ '+(ans0*b*10)+'，再 ÷ '+b+' ＝ '+ans; }
+    else if(r<0.78){ const pct=kPick([10,20,50]); const base=10+10*Math.floor(Math.random()*20); ans=base*pct/100; q=base+' 的 '+pct+'% 是多少？'; steps=base+' × '+pct+'% ＝ '+base+' × '+(pct/100)+' ＝ '+ans; }
+    else { const a=1+Math.floor(Math.random()*9), b=1+Math.floor(Math.random()*9), c=10+Math.floor(Math.random()*90); ans=a*b+c; q=''+a+' × '+b+' ＋ '+c+' ＝ ?'; steps='先算 '+a+' × '+b+' ＝ '+(a*b)+'，再 '+(a*b)+' ＋ '+c+' ＝ '+ans; }
   }
   $('#mq').textContent=q;
   const set=new Set([ans]); const span=Math.max(4, Math.round(Math.abs(ans)*0.12)+2);
@@ -4063,7 +4068,7 @@ function mathRound(){
   const hint=document.getElementById('mHint'); if(hint) hint.innerHTML = hintLine('慢慢算，先乘除後加減～');
   $('#mf').textContent='';
   renderChoices({ box:$('#mc'), opts:[...set], correct:ans, moduleKey:'math', sun:4, fb:$('#mf'),
-    qText:q, rightMsg:'🎉 算對了！瞌睡怪被打退！', wrongPrefix:'💡 正確答案是：', compare:(o)=> +o===ans });
+    qText:q, rightMsg:'🎉 算對了！拖延怪被打退！', wrongPrefix:'💡 正確答案是：', explain:steps, compare:(o)=> +o===ans });
 }
 
 /* 閱讀共用（社會 / 自然 / 國語閱讀） */
@@ -4332,7 +4337,7 @@ function englishRound(){
   if(hint) hint.innerHTML = hintLine((q.en?('點 🔊 聽「'+q.en+'」'):(q.hint||'想一想！')));
   $('#ef').textContent=''; $('#ef').className='feedback';
   renderChoices({ box:$('#ec'), opts:q.opts, correct:q.ans, moduleKey:'english', sun:3, fb:$('#ef'),
-    qText:q.q, rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：' });
+    qText:q.q, rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：', explain:q.hint });
 }
 
 /* 假日測驗卷（混合測驗） */
@@ -4441,9 +4446,11 @@ const KNOW_META={
   facts:{tag:'世界百科', desc:'對應康軒自然科學：動物、植物、太陽系、水三態、人體。', sun:4},
   zhuyin:{tag:'國語', desc:'對應康軒國語：低年級練注音符號，中年級練詞語意思，高年級練成語意思，國中練成語反向辨識。', sun:4},
   science:{tag:'自然科學探究', desc:'對應康軒自然：觀察、簡單物理/化學、生態、地球科學。', sun:4},
-  coding:{tag:'程式思維', desc:'對應108課綱科技領域：序列、迴圈、條件、除錯、演算法。', sun:4}
+  coding:{tag:'程式思維', desc:'序列、迴圈、條件、除錯、演算法，由淺入深（小一起對應108課綱科技領域，幼幼檔為學前準備遊戲）。', sun:4}
 };
-/* 康軒對應年級映射：subject -> {book, g[0..4]}（L1~L5） */
+/* 康軒對應年級映射：subject -> {book, g[0..4]}（L1~L5）
+   ⚠️ g[0]（幼幼檔）是學前準備／幼兒園教保活動內容，不在 108課綱（國小起）涵蓋範圍內，
+   文案/對外說明避免說幼幼檔「對應108課綱」，只有 g[1] 小一~小二起才是正式對應。 */
 const KNOW_GRADE={
   num:   {book:'康軒數學', g:['幼兒銜接','小一~小二','小三~小四','小五~小六','國中']},
   logic: {book:'康軒數學', g:['幼兒遊戲','小一~小二','小三~小四','小五~小六','國中']},
@@ -4484,20 +4491,88 @@ function numL1(){ const r=Math.random();
   if(r<0.8){ const a=1+Math.floor(Math.random()*5), b=1+Math.floor(Math.random()*5); return {type:'tf', q:a+' 比 '+b+' 大。', ans:a>b, why:(a>b?'沒錯！':('其實 '+Math.max(a,b)+' 比較大。')), hint:'比一比兩個數字。'}; }
   return {type:'choice', q:'時鐘🕐 現在是幾點？', opts:kOpts('3點',['8點','12點','6點','9點'],4), ans:'3點', hint:'時針指著 3。'}; }
 function numL2(){ const r=Math.random();
-  if(r<0.34){ const a0=1+Math.floor(Math.random()*9); const ans=10-a0; return {type:'fill', q:a0+' ＋ ? ＝ 10', numeric:true, ans:String(ans), hint:'想：幾加'+a0+'等於 10？'}; }
-  if(r<0.6){ const a=1+Math.floor(Math.random()*9), b=1+Math.floor(Math.random()*9); return {type:'tf', q:a+' 比 '+b+' 大。', ans:a>b, why:(a>b?'沒錯！':('其實 '+Math.max(a,b)+' 比較大。')), hint:'比一比兩個數字。'}; }
-  const prices=[['1 支鉛筆 2 元，買 3 支要？',6],['1 顆糖 5 元，買 2 顆要？',10],['1 本簿子 10 元，買 2 本要？',20]];
-  const p=kPick(prices); return {type:'fill', q:p[0], numeric:true, ans:String(p[1]), unit:'元', hint:'幾個就加幾次。'}; }
+  if(r<0.2){ const a0=1+Math.floor(Math.random()*9); const ans=10-a0; return {type:'fill', q:a0+' ＋ ? ＝ 10', numeric:true, ans:String(ans), hint:'想：幾加'+a0+'等於 10？'}; }
+  if(r<0.4){ const a=1+Math.floor(Math.random()*9), b=1+Math.floor(Math.random()*9); return {type:'tf', q:a+' 比 '+b+' 大。', ans:a>b, why:(a>b?'沒錯！':('其實 '+Math.max(a,b)+' 比較大。')), hint:'比一比兩個數字。'}; }
+  if(r<0.6){ const prices=[['1 支鉛筆 2 元，買 3 支要？',6],['1 顆糖 5 元，買 2 顆要？',10],['1 本簿子 10 元，買 2 本要？',20]]; const p=kPick(prices); return {type:'fill', q:p[0], numeric:true, ans:String(p[1]), unit:'元', hint:'幾個就加幾次。'}; }
+  if(r<0.8){ // 資料與不確定性 D-1-1/D-2-1：蒐集、分類、呈現生活物品
+    const CLASSIFY_SETS=[
+      {items:'🍎🍌🍇', cat:'水果', odd:'🚗', oddCat:'交通工具', distract:['動物','文具']},
+      {items:'🐶🐱🐰', cat:'動物', odd:'✏️', oddCat:'文具', distract:['食物','天氣']},
+      {items:'👕👖🧦', cat:'衣服', odd:'🍕', oddCat:'食物', distract:['玩具','家具']},
+      {items:'⚽🏀🏐', cat:'球類運動', odd:'📖', oddCat:'書本', distract:['交通工具','動物']}
+    ];
+    const g=kPick(CLASSIFY_SETS);
+    return {type:'choice', q:g.items+' 都可以分到「'+g.cat+'」這一類，那 '+g.odd+' 應該分到哪一類？', opts:kShuf([g.oddCat,g.cat,...g.distract]), ans:g.oddCat, hint:'想想 '+g.odd+' 是做什麼用的。'};
+  }
+  // 關係 R-1-2：加法交換律（不出現「交換律」這個詞，用情境說明）
+  const a=1+Math.floor(Math.random()*9), b=1+Math.floor(Math.random()*9);
+  return {type:'tf', q:a+' ＋ '+b+' 跟 '+b+' ＋ '+a+'，答案會一樣。', ans:true, why:'對！兩個數字不管誰先誰後，加起來都一樣。', hint:'兩個都算算看。'};
+}
 function numL3(){ const r=Math.random();
-  if(r<0.4){ const a=2+Math.floor(Math.random()*8), b=2+Math.floor(Math.random()*8); const ans=a*b; return {type:'choice', q:a+' × '+b+' ＝ ?', opts:kOpts(ans,[ans+1,ans-1,ans+2,ans-2,ans+10,Math.max(0,ans-10)],4), ans:String(ans), hint:'背一下乘法表！'}; }
-  if(r<0.65){ const a=10+Math.floor(Math.random()*89), b=10+Math.floor(Math.random()*89); return {type:'tf', q:a+' 比 '+b+' 大。', ans:a>b, why:(a>b?'對的！':('其實 '+Math.max(a,b)+' 大。')), hint:'先比十位數。'}; }
-  return {type:'choice', q:'一個披薩切成 2 塊，吃 1 塊是幾分之幾？', opts:kOpts('½',['¼','1','2','¾'],4), ans:'½', hint:'分成幾塊，分母就是幾。'}; }
+  if(r<0.25){ const a=2+Math.floor(Math.random()*8), b=2+Math.floor(Math.random()*8); const ans=a*b; return {type:'choice', q:a+' × '+b+' ＝ ?', opts:kOpts(ans,[ans+1,ans-1,ans+2,ans-2,ans+10,Math.max(0,ans-10)],4), ans:String(ans), hint:'背一下乘法表！'}; }
+  if(r<0.45){ const a=10+Math.floor(Math.random()*89), b=10+Math.floor(Math.random()*89); return {type:'tf', q:a+' 比 '+b+' 大。', ans:a>b, why:(a>b?'對的！':('其實 '+Math.max(a,b)+' 大。')), hint:'先比十位數。'}; }
+  if(r<0.6){ return {type:'choice', q:'一個披薩切成 2 塊，吃 1 塊是幾分之幾？', opts:kOpts('½',['¼','1','2','¾'],4), ans:'½', hint:'分成幾塊，分母就是幾。'}; }
+  if(r<0.75){ // 資料與不確定性 D-3-1：報讀、製作生活中的表格
+    const TABLES=[
+      {title:'水果數量', unit:'水果', rows:[['🍎 蘋果',5],['🍌 香蕉',3],['🍇 葡萄',7]], q:'哪一種水果最多？', pickMax:true},
+      {title:'班級人數', unit:'班級', rows:[['一班',28],['二班',25],['三班',30]], q:'哪一班人數最少？', pickMax:false},
+      {title:'寵物調查', unit:'寵物', rows:[['狗',12],['貓',9],['魚',4]], q:'哪一種寵物最多人養？', pickMax:true}
+    ];
+    const t=kPick(TABLES);
+    const sorted=t.rows.slice().sort((a,b)=> t.pickMax ? b[1]-a[1] : a[1]-b[1]);
+    const ans=sorted[0][0]; const opts=t.rows.map(x=>x[0]);
+    const tableHtml='<table class="d-table"><tr><th>'+t.title+'</th><th>數量</th></tr>'+t.rows.map(x=>'<tr><td>'+x[0]+'</td><td>'+x[1]+'</td></tr>').join('')+'</table>';
+    return {type:'choice', q:t.q, stage:tableHtml, opts:kShuf(opts), ans, hint:'看看表格裡的數字大小。'};
+  }
+  if(r<0.9){ // 幾何 S-2/S-3：周長
+    const l=3+Math.floor(Math.random()*7), w=2+Math.floor(Math.random()*6); const ans=(l+w)*2;
+    return {type:'fill', q:'長 '+l+'、寬 '+w+' 的長方形，周長是多少？', numeric:true, ans:String(ans), hint:'周長 = (長 ＋ 寬) × 2。'};
+  }
+  // 關係 R-3-2：數列規律推理（含奇偶數模式）
+  const SEQS=[
+    {seq:[1,3,5,7], next:9, hint:'奇數：每次加 2。'},
+    {seq:[2,4,6,8], next:10, hint:'偶數：每次加 2。'},
+    {seq:[5,10,15,20], next:25, hint:'每次加 5。'}
+  ];
+  const s=kPick(SEQS);
+  return {type:'fill', q:s.seq.join(', ')+', ? ＝ ?', numeric:true, ans:String(s.next), hint:s.hint};
+}
 function numL4(){ const r=Math.random();
-  if(r<0.2){ const a=11+Math.floor(Math.random()*89), b=2+Math.floor(Math.random()*9); return {type:'fill', q:a+' × '+b+' ＝ ?', numeric:true, ans:String(a*b), hint:'兩位數乘一位數，慢慢算。'}; }
-  if(r<0.4){ const b=2+Math.floor(Math.random()*9); const ans0=2+Math.floor(Math.random()*9); return {type:'fill', q:(ans0*b)+' ÷ '+b+' ＝ ?', numeric:true, ans:String(ans0), hint:'想：幾乘 '+b+' 等於 '+(ans0*b)+'？'}; }
-  if(r<0.6){ const fr=[['½ ＋ ¼','¾',['¼','1','⅓']],['⅓ ＋ ⅓','⅔',['⅓','1','½']],['¾ － ¼','½',['¼','1','¾']],['¼ ＋ ¼','½',['¼','1','¾']]]; const f=kPick(fr); return {type:'choice', q:f[0]+' ＝ ?', opts:kOpts(f[1],f[2],4), ans:f[1], hint:'先通分再算。'}; }
-  if(r<0.8){ const a=1+Math.floor(Math.random()*9); return {type:'fill', q:'0.'+a+' ＋ 0.'+(10-a)+' ＝ ?', numeric:true, ans:'1', hint:'小數點後兩位相加成 10，合起來是 1。'}; }
-  return {type:'choice', q:'長 6、寬 4 的長方形，面積是多少？', opts:kOpts('24',['10','20','18','40'],4), ans:'24', hint:'長 × 寬。'}; }
+  if(r<0.15){ const a=11+Math.floor(Math.random()*89), b=2+Math.floor(Math.random()*9); return {type:'fill', q:a+' × '+b+' ＝ ?', numeric:true, ans:String(a*b), hint:'兩位數乘一位數，慢慢算。'}; }
+  if(r<0.3){ const b=2+Math.floor(Math.random()*9); const ans0=2+Math.floor(Math.random()*9); return {type:'fill', q:(ans0*b)+' ÷ '+b+' ＝ ?', numeric:true, ans:String(ans0), hint:'想：幾乘 '+b+' 等於 '+(ans0*b)+'？'}; }
+  if(r<0.45){ const fr=[['½ ＋ ¼','¾',['¼','1','⅓']],['⅓ ＋ ⅓','⅔',['⅓','1','½']],['¾ － ¼','½',['¼','1','¾']],['¼ ＋ ¼','½',['¼','1','¾']]]; const f=kPick(fr); return {type:'choice', q:f[0]+' ＝ ?', opts:kOpts(f[1],f[2],4), ans:f[1], hint:'先通分再算。'}; }
+  if(r<0.58){ const a=1+Math.floor(Math.random()*9); return {type:'fill', q:'0.'+a+' ＋ 0.'+(10-a)+' ＝ ?', numeric:true, ans:'1', hint:'小數點後兩位相加成 10，合起來是 1。'}; }
+  if(r<0.7){ return {type:'choice', q:'長 6、寬 4 的長方形，面積是多少？', opts:kOpts('24',['10','20','18','40'],4), ans:'24', hint:'長 × 寬。'}; }
+  if(r<0.85){ // 資料與不確定性 D-4-1：報讀長條圖
+    const BARS=[
+      {title:'四季最愛飲料', data:[['夏天',8],['冬天',3],['春天',5],['秋天',4]], q:'哪一季喝飲料的人最多？', pickMax:true},
+      {title:'一週運動次數', data:[['小明',5],['小華',2],['小美',7]], q:'誰運動的次數最多？', pickMax:true},
+      {title:'水果銷量', data:[['蘋果',6],['香蕉',9],['橘子',3]], q:'哪一種水果賣得最少？', pickMax:false}
+    ];
+    const b=kPick(BARS); const max=Math.max(...b.data.map(d=>d[1]));
+    const sorted=b.data.slice().sort((x,y)=> b.pickMax ? y[1]-x[1] : x[1]-y[1]);
+    const ans=sorted[0][0];
+    const barHtml='<div class="bar-chart">'+b.data.map(d=>'<div class="bar-row"><span class="bar-label">'+d[0]+'</span><span class="bar-fill" style="width:'+Math.max(18,d[1]/max*100)+'%">'+d[1]+'</span></div>').join('')+'</div>';
+    return {type:'choice', q:b.q, stage:barHtml, opts:kShuf(b.data.map(d=>d[0])), ans, hint:'比比看柱子（數字）的長短。'};
+  }
+  if(r<0.93){ // 資料與不確定性 D-6-1：分率分配的圓形圖
+    const PIES=[
+      {legend:'🟢 足球 1/2　🔵 籃球 1/4　🟠 排球 1/4', gradient:'#43a047 0% 50%, #1e88e5 50% 75%, #fb8c00 75% 100%', q:'足球大約佔全部的幾分之幾？', ans:'1/2', opts:['1/2','1/4','1/3']},
+      {legend:'🟣 漫畫 1/2　🟡 小說 1/4　⚪ 科普 1/4', gradient:'#8e24aa 0% 50%, #fdd835 50% 75%, #bdbdbd 75% 100%', q:'漫畫大約佔全部的幾分之幾？', ans:'1/2', opts:['1/2','1/4','1/3']}
+    ];
+    const p=kPick(PIES);
+    const pieHtml='<div class="pie-wrap"><div style="width:100px;height:100px;border-radius:50%;margin:0 auto;background:conic-gradient('+p.gradient+');"></div><div class="pie-legend">'+p.legend+'</div></div>';
+    return {type:'choice', q:p.q, stage:pieHtml, opts:kShuf(p.opts), ans:p.ans, hint:'看看那一色佔了圓的一半還是四分之一。'};
+  }
+  // 資料與不確定性 D-6-2：「很不可能」「A比B可能」等機率語言
+  const PROB=[
+    {q:'袋子裡有 9 顆紅球、1 顆藍球，隨機抽 1 顆，比較容易抽到哪一種？', opts:['紅球','藍球','一樣容易'], ans:'紅球'},
+    {q:'轉盤大部分是紅色，只有一小塊是藍色，轉到藍色的可能性是？', opts:['很不可能','很可能','一定會'], ans:'很不可能'},
+    {q:'一個箱子裡全部都是白球，隨機抽 1 顆，抽到黑球的可能性是？', opts:['不可能','一定會','很可能'], ans:'不可能'}
+  ];
+  const pr=kPick(PROB);
+  return {type:'choice', q:pr.q, opts:kShuf(pr.opts), ans:pr.ans, hint:'數量越多，抽到的機會越大。'};
+}
 function numL5(){ const r=Math.random();
   if(r<0.22){ const pct=kPick([10,20,25,50]); const base=20+20*Math.floor(Math.random()*15); const ans=base*pct/100; return {type:'fill', q:base+' 的 '+pct+'% 是多少？', numeric:true, ans:String(ans), hint:'先把百分比化成 1/10、1/5、1/4 或 1/2 再算。'}; }
   if(r<0.44){ const r2=3+Math.floor(Math.random()*7); const circ=(2*3.14*r2).toFixed(2).replace(/\.?0+$/,''); return {type:'choice', q:'半徑 '+r2+' 的圓，周長約多少？（π≈3.14）', opts:kOpts(circ,[(2*3.14*(r2+1)).toFixed(2).replace(/\.?0+$/,''),(3.14*r2*r2).toFixed(2).replace(/\.?0+$/,''),'10'],4), ans:circ, hint:'周長 = 2 × π × 半徑。'}; }
@@ -4534,15 +4609,28 @@ function lifeL2(){ const r=Math.random();
   if(r<0.67) return {type:'choice', q:'紅綠燈亮紅色時，我們要？', opts:kOpts('停下來',['快快走','唱歌','睡覺','跑步'],4), ans:'停下來', hint:'紅色代表危險。'};
   return {type:'choice', q:'肚子餓了，什麼時候吃飯？', opts:kOpts('中午',['半夜','剛睡醒','都不吃','放學後亂吃'],4), ans:'中午', hint:'一天的中央。'}; }
 function lifeL3(){ const r=Math.random();
-  if(r<0.3) return {type:'choice', q:'一週有幾天？', opts:['7','5','10','12'], ans:'7', hint:'星期一到星期日。'};
-  if(r<0.6) return {type:'choice', q:'下雨天出門要帶什麼？', opts:kOpts('傘',['帽子','書包','球','眼鏡'],4), ans:'傘', hint:'擋雨用。'};
-  if(r<0.8) return {type:'tf', q:'過馬路前要先看左右來車。', ans:true, why:'安全第一！', hint:'保護自己。'};
-  return {type:'choice', q:'著火了要打哪個電話？', opts:kOpts('119',['110','112','120','100'],4), ans:'119', hint:'消防隊是 119。'}; }
+  if(r<0.22) return {type:'choice', q:'一週有幾天？', opts:['7','5','10','12'], ans:'7', hint:'星期一到星期日。'};
+  if(r<0.44) return {type:'choice', q:'下雨天出門要帶什麼？', opts:kOpts('傘',['帽子','書包','球','眼鏡'],4), ans:'傘', hint:'擋雨用。'};
+  if(r<0.66) return {type:'tf', q:'過馬路前要先看左右來車。', ans:true, why:'安全第一！', hint:'保護自己。'};
+  if(r<0.85) return {type:'choice', q:'著火了要打哪個電話？', opts:kOpts('119',['110','112','120','100'],4), ans:'119', hint:'消防隊是 119。'};
+  // 社會領域 Cb-Ⅱ-1：居住地方不同時代的重要人物、事件與文物古蹟
+  return kPick([
+    {type:'choice', q:'🏛️ 像廟宇、老房子這種很久以前留下來、有歷史價值的建築物，叫做？', opts:kOpts('古蹟',['新房子','工廠','遊樂園'],4), ans:'古蹟', hint:'古蹟能讓我們知道以前的生活。'},
+    {type:'choice', q:'📜 以前的人沒有手機、網路，通常用什麼方式跟遠方的人聯絡？', opts:kOpts('寫信寄郵局',['傳LINE','視訊通話','發電子郵件'],4), ans:'寫信寄郵局', hint:'想想沒有電腦以前的生活。'}
+  ]);
+}
 function lifeL4(){ const r=Math.random();
-  if(r<0.3) return {type:'choice', q:'小朋友一天最好睡幾小時？', opts:['8','3','14','1'], ans:'8', hint:'睡飽才長高。'};
-  if(r<0.6) return {type:'tf', q:'喝酒之後可以開車嗎？', ans:false, why:'喝酒開車很危險，也不合法！', hint:'千萬不行。'};
-  if(r<0.8) return {type:'choice', q:'流鼻血時，身體應該？', opts:kOpts('稍微前傾',['往後仰','躺平','跳一跳','倒立'],4), ans:'稍微前傾', hint:'避免血倒流。'};
-  return {type:'choice', q:'家裡著火，正確做法是？', opts:kOpts('用濕毛巾捂口鼻、低姿逃生',['坐電梯快逃','躲進衣櫃','潑水澆自己','跳窗'],4), ans:'用濕毛巾捂口鼻、低姿逃生', hint:'濃煙往上飄，要低著身體。'}; }
+  if(r<0.24) return {type:'choice', q:'小朋友一天最好睡幾小時？', opts:['8','3','14','1'], ans:'8', hint:'睡飽才長高。'};
+  if(r<0.48) return {type:'tf', q:'喝酒之後可以開車嗎？', ans:false, why:'喝酒開車很危險，也不合法！', hint:'千萬不行。'};
+  if(r<0.7) return {type:'choice', q:'流鼻血時，身體應該？', opts:kOpts('稍微前傾',['往後仰','躺平','跳一跳','倒立'],4), ans:'稍微前傾', hint:'避免血倒流。'};
+  if(r<0.85) return {type:'choice', q:'家裡著火，正確做法是？', opts:kOpts('用濕毛巾捂口鼻、低姿逃生',['坐電梯快逃','躲進衣櫃','潑水澆自己','跳窗'],4), ans:'用濕毛巾捂口鼻、低姿逃生', hint:'濃煙往上飄，要低著身體。'};
+  // 社會領域 Cb-Ⅲ-1/2：臺灣與世界重要歷史事件人物、多元文化資產
+  return kPick([
+    {type:'choice', q:'⚔️ 鄭成功在臺灣歷史上，因為做了什麼事情而有名？', opts:kOpts('打敗荷蘭人、治理臺灣',['發明電燈','寫了三國演義','建了萬里長城'],4), ans:'打敗荷蘭人、治理臺灣', hint:'他是明朝末年的重要歷史人物。'},
+    {type:'choice', q:'🏺 「文化資產」指的是？', opts:kOpts('具有歷史或藝術價值、值得保存的事物',['一般的垃圾','新蓋的大樓','超市賣的東西'],4), ans:'具有歷史或藝術價值、值得保存的事物', hint:'像古蹟、傳統技藝都算。'},
+    {type:'choice', q:'🌏 臺灣有原住民族、閩南、客家、外省及新住民等不同族群文化，我們應該怎麼對待彼此的文化？', opts:kOpts('尊重與保存',['忽略不管','覺得奇怪','禁止使用'],4), ans:'尊重與保存', hint:'多元文化讓臺灣更豐富。'}
+  ]);
+}
 function lifeL5(){ const r=Math.random();
   if(r<0.3) return {type:'choice', q:'把錢存起來不亂花，叫做？', opts:kOpts('儲蓄',['浪費','借錢','丟掉','花光'],4), ans:'儲蓄', hint:'為未來準備。'};
   if(r<0.6) return {type:'choice', q:'在街上撿到錢，應該？', opts:kOpts('交給警察',['自己留著','丟掉','花光','藏起來'],4), ans:'交給警察', hint:'誠實最好。'};
@@ -4581,10 +4669,21 @@ function zhuyinL1(){ const r=Math.random();
   if(r<0.4) return {type:'choice', q:'🍎 這個水果叫什麼？', opts:kOpts(zhAnno('蘋果'),[zhAnno('香蕉'),zhAnno('橘子'),zhAnno('西瓜'),zhAnno('葡萄')],4), ans:zhAnno('蘋果'), hint:'紅紅的、脆脆的。'};
   if(r<0.7) return {type:'choice', q:'🐱 這是什麼動物？', opts:kOpts(zhAnno('貓'),[zhAnno('狗'),zhAnno('鳥'),zhAnno('魚'),zhAnno('兔')],4), ans:zhAnno('貓'), hint:'牠會喵喵叫。'};
   return {type:'choice', q:'☀️ 天上會發光、給我們溫暖的是？', opts:kOpts(zhAnno('太陽'),[zhAnno('月亮'),zhAnno('星星'),zhAnno('雲'),zhAnno('雨')],4), ans:zhAnno('太陽'), hint:'白天才出現。'}; }
+/* Aa-I 標音符號系統資料表：21 聲符 + 16 韻符（含介符）＋聲調＋拼音＋結合韻，供 zhuyinL2 出題，涵蓋官方 Aa-I-1~4 */
+const BOPOMO_INITIALS=[['ㄅ','玻'],['ㄆ','坡'],['ㄇ','摸'],['ㄈ','佛'],['ㄉ','得'],['ㄊ','特'],['ㄋ','呢'],['ㄌ','勒'],['ㄍ','哥'],['ㄎ','科'],['ㄏ','喝'],['ㄐ','基'],['ㄑ','七'],['ㄒ','西'],['ㄓ','知'],['ㄔ','蚩'],['ㄕ','詩'],['ㄖ','日'],['ㄗ','資'],['ㄘ','雌'],['ㄙ','思']];
+const BOPOMO_FINALS=[['ㄚ','啊'],['ㄛ','喔'],['ㄜ','鵝'],['ㄝ','耶'],['ㄞ','哀'],['ㄟ','誒'],['ㄠ','熬'],['ㄡ','歐'],['ㄢ','安'],['ㄣ','恩'],['ㄤ','昂'],['ㄥ','鞥'],['ㄦ','兒'],['ㄧ','衣'],['ㄨ','烏'],['ㄩ','迂']];
+const BOPOMO_COMPOUND=['ㄨㄥ','ㄩㄥ','ㄧㄢ','ㄧㄣ','ㄨㄢ','ㄩㄢ']; // 結合韻：兩個以上韻符合起來
+const BOPOMO_SIMPLE=['ㄚ','ㄧ','ㄨ','ㄩ','ㄝ','ㄛ']; // 單一韻符
+const TONE_MARKS=[['ˊ','第二聲'],['ˇ','第三聲'],['ˋ','第四聲'],['˙','輕聲']];
+const BOPOMO_BLENDS=[{parts:'ㄋ ＋ ㄧ ＋ ˇ', ans:'你'},{parts:'ㄏ ＋ ㄠ ＋ ˇ', ans:'好'},{parts:'ㄅ ＋ ㄚ', ans:'八'},{parts:'ㄒㄧㄝ ＋ ˋ', ans:'謝'},{parts:'ㄒㄧㄠ ＋ ˇ', ans:'小'},{parts:'ㄇ ＋ ㄚ', ans:'媽'}];
 function zhuyinL2(){ const r=Math.random();
-  if(r<0.34) return {type:'choice', q:'注音符號『ㄅ』，發音像下面哪個字？', opts:kOpts(zhAnno('玻'),[zhAnno('坡'),zhAnno('摸'),zhAnno('佛'),zhAnno('得')],4), ans:zhAnno('玻'), hint:'ㄅ 像杯子，讀「玻」。', speak:'玻'};
-  if(r<0.67) return {type:'choice', q:'『'+zhAnno('媽')+'』這個字，第一個注音是？', opts:kOpts('ㄇ',['ㄅ','ㄉ','ㄌ','ㄏ'],4), ans:'ㄇ', hint:'媽媽的ㄇ。', speak:'媽'};
-  return {type:'tf', q:'『ㄅ』和『ㄆ』的發音一模一樣。', ans:false, why:'ㄅ讀「玻」、ㄆ讀「坡」，不一樣！', hint:'聽聽看。'}; }
+  if(r<0.2){ const it=kPick(BOPOMO_INITIALS); const pool=BOPOMO_INITIALS.filter(x=>x!==it).map(x=>x[1]); return {type:'choice', q:'注音符號『'+it[0]+'』，發音像下面哪個字？', opts:kOpts(it[1],kShuf(pool).slice(0,3),4), ans:it[1], hint:it[0]+' 讀「'+it[1]+'」。', speak:it[1]}; }
+  if(r<0.4){ const ft=kPick(BOPOMO_FINALS); const pool=BOPOMO_FINALS.filter(x=>x!==ft).map(x=>x[1]); return {type:'choice', q:'注音符號『'+ft[0]+'』，發音像下面哪個字？', opts:kOpts(ft[1],kShuf(pool).slice(0,3),4), ans:ft[1], hint:ft[0]+' 讀「'+ft[1]+'」。', speak:ft[1]}; }
+  if(r<0.6){ const t=kPick(TONE_MARKS); const pool=TONE_MARKS.filter(x=>x!==t).map(x=>x[1]); return {type:'choice', q:'注音的聲調符號『'+t[0]+'』是？', opts:kOpts(t[1],pool,4), ans:t[1], hint:'一聲不標、二ˊ三ˇ四ˋ、輕聲˙。'}; }
+  if(r<0.8){ const b=kPick(BOPOMO_BLENDS); const pool=BOPOMO_BLENDS.filter(x=>x!==b).map(x=>x.ans); return {type:'choice', q:b.parts+' 拼起來是哪個字？', opts:kOpts(b.ans,kShuf(pool).slice(0,3),4), ans:b.ans, hint:'一個一個符號慢慢拼起來唸唸看。'}; }
+  const comp=kPick(BOPOMO_COMPOUND); const simple=kShuf(BOPOMO_SIMPLE).slice(0,2);
+  return {type:'choice', q:'下面哪一個是由兩個以上韻符合起來的「結合韻」？', opts:kShuf([comp,...simple]), ans:comp, hint:'結合韻是好幾個韻符黏在一起，不是單一個符號。'};
+}
 /* L3 中年級：詞語的意思 —— 從詞卡 WORDS 出題，考詞義理解 */
 function zhuyinL3(){
   const all=WORDS.map(w=>w.m);
@@ -5098,14 +5197,31 @@ function scienceL2(){ const r=Math.random();
   if(r<0.67) return {type:'choice', q:'🐘 大象屬於哪一類動物？', opts:kOpts('哺乳類',['鳥類','魚類','昆蟲','爬蟲類'],4), ans:'哺乳類', hint:'小象喝奶長大。'};
   return {type:'tf', q:'種子喝到水才會發芽。', ans:true, why:'對，水分啟動生長！', hint:'先澆水。'}; }
 function scienceL3(){ const r=Math.random();
-  if(r<0.34) return {type:'choice', q:'🧊 冰塊放進水裡會？', opts:kOpts('浮起來',['沉下去','不見','變成石頭','立刻融化不見'],4), ans:'浮起來', hint:'冰比水輕。'};
-  if(r<0.67) return {type:'choice', q:'🌗 地球為什麼有白天和晚上？', opts:kOpts('地球自轉',['月亮擋住太陽','太陽跑掉了','星星眨眼','雲擋住'],4), ans:'地球自轉', hint:'地球轉一圈。'};
-  return {type:'tf', q:'影子是因為光被東西擋住才出現的。', ans:true, why:'光直線前進！', hint:'有光才有影。'}; }
+  if(r<0.25) return {type:'choice', q:'🧊 冰塊放進水裡會？', opts:kOpts('浮起來',['沉下去','不見','變成石頭','立刻融化不見'],4), ans:'浮起來', hint:'冰比水輕。'};
+  if(r<0.5) return {type:'choice', q:'🌗 地球為什麼有白天和晚上？', opts:kOpts('地球自轉',['月亮擋住太陽','太陽跑掉了','星星眨眼','雲擋住'],4), ans:'地球自轉', hint:'地球轉一圈。'};
+  if(r<0.7) return {type:'tf', q:'影子是因為光被東西擋住才出現的。', ans:true, why:'光直線前進！', hint:'有光才有影。'};
+  // 自然界的永續發展 INg-Ⅱ-1~3：資源有限、低碳節水、垃圾減量資源回收節約能源
+  return kPick([
+    {type:'choice', q:'🌍 地球的自然資源是有限的，我們應該怎麼做？', opts:kOpts('珍惜使用不浪費',['用完就丟','越浪費越好','不用管它'],4), ans:'珍惜使用不浪費', hint:'資源用完不會馬上有新的。'},
+    {type:'choice', q:'💧 下面哪一個是節約用水的好方法？', opts:kOpts('刷牙時關水龍頭',['水龍頭開整天','洗澡沖 2 小時','水龍頭壞了不修'],4), ans:'刷牙時關水龍頭', hint:'不用的時候就關掉。'},
+    {type:'choice', q:'♻️ 喝完的寶特瓶，最好怎麼處理？', opts:kOpts('資源回收',['丟進海裡','隨地亂丟','燒掉'],4), ans:'資源回收', hint:'瓶子可以再利用。'},
+    {type:'tf', q:'隨手關燈、少開冷氣，可以幫忙節約能源。', ans:true, why:'對！小小的習慣也能節省很多能源。', hint:'能源用得少，地球負擔小。'}
+  ]);
+}
 function scienceL4(){ const r=Math.random();
-  if(r<0.3) return {type:'choice', q:'⚖️ 翹翹板是利用什麼原理？', opts:kOpts('槓桿',['磁力','浮力','電力','慣性'],4), ans:'槓桿', hint:'支點兩邊。'};
-  if(r<0.6) return {type:'choice', q:'🔥 水加熱煮開變成水蒸氣，是哪一種變化？', opts:kOpts('液態變氣態',['固態變液態','氣態變液態','沒有變化','固態變氣態'],4), ans:'液態變氣態', hint:'煮開冒白煙。'};
-  if(r<0.8) return {type:'choice', q:'🐰 兔子吃草、草被蟲吃，這叫做？', opts:kOpts('食物鏈',['拼圖','輪子','齒輪','電路'],4), ans:'食物鏈', hint:'誰吃誰。'};
-  return {type:'tf', q:'磁鐵可以吸住鐵做的東西。', ans:true, why:'鐵會被吸住！', hint:'試試看迴紋針。'}; }
+  if(r<0.22) return {type:'choice', q:'⚖️ 翹翹板是利用什麼原理？', opts:kOpts('槓桿',['磁力','浮力','電力','慣性'],4), ans:'槓桿', hint:'支點兩邊。'};
+  if(r<0.44) return {type:'choice', q:'🔥 水加熱煮開變成水蒸氣，是哪一種變化？', opts:kOpts('液態變氣態',['固態變液態','氣態變液態','沒有變化','固態變氣態'],4), ans:'液態變氣態', hint:'煮開冒白煙。'};
+  if(r<0.66) return {type:'choice', q:'🐰 兔子吃草、草被蟲吃，這叫做？', opts:kOpts('食物鏈',['拼圖','輪子','齒輪','電路'],4), ans:'食物鏈', hint:'誰吃誰。'};
+  if(r<0.8) return {type:'tf', q:'磁鐵可以吸住鐵做的東西。', ans:true, why:'鐵會被吸住！', hint:'試試看迴紋針。'};
+  // 自然界的永續發展 INg-Ⅲ-1~7：外來種、生物多樣性、氣候變遷、能源永續、碳足跡
+  return kPick([
+    {type:'choice', q:'🐸 從國外引進的「外來種」生物，可能對本地生態造成什麼影響？', opts:kOpts('破壞當地生態平衡',['完全沒有影響','讓本地生物變更多','讓環境變乾淨'],4), ans:'破壞當地生態平衡', hint:'外來種可能沒有天敵，會搶當地生物的資源。'},
+    {type:'choice', q:'🌳 「生物多樣性」對地球生態來說為什麼重要？', opts:kOpts('讓生態系更穩定、更能應付環境變化',['沒有任何用處','只是比較好看','會讓動物打架'],4), ans:'讓生態系更穩定、更能應付環境變化', hint:'物種越多元，生態系越強韌。'},
+    {type:'choice', q:'👣 「碳足跡」指的是什麼？', opts:kOpts('一項活動或產品排放的溫室氣體總量',['走路留下的腳印','一種化石','汽車輪胎的痕跡'],4), ans:'一項活動或產品排放的溫室氣體總量', hint:'跟溫室氣體排放量有關。'},
+    {type:'tf', q:'自然景觀和環境一旦被改變或破壞，通常很難恢復原狀。', ans:true, why:'對，所以事前保護比事後恢復重要！', hint:'想想被砍光的森林要多久才能長回來。'},
+    {type:'tf', q:'氣候變遷會影響生物的生存環境，跟我們的生活無關。', ans:false, why:'其實氣候變遷跟每個人的生活都息息相關！', hint:'氣候變遷會影響天氣、農作物、生態。'}
+  ]);
+}
 function scienceL5(){ const r=Math.random();
   if(r<0.3) return {type:'choice', q:'🔋 電燈會發光，是把什麼變成光和熱？', opts:kOpts('電能',['水能','風能','聲音','顏色'],4), ans:'電能', hint:'插電才有。'};
   if(r<0.55) return {type:'choice', q:'🧪 小蘇打加醋會發生什麼？', opts:kOpts('冒泡泡（產生氣體）',['著火','結冰','變黑色','沒變化'],4), ans:'冒泡泡（產生氣體）', hint:'酸鹼反應。'};
@@ -5243,7 +5359,7 @@ function dailyQuizStatusHTML(){
   const starStr = '★'.repeat(stars)+'☆'.repeat(3-stars);
   return `<div class="home-sec" style="animation-delay:.04s;">
     <h2 style="font-size:17px;margin-top:8px;">⭐ 每日小考</h2>
-    <p class="hint">每天一場混合小考，按年齡出題。星等越高，瞌睡怪被你打退越遠！連續完成還能拿徽章。</p>
+    <p class="hint">每天一場混合小考，按年齡出題。星等越高，拖延怪被你打退越遠！連續完成還能拿徽章。</p>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <span style="font-size:20px;color:#e08e0b;font-weight:800;">${rec?('今日：'+starStr):'今日尚未挑戰'}</span>
       <button class="next-btn" id="dqStatusBtn">${rec?'再挑戰一次 ▶':'開始今日小考 ▶'}</button>
@@ -5268,7 +5384,7 @@ function renderDailyQuiz(){
   app.innerHTML=`
   <div class="panel">
     <h2>⭐ 每日小考 · ${diff().name}</h2>
-    <p class="hint">今天一場混合小考，答對越多星星越多，瞌睡怪被你打退越遠！共 ${total} 題。</p>
+    <p class="hint">今天一場混合小考，答對越多星星越多，拖延怪被你打退越遠！共 ${total} 題。</p>
     <div class="quiz-hero"><span id="dqprog" class="quiz-prog"></span><div id="dqmon"></div></div>
     <div class="q-row"><span class="q-text" id="dqq"></span></div>
     <div id="dqstage"></div>
@@ -5312,7 +5428,7 @@ function renderDailyQuiz(){
       <div class="score-card">
         <div class="score-big ${stars===3?'':'mid'} ${stars===1?'low':''}">${starStr}</div>
         <p>獲得 ☀️ ${bonusSun} 陽光　🔥 連續 ${c.quizStreak} 天</p>
-        <p class="hint">表現越好，瞌睡怪被你打退越多！明天再來挑戰拿滿星～</p>
+        <p class="hint">表現越好，拖延怪被你打退越多！明天再來挑戰拿滿星～</p>
       </div>
       <button class="next-btn" id="dqagain">再挑戰一次 ▶</button>
       <button class="reset-btn" id="dqhome">🌻 回小花園</button>
@@ -5419,16 +5535,28 @@ function renderReview(){
 }
 
 /* 獎勵商店 */
+const STREAK_SHIELD_COST=150;
 function renderShop(){
   const rewards=state.rewards; const c=C();
   let html=`<div class="panel">
     <h2>🎁 獎勵商店</h2>
     <p class="hint">用你賺來的陽光，兌換現實中的獎勵！請找爸媽幫你發放喔。</p>
     <div style="margin-bottom:10px;"><span class="sun-box" style="position:static;display:inline-flex;"><span class="sun-emoji">☀️</span><span class="sunCount">${c.sun}</span> 陽光</span></div>
+    <div class="reward" style="align-items:center;">
+      <div><div class="nm">🛡️ 護盾豆 × ${c.streakShields||0}</div><div class="cost">連續紀錄中斷時自動保護一次</div></div>
+      <button class="next-btn" id="buyShield" ${c.sun>=STREAK_SHIELD_COST?'':'disabled'}>購買 ${STREAK_SHIELD_COST}☀️</button>
+    </div>
     <div id="rewardList"></div>`;
   if(rewards.length===0) html+=`<p style="color:#9a7b2e;">還沒有獎勵喔，請家長到「家長後台」新增真實獎勵。</p>`;
   html+=`</div>`;
   app.innerHTML=html;
+  const buyShield=$('#buyShield');
+  if(buyShield) buyShield.onclick=()=>{
+    if(c.sun<STREAK_SHIELD_COST) return;
+    c.sun-=STREAK_SHIELD_COST; c.streakShields=(c.streakShields||0)+1; save();
+    $$('.sunCount').forEach(e=>e.textContent=c.sun);
+    goodSound(); toast('🛡️ 已購買護盾豆！'); renderShop();
+  };
   const list=$('#rewardList');
   rewards.forEach(r=>{
     const div=document.createElement('div'); div.className='reward';
@@ -5444,6 +5572,9 @@ function renderShop(){
       const btn=div.querySelector('button');
       if(can) btn.onclick=()=>{
         c.sun-=r.cost; r.status='pending'; save();
+        state.redemptions=state.redemptions||[];
+        state.redemptions.push({id:'rl'+Date.now()+Math.floor(Math.random()*1000), rewardId:r.id, childId:c.id, childName:c.name||'孩子', rewardName:r.name, cost:r.cost, tier:r.tier||rewardTier(r.cost), requestedAt:Date.now(), status:'pending', decidedAt:null});
+        save();
         $$('.sunCount').forEach(e=>e.textContent=c.sun);
         goodSound(); toast('📨 申請送出！請找爸媽在後台確認發放'); renderShop();
       };
@@ -5455,6 +5586,12 @@ function renderShop(){
 /* ---------- 家長後台 ---------- */
 let parentUnlocked=false;
 let editingRewardId=null;
+/* 找到某獎勵目前「待確認」的最新一筆兌換紀錄（購買時機制保證同一獎勵同時最多一筆 pending） */
+function findPendingRedemption(rewardId){
+  const list=state.redemptions||[];
+  for(let i=list.length-1;i>=0;i--){ if(list[i].rewardId===rewardId && list[i].status==='pending') return list[i]; }
+  return null;
+}
 function renderParent(){
   if(!parentUnlocked){
     app.innerHTML = `
@@ -5515,6 +5652,14 @@ function renderParent(){
     </div>
     ${editingRewardId?'<div style="margin-top:6px;"><button class="reset-btn" id="cancelEdit">✖ 取消編輯</button></div>':''}
     ${state.rewards.some(r=>(r.status||'none')!=='none')?'<div style="margin-top:10px;"><button class="reset-btn" id="clearClaimed">清除領取紀錄</button></div>':''}`;
+
+  /* 兌換紀錄：可回溯的歷史（不受「清除領取紀錄」影響） */
+  const redemptions=(state.redemptions||[]).slice().sort((a,b)=>b.requestedAt-a.requestedAt).slice(0,30);
+  const redemStatusLabel={pending:'⏳ 待確認', approved:'✅ 已發放', rejected:'↩ 已退回'};
+  let redemptionLogHTML = redemptions.length
+    ? redemptions.map(r=>`<div class="reward"><div><div class="nm">${r.rewardName}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${r.cost} 陽光 · ${r.childName||''} · ${fmtDT(r.requestedAt)}${r.decidedAt?'（'+fmtDT(r.decidedAt)+' 處理）':''}</div></div><div class="cost">${redemStatusLabel[r.status]||r.status}</div></div>`).join('')
+    : '<p style="color:#9a7b2e;">還沒有兌換紀錄。</p>';
+  if(redemptions.length) redemptionLogHTML += '<div style="margin-top:10px;"><button class="reset-btn" id="clearRedemLog">🗑 清空紀錄</button></div>';
 
   /* 功課簽名 */
   const pendingHW = allHW().filter(it=>c.homework[it.id]==='pending');
@@ -5657,6 +5802,10 @@ function renderParent(){
     <p class="hint">孩子點兌換後變「申請中」，要由家長「確認發放」才正式給出。</p>
     ${rewardMgmt}
 
+    <h2 style="margin-top:18px;font-size:17px;">🧾 兌換紀錄</h2>
+    <p class="hint">完整兌換歷史，「清除領取紀錄」不會刪掉這裡的紀錄。</p>
+    ${redemptionLogHTML}
+
     <h2 style="margin-top:18px;font-size:17px;">🔐 密碼與安全</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button class="reset-btn" id="chgPin">✏️ 修改密碼</button>
@@ -5684,7 +5833,7 @@ function renderParent(){
     </div>
 
     <h2 style="margin-top:18px;font-size:17px;">📅 每週作息設定（星期一到日）</h2>
-    <p class="hint">每天各自設定 起床 / 吃飯 / 洗澡 / 睡覺。起床＝瞌睡怪出發、睡覺＝瞌睡怪截止（自動聯動）。</p>
+    <p class="hint">每天各自設定 起床 / 吃飯 / 洗澡 / 睡覺。起床＝拖延怪出發、睡覺＝拖延怪截止（自動聯動）。</p>
     <div style="overflow-x:auto;">
     <table style="border-collapse:collapse;width:100%;font-size:13px;">
       <tr><th style="padding:4px;text-align:left;">星期</th><th style="padding:4px;">🌞 起床</th><th style="padding:4px;">🍚 吃飯</th><th style="padding:4px;">🛁 洗澡</th><th style="padding:4px;">💤 睡覺</th></tr>
@@ -5720,8 +5869,16 @@ function renderParent(){
   /* handlers：獎勵 */
   state.rewards.forEach(r=>{
     const d=$('#del'+r.id); if(d) d.onclick=()=>{ state.rewards=state.rewards.filter(x=>x.id!==r.id); save(); renderParent(); };
-    const ap=$('#appr'+r.id); if(ap) ap.onclick=()=>{ r.status='approved'; save(); goodSound(); toast('✅ 已確認發放：'+r.name); renderParent(); };
-    const j=$('#rej'+r.id); if(j) j.onclick=()=>{ r.status='none'; c.sun+=r.cost; save(); $$('.sunCount').forEach(e=>e.textContent=c.sun); toast('↩ 已退回，陽光已歸還'); renderParent(); };
+    const ap=$('#appr'+r.id); if(ap) ap.onclick=()=>{
+      r.status='approved';
+      const log=findPendingRedemption(r.id); if(log){ log.status='approved'; log.decidedAt=Date.now(); }
+      save(); goodSound(); toast('✅ 已確認發放：'+r.name); renderParent();
+    };
+    const j=$('#rej'+r.id); if(j) j.onclick=()=>{
+      r.status='none'; c.sun+=r.cost;
+      const log=findPendingRedemption(r.id); if(log){ log.status='rejected'; log.decidedAt=Date.now(); }
+      save(); $$('.sunCount').forEach(e=>e.textContent=c.sun); toast('↩ 已退回，陽光已歸還'); renderParent();
+    };
     const e=$('#edt'+r.id); if(e) e.onclick=()=>{ editingRewardId=r.id; const n=$('#rName'),cc2=$('#rCost'); if(n) n.value=r.name; if(cc2) cc2.value=r.cost; renderParent(); };
   });
   const addPreset=$('#addPreset'); if(addPreset) addPreset.onclick=()=>{
@@ -5740,8 +5897,18 @@ function renderParent(){
   };
   const ce=$('#cancelEdit'); if(ce) ce.onclick=()=>{ editingRewardId=null; renderParent(); };
   const cc=$('#clearClaimed'); if(cc) cc.onclick=()=>{
-    state.rewards.forEach(r=>{ if((r.status||'none')==='pending'){ c.sun+=r.cost; } r.status='none'; });
+    state.rewards.forEach(r=>{
+      if((r.status||'none')==='pending'){
+        c.sun+=r.cost;
+        const log=findPendingRedemption(r.id); if(log){ log.status='rejected'; log.decidedAt=Date.now(); }
+      }
+      r.status='none';
+    });
     save(); $$('.sunCount').forEach(e=>e.textContent=c.sun); renderParent();
+  };
+  const crl=$('#clearRedemLog'); if(crl) crl.onclick=()=>{
+    if(!confirm('確定要永久清空兌換紀錄嗎？此動作無法復原。')) return;
+    state.redemptions=[]; save(); renderParent();
   };
 
   /* handlers：功課簽名 */
