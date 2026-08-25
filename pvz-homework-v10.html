@@ -470,13 +470,41 @@
   .collect-card .cc-icon{font-size:34px;}
   .collect-card .cc-title{font-size:15px; font-weight:800; color:var(--ink);}
   .collect-card .cc-sub{font-size:11px; color:var(--muted); font-weight:600;}
-  /* 首頁折疊區 */
-  .fold-sec{border:2px solid var(--line); border-radius:14px; margin:8px 0; overflow:hidden; background:#fffdf2;}
-  .fold-toggle{width:100%; border:none; background:none; padding:12px 14px; font-size:15px; font-weight:800; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:space-between;}
-  .fold-toggle .fold-ic{transition:transform .2s; font-size:13px; color:var(--muted);}
-  .fold-sec.open .fold-ic{transform:rotate(90deg);}
-  .fold-body{display:none; padding:0 14px 14px;}
-  .fold-sec.open .fold-body{display:block; animation:fadeUp .25s ease both;}
+  /* 首頁卡片模組（Phase 3 版面）*/
+  .home-module{padding:16px; border:1px solid var(--line); border-radius:var(--radius); background:rgba(255,253,247,.95); box-shadow:0 8px 20px var(--shadow); margin:10px 0;}
+  .module-heading{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:4px;}
+  .module-heading h2{margin:0;}
+  .home-module-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:10px;}
+  .home-module-grid .home-module{margin:0;}
+  @media (max-width:700px){ .home-module-grid{grid-template-columns:1fr;} }
+  .holiday-banner{display:flex; align-items:center; gap:10px; background:#fff8e5; border:2px solid #ecd99d; border-radius:14px; padding:10px 14px; margin:10px 0;}
+  .holiday-mark{width:32px; height:32px; flex:0 0 auto; display:grid; place-items:center; border-radius:10px; background:#f2d277; color:#805c19; font-weight:900;}
+  .holiday-banner strong{display:block; color:#7a5a00;}
+  .holiday-banner span{color:#8e7a4a; font-size:12px;}
+  .progress-card-row{display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:14px; align-items:stretch; margin:12px 0;}
+  @media (max-width:700px){ .progress-card-row{grid-template-columns:1fr;} }
+  .progress-resources{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .resource-stat{display:flex; align-items:center; gap:8px; padding:8px; border-radius:11px; background:#f7faf4;}
+  .resource-icon{width:28px; height:28px; display:grid; place-items:center; border-radius:9px; font-weight:900; font-size:12px; flex:0 0 auto;}
+  .streak-icon{background:#fff3d3; color:#916615;}
+  .shield-icon{background:#e5eef8; color:#426b91;}
+  .resource-stat strong{display:block; font-size:13px;}
+  .resource-stat small{display:block; margin-top:2px; color:var(--muted); font-size:10px;}
+  .battle-card{padding:16px;}
+  .battle-condition-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .shield-badge,.holiday-badge-sm{display:inline-block; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:800; white-space:nowrap;}
+  .shield-badge{background:#e5eef8; color:#426b91;}
+  .holiday-badge-sm{background:#fff0c5; color:#916615;}
+  .monster-state-panel{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .monster-state-list{display:grid; gap:8px; margin-top:8px;}
+  .monster-state-item{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:12px; background:#f7faf4; opacity:.6;}
+  .monster-state-item.active{opacity:1; background:#eafbe7; box-shadow:0 0 0 2px #cfe8c4;}
+  .monster-state-item img{width:34px; height:34px; object-fit:contain; flex:0 0 auto;}
+  .monster-state-item strong{display:block; font-size:13px;}
+  .monster-state-item span{display:block; font-size:11px; color:var(--muted);}
+  .monster-state-item b{font-size:11px; color:#916615; white-space:nowrap;}
+  .section-flash{animation:sectionFlash 1.5s ease;}
+  @keyframes sectionFlash{ 0%{box-shadow:0 0 0 4px var(--sun);} 100%{box-shadow:0 8px 20px var(--shadow);} }
   .cta-hero{display:block; width:100%; max-width:340px; margin:14px auto 4px; border:none; border-radius:24px; padding:16px; font-size:19px; font-weight:900; color:#fff; background:linear-gradient(180deg,var(--accent),var(--accent-dark)); box-shadow:0 5px 0 var(--accent-dark), 0 8px 18px rgba(201,107,91,.3); cursor:pointer; transition:transform .1s; letter-spacing:1px;}
   .cta-hero:hover{transform:translateY(-1px);}
   .cta-hero:active{transform:translateY(3px); box-shadow:0 2px 0 var(--accent-dark);}
@@ -3657,8 +3685,7 @@ function renderHome(){
   const name = c.name || '小朋友';
   const r = todayRoutine();
   const hol = isHolidayToday();
-  const banner = hol ? `<div style="background:#eafbe7;border:2px solid #2e7d32;border-radius:14px;padding:10px 14px;margin:10px 0;font-weight:800;color:#2e7d32;text-align:center;">🎉 今天是「${hol}」，學校功課可以休息，自由練習照樣能賺陽光！</div>` : '';
-  const _rv = dueReviews(); const reviewCount = _rv.length;
+  const banner = hol ? `<div class="holiday-banner"><span class="holiday-mark">休</span><div><strong>🎉 今天是「${hol}」</strong><span>學校功課可以休息，自由練習照樣能賺陽光！</span></div></div>` : '';
   const profileOpts = state.children.map(ch=>`<option value="${ch.id}" ${ch.id===state.activeChildId?'selected':''}>${ch.name||'孩子'}</option>`).join('');
   const leaderboard = state.children.slice().sort((a,b)=>b.sun-a.sun).map((ch,i)=>{
     const done=visibleHW().filter(it=>ch.homework[it.id]===true).length;
@@ -3668,7 +3695,14 @@ function renderHome(){
   }).join('');
   const HM = state.homeModules;
   const secZombie = HM.zombie ? `
-    <div class="home-sec" style="animation-delay:.05s;">
+    <div class="home-sec battle-card" id="secZombieBox" style="animation-delay:.05s;">
+      <div class="module-heading">
+        <div><p class="hint" style="margin:0;">DAILY DEFENSE</p><h2 style="font-size:17px;margin:2px 0 0;">🛡 今日守護戰</h2></div>
+        <div class="battle-condition-row">
+          <span class="shield-badge">🛡 護盾豆 × ${c.streakShields||0}</span>
+          <span class="holiday-badge-sm">${hol?'🎉 假日模式':'📅 平日模式'}</span>
+        </div>
+      </div>
       <div class="threat-label">⏰ 拖延怪倒數：每天 ${r.wake} 起床後出發，${r.sleep} 睡覺前寫完就能打退牠！你的植物會自動發射露珠保衛花園，點掉下來的 ☀️ 還能收集陽光！</div>
       <div class="battle lawn-battle" id="homeBattle">
         <div class="house">🏠</div>
@@ -3685,10 +3719,18 @@ function renderHome(){
       <div class="hp-wrap"><span>🌻 植物血量</span><div class="hp-bar"><i id="hpFill"></i></div></div>
       <div style="text-align:center;margin-top:8px;"><button class="next-btn" id="energyBtn">💥 能量豆大招</button></div>
       <div id="zStatus" style="font-weight:800;margin:8px 0;"></div>
+      <div class="monster-state-panel">
+        <div class="module-heading"><div><p class="hint" style="margin:0;">MONSTER STATUS</p><h2 style="font-size:15px;margin:2px 0 0;">敵人狀態</h2></div></div>
+        <div class="monster-state-list">
+          <div class="monster-state-item active"><img src="assets/monsters/拖延怪/拖延怪_頭像.png" alt="拖延怪"><div><strong>拖延怪</strong><span>日常逼近．被任務推退</span></div><b>目前</b></div>
+          <div class="monster-state-item"><img src="assets/monsters/粗心大王/粗心大王_頭像.png" alt="粗心大王"><div><strong>粗心大王</strong><span>連續答錯 2 題時出現</span></div><b>答錯觸發</b></div>
+          <div class="monster-state-item"><img src="assets/monsters/週末魔王/週末魔王_頭像.png" alt="週末魔王"><div><strong>週末魔王</strong><span>週六日限定．完成簽核可加碼</span></div><b>週末 Boss</b></div>
+        </div>
+      </div>
     </div>` : '';
   const secRoutine = HM.routine ? `
-    <div class="home-sec" style="animation-delay:.12s;">
-      <h2 style="font-size:17px;margin-top:18px;">🕐 今日作息（${['星期一','星期二','星期三','星期四','星期五','星期六','星期日'][todayWeekdayIndex()]}）</h2>
+    <div class="home-sec home-module routine-card" id="secRoutineBox" style="animation-delay:.12s;">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">DAILY RHYTHM</p><h2 style="font-size:17px;margin:2px 0 0;">🕐 今日作息（${['星期一','星期二','星期三','星期四','星期五','星期六','星期日'][todayWeekdayIndex()]}）</h2></div></div>
       <div id="homeClock" style="text-align:center;font-weight:800;font-size:18px;color:#3a7d1f;margin:4px 0;"></div>
       <div id="routineList" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
       <div id="nextRoutine" style="text-align:center;font-weight:800;margin:8px 0;color:#7a6a45;"></div>
@@ -3699,34 +3741,34 @@ function renderHome(){
       </div>
       <div id="weekTable" style="display:none;margin-top:10px;"></div>
     </div>` : '';
-  const secHW = HM.homework ? `
-    <div class="home-sec" style="animation-delay:.19s;">
-      <h2 style="font-size:17px;margin-top:10px;">📝 今日功課（${finished}/${visibleHW().length} 完成）</h2>
-      <div id="hwList"></div>
-    </div>` : '';
   const secBadge = HM.badges ? `
-    <div class="home-sec" style="animation-delay:.26s;">
-      <h2 style="font-size:17px;margin-top:16px;">🏅 我的徽章</h2>
+    <div class="home-sec home-module badge-card" id="secBadgeBox" style="animation-delay:.26s;">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">ACHIEVEMENTS</p><h2 style="font-size:17px;margin:2px 0 0;">🏅 我的徽章</h2></div></div>
       <div id="badgeWall" style="display:flex;flex-wrap:wrap;justify-content:center;">${badgesHTML()}</div>
     </div>` : '';
   const secLeader = HM.leaderboard ? `
-    <div class="home-sec" style="animation-delay:.33s;">
-      <h2 style="font-size:17px;margin-top:16px;">🏆 家族排行榜</h2>
+    <div class="home-sec home-module leaderboard-card" id="secLeaderBox" style="animation-delay:.33s;">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">FAMILY GARDEN</p><h2 style="font-size:17px;margin:2px 0 0;">🏆 家族排行榜</h2></div></div>
       <div id="leaderboard">${leaderboard}</div>
     </div>` : '';
   const secGarden = HM.garden ? `
-    <div class="home-sec" style="animation-delay:.4s;">
-      <h2 style="font-size:17px;margin-top:16px;">🌿 上場陣容（${deckIds(c).length}/${MAX_PLANTS} 盆）</h2>
+    <div class="home-sec home-module garden-card" id="secGardenBox" style="animation-delay:.4s;">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">PLANT GARDEN</p><h2 style="font-size:17px;margin:2px 0 0;">🌿 上場陣容（${deckIds(c).length}/${MAX_PLANTS} 盆）</h2></div></div>
       <p class="hint" style="margin:0 0 8px;">點上場中的植物可以「收回溫室」，再從下面的收藏挑別的上場——隨時都能換，解鎖過的植物永遠不會消失。</p>
       <div class="lawn" id="myLawn"></div>
       <h2 style="font-size:15px;margin-top:12px;color:#6a8a3a;">🛒 植物圖鑑（已解鎖 ${ownedPlantCount(c)}/${GARDEN_PLANTS.length}）</h2>
       <div class="garden" id="homeGarden"></div>
     </div>` : '';
 
-  const secSchedule = HM.schedule ? renderSchedulePanel() : '';
-  const foldOpen={routine:false,garden:false,badge:false};
-  if(homeFocus==='garden') foldOpen.garden=true;
-  if(homeFocus==='badge'||homeFocus==='rank') foldOpen.badge=true;
+  const secSchedule = HM.schedule ? renderSchedulePanel().replace('class="home-sec"','class="home-sec home-module schedule-card" id="secScheduleBox"') : '';
+  if(homeFocus){
+    const focusTarget=homeFocus;
+    setTimeout(()=>{
+      const map={garden:'secGardenBox', badge:'secBadgeBox', rank:'secLeaderBox'};
+      const el=$('#'+map[focusTarget]);
+      if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); el.classList.add('section-flash'); setTimeout(()=>el.classList.remove('section-flash'),1600); }
+    },80);
+  }
   homeFocus=null;
   const hwPct = visibleHW().length ? Math.round(finished/visibleHW().length*100) : 100;
   const hasUnfinished = !!firstUnfinishedHW();
@@ -3750,24 +3792,35 @@ function renderHome(){
     </div>
     ${banner}
     ${secZombie}
-    <div style="margin:10px 0 2px;">
-      <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:5px;">
-        <span>📝 今日功課</span><span style="color:#2e8b40;">${finished}/${visibleHW().length} 完成</span>
+    <div class="progress-card-row">
+      <div>
+        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:5px;">
+          <span>📝 今日功課</span><span style="color:#2e8b40;">${finished}/${visibleHW().length} 完成</span>
+        </div>
+        <div style="height:12px;background:#ece0c4;border-radius:8px;overflow:hidden;">
+          <div style="height:100%;width:${hwPct}%;background:linear-gradient(90deg,#7dc855,#4ea63b);transition:width .5s;"></div>
+        </div>
+        <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':'🎉 功課寫完了，自由練習 ▶'}</button>
       </div>
-      <div style="height:12px;background:#ece0c4;border-radius:8px;overflow:hidden;">
-        <div style="height:100%;width:${hwPct}%;background:linear-gradient(90deg,#7dc855,#4ea63b);transition:width .5s;"></div>
+      <div class="home-module">
+        <div class="module-heading"><div><p class="hint" style="margin:0;">TODAY'S FOCUS</p></div></div>
+        <div style="text-align:center;">
+          <div style="font-size:30px;font-weight:900;color:var(--leaf-dark);">${hwPct}<small style="font-size:16px;">%</small></div>
+          <div style="font-size:12px;color:var(--muted);">今日完成度</div>
+        </div>
+        <div class="progress-resources">
+          <div class="resource-stat"><span class="resource-icon streak-icon">連</span><div><strong>${c.streak||0} 天</strong><small>目前連勝</small></div></div>
+          <div class="resource-stat"><span class="resource-icon shield-icon">盾</span><div><strong>${c.streakShields||0} 顆</strong><small>護盾豆</small></div></div>
+        </div>
       </div>
     </div>
-    <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':'🎉 功課寫完了，自由練習 ▶'}</button>
-    <div class="fold-sec${foldOpen.garden?' open':''}" id="foldGarden">
-      <button class="fold-toggle" type="button"><span>🌿 花園圖鑑（${ownedPlantCount(c)}/${GARDEN_PLANTS.length}）</span><span class="fold-ic">▶</span></button>
-      <div class="fold-body">${secGarden}</div>
+    ${secGarden}
+    <div class="home-module-grid">
+      ${secRoutine}
+      ${secBadge}
+      ${secLeader}
+      ${secSchedule}
     </div>
-    <div class="fold-sec${foldOpen.badge?' open':''}" id="foldBadge">
-      <button class="fold-toggle" type="button"><span>🏅 徽章與排行榜</span><span class="fold-ic">▶</span></button>
-      <div class="fold-body">${secBadge}${secLeader}</div>
-    </div>
-    ${secSchedule}
     <div class="home-sec" style="text-align:center;margin-top:14px;">
       <button class="reset-btn" id="newDay">🔄 新的一天（重設功課）</button>
     </div>
@@ -3775,19 +3828,6 @@ function renderHome(){
   if(HM.schedule) attachSchedule();
   if(HM.zombie) renderLawnBattle();   // 先把 SVG 角色放進戰場，再由 updateZombie 定位
   updateZombie(unfinished);
-  const list=$('#hwList');
-  if(list){
-    visibleHW().forEach(it=>{
-      const st=C().homework[it.id];
-      const done=st===true, pend=st==='pending';
-      const card=document.createElement('button');
-      card.className='hw-card'+(done?' done':'')+(pend?' pending':'');
-      const label = done?'已完成 ✅':pend?'申請中 ⏳':'去寫 →';
-      card.innerHTML=`<span>${(done?'✅':pend?'⏳':'⬜')} ${subjectIcon(it.type)} ${displayHWName(it)}</span><span>${label}</span>`;
-      card.onclick=()=>showTab(tabForType(it.type), it.id);
-      list.appendChild(card);
-    });
-  }
   const lawn=$('#myLawn');
   if(lawn){
     const field=deckPlants(c);
@@ -3849,7 +3889,6 @@ function renderHome(){
   renderRoutineBonus($('#routineBonus'));
   updateClock();
   const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{ if(hasUnfinished) renderTodayTasks(); else showTab('practice'); };
-  $$('.fold-toggle').forEach(b=> b.onclick=()=>{ const s=b.parentElement; if(s&&s.classList) s.classList.toggle('open'); });
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
   const eb=$('#energyBtn'); if(eb){ eb.onclick=useEnergy; tickEnergy(); }
   const tb=$('#ttsBtn'); if(tb) tb.onclick=()=>{ state.tts=!state.tts; save(); renderHome(); };
