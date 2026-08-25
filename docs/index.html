@@ -10,12 +10,14 @@
 <link rel="icon" type="image/png" href="icon-512.png">
 <style>
   :root{
-    --sky1:#dff3ff; --sky2:#bfe7ff; --lawn1:#8fd95e; --lawn2:#74c347;
-    --sun:#ffd54a; --sun-dark:#f0a500;
-    --panel:#fffdf8; --ink:#3a3120; --accent:#ff7a45; --accent-dark:#e25e2b;
-    --leaf:#46b85a; --leaf-dark:#2e8b40;
-    --card:#ffffff; --line:#ece0c4; --muted:#8a7a55;
-    --shadow:rgba(70,50,15,.16); --radius:28px; --sticker:#ffd54a;
+    /* 2026-08-25 套用 WorkBuddy 新版色票（ui-tokens.css）：沿用既有變數名稱，只換色值，
+       這樣既有規則（var(--accent) 等）全部自動吃到新配色，不用逐一改呼叫端。 */
+    --sky1:#eef6ea; --sky2:#dcebd4; --lawn1:#9ccb85; --lawn2:#84ba6c;
+    --sun:#f2b83f; --sun-dark:#d99a2b;
+    --panel:#fffdf7; --ink:#253a36; --accent:#e98568; --accent-dark:#c96b5b;
+    --leaf:#4d9564; --leaf-dark:#2f7049;
+    --card:#ffffff; --line:#dde7d8; --muted:#6e7c76;
+    --shadow:rgba(37,58,54,.14); --radius:18px; --sticker:#f2b83f;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   ::selection{background:var(--sun); color:#5a4500;}
@@ -34,14 +36,14 @@
             mask-image:linear-gradient(180deg,transparent 120px,#000 165px);
   }
   header{
-    background:linear-gradient(180deg,#ffe27a,#ffb02e);
+    background:var(--panel);
     padding:14px 22px; display:flex; align-items:center; gap:14px;
-    box-shadow:0 6px 18px var(--shadow); position:sticky; top:0; z-index:20; flex-wrap:wrap;
-    border-bottom:3px solid #ff9d00;
+    box-shadow:0 2px 10px var(--shadow); position:sticky; top:0; z-index:20; flex-wrap:wrap;
+    border-bottom:1px solid var(--line);
   }
-  header h1{font-size:21px; margin:0; text-shadow:1px 2px 0 #fff7d6; letter-spacing:.5px; font-weight:800; line-height:1.25;}
-  header .sub{font-size:12px; color:#7a5a00; margin-top:2px; font-weight:600;}
-  header .byline{font-size:11px; color:#9a8a5a; margin-top:3px; font-weight:600; letter-spacing:.3px;}
+  header h1{font-size:21px; margin:0; letter-spacing:.5px; font-weight:800; line-height:1.25; color:var(--ink);}
+  header .sub{font-size:12px; color:var(--muted); margin-top:2px; font-weight:600;}
+  header .byline{font-size:11px; color:var(--muted); margin-top:3px; font-weight:600; letter-spacing:.3px;}
   .sun-box{
     margin-left:auto; display:flex; align-items:center; gap:8px;
     background:#fff; padding:7px 16px; border-radius:30px; font-weight:800;
@@ -119,29 +121,19 @@
   .lp.dead{ filter:grayscale(1) brightness(.5); transform:rotate(-16deg); opacity:.7; }
   .zombie.eating{ animation:chomp .42s ease-in-out infinite; }
   .zombie.hit{ animation:zHit .18s ease-out; }
-  /* —— 向量角色：拖延怪 —— */
-  .z-svg{ width:56px; height:84px; overflow:visible; display:block; }
-  .zombie.mega .z-svg{ width:76px; height:114px; }
-  .z-leg{ transform-origin:31px 57px; }
-  .z-leg-f{ animation:zLegF .62s ease-in-out infinite; }
-  .z-leg-b{ animation:zLegB .62s ease-in-out infinite; }
-  @keyframes zLegF{ 0%,100%{transform:rotate(15deg);} 50%{transform:rotate(-15deg);} }
-  @keyframes zLegB{ 0%,100%{transform:rotate(-15deg);} 50%{transform:rotate(15deg);} }
-  .z-arm{ transform-origin:30px 40px; }
-  .z-arm-a{ animation:zArmA 1.5s ease-in-out infinite; }
-  .z-arm-b{ animation:zArmA 1.5s ease-in-out infinite reverse; }
-  .z-arm path:first-child{ filter:drop-shadow(0 1px 0 rgba(0,0,0,.15)); }
-  @keyframes zArmA{ 0%,100%{transform:rotate(-4deg);} 50%{transform:rotate(5deg);} }
-  .z-head{ transform-origin:30px 34px; animation:zHead 1.24s ease-in-out infinite; }
-  @keyframes zHead{ 0%,100%{transform:rotate(-4deg) translateY(0);} 50%{transform:rotate(4deg) translateY(-1.5px);} }
-  .z-mouth{ transform-origin:30px 31px; }
-  .zombie.eating .z-mouth{ animation:zChew .3s ease-in-out infinite; }
-  @keyframes zChew{ 0%,100%{transform:scaleY(.6);} 50%{transform:scaleY(2.1);} }
-  .zombie.mega .z-eye{ fill:#ff2222; }
-  .zombie.mega .z-skin{ fill:#8fae66; }
-  .zombie.dazed .z-svg{ transform:rotate(-8deg); opacity:.85; }
-  .zombie.dazed .z-leg-f,.zombie.dazed .z-leg-b,.zombie.dazed .z-head{ animation:none; }
-  .zombie.sleepy .z-leg-f,.zombie.sleepy .z-leg-b,.zombie.sleepy .z-arm{ animation:none; }
+  /* —— 立繪角色：拖延怪／週末魔王（PNG 插畫，取代原本手繪 SVG） —— */
+  .zombie-wrap{ width:56px; height:56px; position:relative; display:block; }
+  .zombie.mega .zombie-wrap{ width:84px; height:84px; }
+  .z-img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; display:block; animation:zBob 1.7s ease-in-out infinite; filter:drop-shadow(0 3px 2px rgba(0,0,0,.22)); }
+  .z-img-weekend{ display:none; }
+  .zombie.mega .z-img-delay{ display:none; }
+  .zombie.mega .z-img-weekend{ display:block; }
+  @keyframes zBob{ 0%,100%{transform:translateY(0);} 50%{transform:translateY(-3px);} }
+  .zombie.eating .z-img{ animation:zChompImg .42s ease-in-out infinite; }
+  @keyframes zChompImg{ 0%,100%{transform:scale(1) translateY(0);} 50%{transform:scale(1.08) translateY(-2px);} }
+  .zombie.dazed .zombie-wrap{ transform:rotate(-8deg); opacity:.85; }
+  .zombie.dazed .z-img{ animation:none; }
+  .zombie.sleepy .z-img{ animation:none; }
   /* —— 向量角色：植物 —— */
   .p-svg{ width:46px; height:56px; overflow:visible; display:block; }
   .lp .p-svg{ width:44px; height:54px; }
@@ -478,16 +470,45 @@
   .collect-card .cc-icon{font-size:34px;}
   .collect-card .cc-title{font-size:15px; font-weight:800; color:var(--ink);}
   .collect-card .cc-sub{font-size:11px; color:var(--muted); font-weight:600;}
-  /* 首頁折疊區 */
-  .fold-sec{border:2px solid var(--line); border-radius:14px; margin:8px 0; overflow:hidden; background:#fffdf2;}
-  .fold-toggle{width:100%; border:none; background:none; padding:12px 14px; font-size:15px; font-weight:800; color:var(--ink); cursor:pointer; display:flex; align-items:center; justify-content:space-between;}
-  .fold-toggle .fold-ic{transition:transform .2s; font-size:13px; color:var(--muted);}
-  .fold-sec.open .fold-ic{transform:rotate(90deg);}
-  .fold-body{display:none; padding:0 14px 14px;}
-  .fold-sec.open .fold-body{display:block; animation:fadeUp .25s ease both;}
-  .cta-hero{display:block; width:100%; max-width:340px; margin:14px auto 4px; border:none; border-radius:24px; padding:16px; font-size:19px; font-weight:900; color:#fff; background:linear-gradient(180deg,#ff8a5a,#e25e2b); box-shadow:0 5px 0 #b8431a, 0 8px 18px rgba(226,94,43,.3); cursor:pointer; transition:transform .1s; letter-spacing:1px;}
+  /* 首頁卡片模組（Phase 3 版面）*/
+  .home-module{padding:16px; border:1px solid var(--line); border-radius:var(--radius); background:rgba(255,253,247,.95); box-shadow:0 8px 20px var(--shadow); margin:10px 0;}
+  .module-heading{display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-bottom:4px;}
+  .module-heading h2{margin:0;}
+  .home-module-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:10px;}
+  .home-module-grid .home-module{margin:0;}
+  @media (max-width:700px){ .home-module-grid{grid-template-columns:1fr;} }
+  .holiday-banner{display:flex; align-items:center; gap:10px; background:#fff8e5; border:2px solid #ecd99d; border-radius:14px; padding:10px 14px; margin:10px 0;}
+  .holiday-mark{width:32px; height:32px; flex:0 0 auto; display:grid; place-items:center; border-radius:10px; background:#f2d277; color:#805c19; font-weight:900;}
+  .holiday-banner strong{display:block; color:#7a5a00;}
+  .holiday-banner span{color:#8e7a4a; font-size:12px;}
+  .progress-card-row{display:grid; grid-template-columns:minmax(0,1fr) 220px; gap:14px; align-items:stretch; margin:12px 0;}
+  @media (max-width:700px){ .progress-card-row{grid-template-columns:1fr;} }
+  .progress-resources{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .resource-stat{display:flex; align-items:center; gap:8px; padding:8px; border-radius:11px; background:#f7faf4;}
+  .resource-icon{width:28px; height:28px; display:grid; place-items:center; border-radius:9px; font-weight:900; font-size:12px; flex:0 0 auto;}
+  .streak-icon{background:#fff3d3; color:#916615;}
+  .shield-icon{background:#e5eef8; color:#426b91;}
+  .resource-stat strong{display:block; font-size:13px;}
+  .resource-stat small{display:block; margin-top:2px; color:var(--muted); font-size:10px;}
+  .battle-card{padding:16px;}
+  .battle-condition-row{display:flex; gap:8px; flex-wrap:wrap;}
+  .shield-badge,.holiday-badge-sm{display:inline-block; padding:4px 10px; border-radius:99px; font-size:12px; font-weight:800; white-space:nowrap;}
+  .shield-badge{background:#e5eef8; color:#426b91;}
+  .holiday-badge-sm{background:#fff0c5; color:#916615;}
+  .monster-state-panel{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .monster-state-list{display:grid; gap:8px; margin-top:8px;}
+  .monster-state-item{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:12px; background:#f7faf4; opacity:.6;}
+  .monster-state-item.active{opacity:1; background:#eafbe7; box-shadow:0 0 0 2px #cfe8c4;}
+  .monster-state-item img{width:34px; height:34px; object-fit:contain; flex:0 0 auto;}
+  .monster-state-item strong{display:block; font-size:13px;}
+  .monster-state-item span{display:block; font-size:11px; color:var(--muted);}
+  .monster-state-item b{font-size:11px; color:#916615; white-space:nowrap;}
+  .section-flash{animation:sectionFlash 1.5s ease;}
+  @keyframes sectionFlash{ 0%{box-shadow:0 0 0 4px var(--sun);} 100%{box-shadow:0 8px 20px var(--shadow);} }
+  .bonus-group{background:#fffaf0; border-color:#ecd99d;}
+  .cta-hero{display:block; width:100%; max-width:340px; margin:14px auto 4px; border:none; border-radius:24px; padding:16px; font-size:19px; font-weight:900; color:#fff; background:linear-gradient(180deg,var(--accent),var(--accent-dark)); box-shadow:0 5px 0 var(--accent-dark), 0 8px 18px rgba(201,107,91,.3); cursor:pointer; transition:transform .1s; letter-spacing:1px;}
   .cta-hero:hover{transform:translateY(-1px);}
-  .cta-hero:active{transform:translateY(3px); box-shadow:0 2px 0 #b8431a;}
+  .cta-hero:active{transform:translateY(3px); box-shadow:0 2px 0 var(--accent-dark);}
   .sched-kind{display:inline-block;font-size:11px;font-weight:800;padding:1px 7px;border-radius:8px;margin-left:6px;vertical-align:middle;}
   .kind-routine{background:#e3f2fd;color:#1565c0;}
   .kind-hw{background:#fff3e0;color:#e65100;}
@@ -1106,7 +1127,7 @@ function renderReviewDrill(viaCareless){
   const c=C(); const pool=dueReviews();  if(!pool.length){ app.innerHTML=`<div class="panel"><h2>🔁 錯題複習</h2><p class="hint">目前沒有錯題可以複習，你超棒！🎉</p><button class="next-btn" id="rvBack">⬅ 回首頁</button></div>`; $('#rvBack').onclick=renderHome; return; }
   const queue=pool.slice().sort(()=>Math.random()-.5);
   let i=0, right=0;
-  const carelessNote=viaCareless?'<p class="hint" style="color:#c0392b;">🤴 粗心大王出現：連續答錯 2 題，先把剛剛的題目複習一遍再繼續！</p>':'';
+  const carelessNote=viaCareless?'<div class="hint" style="color:#c0392b;display:flex;align-items:center;gap:8px;"><img src="assets/monsters/粗心大王/粗心大王_頭像.png" alt="粗心大王" style="width:40px;height:40px;object-fit:contain;flex-shrink:0;"><span>粗心大王出現：連續答錯 2 題，先把剛剛的題目複習一遍再繼續！</span></div>':'';
   const renderOne=()=>{
     if(i>=queue.length){
       app.innerHTML=`<div class="panel" style="text-align:center;"><h2>🎉 複習完成！</h2><p style="font-size:18px;font-weight:800;">共 ${queue.length} 題，答對 ${right} 題</p><button class="next-btn" id="rvBack">⬅ 回首頁</button></div>`;
@@ -1885,38 +1906,14 @@ function toggleDeck(id){
 }
 
 /* ================= 向量角色（取代 emoji）================= */
-/* 拖延怪：圓滾滾的瞌睡小怪，動作全由 CSS 驅動 */
+/* 拖延怪／週末魔王立繪（PNG，WorkBuddy 2026-08-25 產出）。
+   兩張圖都放進同一個容器，用既有的 .zombie.mega class（updateZombie() 已經在切換）決定顯示哪一張，
+   呼叫端（renderHome/renderLawnBattle/renderMath 的戰場）完全不用改。 */
 function zombieSVG(){
-  return `<svg class="z-svg" viewBox="0 0 60 92" xmlns="http://www.w3.org/2000/svg" aria-label="拖延怪">
-    <ellipse cx="30" cy="88" rx="16" ry="3.6" fill="rgba(0,0,0,.22)"/>
-    <g class="z-leg z-leg-b">
-      <rect x="25" y="60" width="10" height="22" rx="5" fill="#6a5a8e"/>
-      <ellipse cx="30" cy="83" rx="6.5" ry="3.6" fill="#4a3d68"/>
-    </g>
-    <g class="z-leg z-leg-f">
-      <rect x="28" y="60" width="10" height="22" rx="5" fill="#7d6ba6"/>
-      <ellipse cx="33" cy="83" rx="6.5" ry="3.6" fill="#4a3d68"/>
-    </g>
-    <path d="M17 44q13-7 26 0l3 22q-16 6-32 0z" class="z-skin" fill="#8a76b8"/>
-    <g class="z-arm z-arm-b">
-      <path d="M20 50q-9 4-12 14" stroke="#7664a0" stroke-width="7.5" stroke-linecap="round" fill="none"/>
-      <circle cx="8" cy="64" r="4.6" class="z-skin" fill="#8a76b8"/>
-    </g>
-    <g class="z-head">
-      <ellipse cx="30" cy="25" rx="17.5" ry="16.5" class="z-skin" fill="#9480c4"/>
-      <path d="M19 24q4 4.5 8.5 0" stroke="#3a2f52" stroke-width="2.1" fill="none" stroke-linecap="round"/>
-      <path d="M32.5 24q4 4.5 8.5 0" stroke="#3a2f52" stroke-width="2.1" fill="none" stroke-linecap="round"/>
-      <circle class="z-eye" cx="23.5" cy="26.5" r="2.4" fill="#5a4a7a"/>
-      <circle class="z-eye" cx="36.5" cy="26.5" r="2.4" fill="#5a4a7a"/>
-      <ellipse class="z-mouth" cx="30" cy="33" rx="3.6" ry="4.6" fill="#5a3a5a"/>
-      <text x="43" y="13" font-size="10" fill="#7d6ba6" font-family="sans-serif" font-weight="800">Z</text>
-      <text x="49" y="7" font-size="7" fill="#a593c8" font-family="sans-serif" font-weight="800">z</text>
-    </g>
-    <g class="z-arm z-arm-a">
-      <path d="M41 46q11-3 18 6" stroke="#8a76b8" stroke-width="7.5" stroke-linecap="round" fill="none"/>
-      <circle cx="59" cy="52" r="4.6" class="z-skin" fill="#9480c4"/>
-    </g>
-  </svg>`;
+  return `<div class="zombie-wrap">
+    <img class="z-img z-img-delay" src="assets/monsters/拖延怪/拖延怪.png" alt="拖延怪">
+    <img class="z-img z-img-weekend" src="assets/monsters/週末魔王/週末魔王.png" alt="週末魔王">
+  </div>`;
 }
 /* 繞圈花瓣產生器 */
 function petalRing(cx,cy,r,n,rx,ry,fill,stroke){
@@ -1927,71 +1924,20 @@ function petalRing(cx,cy,r,n,rx,ry,fill,stroke){
   return s;
 }
 /* 植物：共用花盆 + 各自造型 */
+/* 8 種植物新版向量插畫（WorkBuddy 2026-08-25 產出，取代原本手繪版）。
+   class 從來源的 plant-sway 換成 p-head，沿用既有 pSway/plantShake CSS 動畫，不必新增樣式規則。 */
+const PLANT_SVG_ART = {
+  glowcap: `<svg class="p-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="螢光蕈"><g class="p-head"><path d="M32 49V30" stroke="#4d9564" stroke-width="3" stroke-linecap="round"/><path d="M31 38q-11-5-13-13q12-2 16 8q2-9 12-12q1 12-9 17" fill="#77b873" stroke="#326b49" stroke-width="1.5" stroke-linejoin="round"/><path class="plant-glow" d="M20 25q12-9 24 0q-2 8-12 8q-10 0-12-8z" fill="#d8c6ed" stroke="#8069aa" stroke-width="1.5"/><path d="M23 25q9-5 18 0" stroke="#fff4bd" stroke-width="2" stroke-linecap="round" opacity=".8"/></g><path d="M19 49h26l-3 10H22z" fill="#a86f4f"/><path d="M20 49h24" stroke="#7d503d" stroke-width="2" stroke-linecap="round"/><path d="M23 53h18" stroke="#c78a60" stroke-width="1.5" opacity=".75"/></svg>`,
+  flytrap: `<svg class="p-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="捕蠅草"><g class="p-head"><path d="M32 49V35" stroke="#4d9564" stroke-width="3" stroke-linecap="round"/><path d="M32 42q-15-6-18-18q15-4 20 9q4-13 20-10q-3 14-18 19z" fill="#79b85e" stroke="#326b49" stroke-width="1.5" stroke-linejoin="round"/><path d="M18 26q8-5 15 4q-7 3-15-4M37 31q8-9 15-5q-7 8-15 5" fill="#f4c66b" stroke="#3d7e48" stroke-width="1.3"/><circle cx="25" cy="27" r="1.3" fill="#e98568"/><circle cx="44" cy="29" r="1.3" fill="#e98568"/></g><path d="M19 49h26l-3 10H22z" fill="#a86f4f"/><path d="M20 49h24" stroke="#7d503d" stroke-width="2" stroke-linecap="round"/><path d="M23 53h18" stroke="#c78a60" stroke-width="1.5" opacity=".75"/></svg>`,
+  mosstone: `<svg class="p-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="岩苔"><g class="p-head"><path d="M32 50V34" stroke="#6e8c64" stroke-width="3" stroke-linecap="round"/><path d="M32 43q-13-8-12-19q12-1 16 10q3-10 13-8q-1 12-13 17" fill="#8cae74" stroke="#54734d" stroke-width="1.5" stroke-linejoin="round"/><path d="M18 51q2-11 14-11q12 0 15 11z" fill="#8f9a86" stroke="#5b6b5d" stroke-width="1.5"/><path d="M22 47l5-2M35 45l5 3" stroke="#bbc5ad" stroke-width="2" stroke-linecap="round"/></g><path d="M19 49h26l-3 10H22z" fill="#a86f4f"/><path d="M20 49h24" stroke="#7d503d" stroke-width="2" stroke-linecap="round"/><path d="M23 53h18" stroke="#c78a60" stroke-width="1.5" opacity=".75"/></svg>`,
+  pitcher: `<svg class="p-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="瓶子草"><g class="p-head"><path d="M32 49V28" stroke="#4d9564" stroke-width="3" stroke-linecap="round"/><path d="M31 39q-9-11-4-20q9 4 8 14q5-10 14-8q-2 12-14 17" fill="#65ad79" stroke="#326b49" stroke-width="1.5" stroke-linejoin="round"/><path d="M25 22q8-4 14 1v23q-7 5-14 0z" fill="#d8a36d" stroke="#8b5b47" stroke-width="1.5"/><path d="M24 23q8-6 16 0q-8 5-16 0z" fill="#6b9470" stroke="#3e6b4d" stroke-width="1.5"/><path d="M28 28v13M32 27v15M36 28v12" stroke="#f4d79d" stroke-width="1.2" opacity=".8"/></g><path d="M19 49h26l-3 10H22z" fill="#a86f4f"/><path d="M20 49h24" stroke="#7d503d" stroke-width="2" stroke-linecap="round"/><path d="M23 53h18" stroke="#c78a60" stroke-width="1.5" opacity=".75"/></svg>`,
+  sundew: `<svg class="p-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="毛氈苔"><g class="p-head"><path d="M32 50V37" stroke="#4d9564" stroke-width="3" stroke-linecap="round"/><path d="M32 43q-13-10-10-19q11 0 14 11q3-11 13-10q-1 12-14 18" fill="#a8c978" stroke="#527c52" stroke-width="1.5" stroke-linejoin="round"/><path d="M22 31q-8-7-7-12M28 29q-3-10 1-15M38 30q6-10 12-12M43 36q9-5 13-2" stroke="#b95f68" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle class="plant-glow" cx="15" cy="19" r="2.2" fill="#ffe7a0"/><circle class="plant-glow" cx="29" cy="14" r="2.2" fill="#ffe7a0"/><circle class="plant-glow" cx="50" cy="24" r="2.2" fill="#ffe7a0"/></g><path d="M19 49h26l-3 10H22z" fill="#a86f4f"/><path d="M20 49h24" stroke="#7d503d" stroke-width="2" stroke-linecap="round"/><path d="M23 53h18" stroke="#c78a60" stroke-width="1.5" opacity=".75"/></svg>`,
+  glowalgae: `<svg class="p-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="夜光藻"><g class="p-head"><path d="M20 49q12-13 24 0" fill="#83bfc0" stroke="#4f8d91" stroke-width="1.5"/><path d="M31 42q-10-13-3-22q9 5 7 15q5-11 13-7q-2 11-13 16" fill="#67b5aa" stroke="#3e7e78" stroke-width="1.5" stroke-linejoin="round"/><path class="plant-glow" d="M27 23q5-8 11 0q-5 5-11 0M40 29q5-7 10-1q-4 5-10 1" fill="#d9f4b3" stroke="#6aa870" stroke-width="1.2"/><circle cx="23" cy="34" r="2" fill="#fff0a8"/><circle cx="47" cy="38" r="1.7" fill="#fff0a8"/></g><path d="M19 49h26l-3 10H22z" fill="#a86f4f"/><path d="M20 49h24" stroke="#7d503d" stroke-width="2" stroke-linecap="round"/><path d="M23 53h18" stroke="#c78a60" stroke-width="1.5" opacity=".75"/></svg>`,
+  nepenthes: `<svg class="p-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="豬籠草"><g class="p-head"><path d="M31 49V25M31 37q-10-9-15-4M31 34q9-10 17-9" stroke="#4d9564" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M18 27q-8-7-13-3q2 10 12 12" fill="#7dbd70" stroke="#326b49" stroke-width="1.5" stroke-linejoin="round"/><path d="M25 22q8-4 16 2v23q-8 5-16-1z" fill="#c87762" stroke="#7f5049" stroke-width="1.5"/><path d="M24 23q9-6 18 1q-8 6-18-1z" fill="#f0c66f" stroke="#7f5049" stroke-width="1.5"/><path d="M29 28v15M34 28v16M39 29v13" stroke="#f3d68c" stroke-width="1.2" opacity=".85"/></g><path d="M19 49h26l-3 10H22z" fill="#a86f4f"/><path d="M20 49h24" stroke="#7d503d" stroke-width="2" stroke-linecap="round"/><path d="M23 53h18" stroke="#c78a60" stroke-width="1.5" opacity=".75"/></svg>`,
+  staghorn: `<svg class="p-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="鹿角蕨"><g class="p-head"><path d="M32 50V33" stroke="#5b8c60" stroke-width="3" stroke-linecap="round"/><path d="M32 40q-15-5-17-16q12-3 19 9q-1-13 10-18q6 12-7 23q9-7 18-1q-5 10-20 8" fill="#6ea968" stroke="#3f734b" stroke-width="1.5" stroke-linejoin="round"/><path d="M20 50q3-12 12-12q10 0 14 12z" fill="#9b6f55" stroke="#70503f" stroke-width="1.5"/><path d="M23 46q4-3 7-4M36 43q4 2 6 5" stroke="#c79b75" stroke-width="1.5" stroke-linecap="round"/></g><path d="M19 49h26l-3 10H22z" fill="#a86f4f"/><path d="M20 49h24" stroke="#7d503d" stroke-width="2" stroke-linecap="round"/><path d="M23 53h18" stroke="#c78a60" stroke-width="1.5" opacity=".75"/></svg>`
+};
 function plantSVG(id){
-  const shadow = `<ellipse cx="27" cy="62" rx="15" ry="3.2" fill="rgba(0,0,0,.18)"/>`;
-  const pot = `<path d="M14 46h26l-3.2 15a2.5 2.5 0 0 1-2.5 2H19.7a2.5 2.5 0 0 1-2.5-2z" fill="#c1743c"/>
-    <rect x="11.5" y="42" width="31" height="6.5" rx="3.2" fill="#dd9057"/>
-    <path d="M14 48.5h26l-.4 2.5H14.4z" fill="#00000018"/>`;
-  const face = (cx,cy,s)=>`<ellipse cx="${cx-4*s}" cy="${cy}" rx="${1.6*s}" ry="${2*s}" fill="#2c2216"/>
-    <ellipse cx="${cx+4*s}" cy="${cy}" rx="${1.6*s}" ry="${2*s}" fill="#2c2216"/>
-    <path d="M${cx-3.5*s} ${cy+4*s}q${3.5*s} ${3*s} ${7*s} 0" stroke="#2c2216" stroke-width="${1.4*s}" fill="none" stroke-linecap="round"/>`;
-  const stem = `<path d="M27 46q-3-8 0-13" stroke="#4e8a2e" stroke-width="4.5" fill="none" stroke-linecap="round"/>
-    <path d="M27 38q-7-1-8-6 6-1 8 4z" fill="#5fa838"/>`;
-  let head='';
-  switch(id){
-    case 'glowcap':
-      head = `<rect x="24" y="30" width="6.5" height="14" rx="3" fill="#f0e2c4"/>
-        <g class="p-head"><path d="M9 30q3-18 18-18t18 18z" fill="#9acd32"/>
-        <circle cx="17" cy="24" r="3" fill="#ccff66"/><circle cx="27" cy="19" r="3.5" fill="#ccff66"/><circle cx="36" cy="24.5" r="2.8" fill="#ccff66"/>
-        ${face(27,28,.85)}</g>`; break;
-    case 'flytrap':
-      head = stem + `<g class="p-head">
-        <path d="M27 20q-13-3-16 6q9 5 16-1z" fill="#2e8b40"/>
-        <path d="M27 20q13-3 16 6q-9 5-16-1z" fill="#3aa560"/>
-        <path d="M13 25l2.5-1.5 2.5 1.5 2.5-1.5M41 25l-2.5-1.5-2.5 1.5-2.5-1.5" stroke="#1c5a22" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-        <path d="M27 20v3" stroke="#1c5a22" stroke-width="1.5"/>
-        ${face(27,26,.9)}</g>`; break;
-    case 'mosstone':
-      head = `<g class="p-head"><ellipse cx="27" cy="26" rx="14" ry="16" fill="#8a8a7a"/>
-        <ellipse cx="24" cy="22" rx="9" ry="10" fill="#9a9a8a"/>
-        <circle cx="18" cy="18" r="2.2" fill="#6fa84f"/><circle cx="33" cy="20" r="1.8" fill="#6fa84f"/>
-        <circle cx="22" cy="32" r="1.6" fill="#6fa84f"/><circle cx="35" cy="30" r="2" fill="#6fa84f"/>
-        <circle cx="27" cy="15" r="1.5" fill="#6fa84f"/>
-        ${face(27,24,1.1)}</g>`; break;
-    case 'pitcher':
-      head = `<g class="p-head">
-        <path d="M21 14q6-2 12 0l2 5-1.5 24q-6 3-13 0L19 19z" fill="#5fa838"/>
-        <path d="M21 14q6 2 12 0q-1 4-6 4t-6-4z" fill="#4e8a2e"/>
-        <ellipse cx="27" cy="15" rx="5.5" ry="2.2" fill="#3a7a1e"/>
-        <path d="M23 22h8M22.5 28h9" stroke="#4e8a2e" stroke-width="1.2" fill="none" opacity=".5"/>
-        ${face(27,26,.9)}</g>`; break;
-    case 'sundew':
-      head = `<g class="p-head">
-        <circle cx="19" cy="28" r="8" fill="#4a8a3a"/><circle cx="35" cy="28" r="8" fill="#4a8a3a"/><circle cx="27" cy="20" r="8.5" fill="#5a9a4a"/>
-        <circle cx="16" cy="25" r="1.6" fill="#b8e8ff"/><circle cx="22" cy="31" r="1.6" fill="#b8e8ff"/>
-        <circle cx="32" cy="31" r="1.6" fill="#b8e8ff"/><circle cx="38" cy="25" r="1.6" fill="#b8e8ff"/>
-        <circle cx="24" cy="16" r="1.6" fill="#b8e8ff"/><circle cx="30" cy="16" r="1.6" fill="#b8e8ff"/><circle cx="27" cy="22" r="1.6" fill="#b8e8ff"/>
-        ${face(27,26,.85)}</g>`; break;
-    case 'glowalgae':
-      head = `<g class="p-head">
-        <circle cx="21" cy="24" r="6.5" fill="#4fc3f7"/><circle cx="33" cy="22" r="5.5" fill="#4fc3f7"/><circle cx="27" cy="30" r="6" fill="#29b6f6"/>
-        <circle cx="18" cy="21" r="1.8" fill="#e1f5fe"/><circle cx="35" cy="24" r="1.6" fill="#e1f5fe"/>
-        <circle cx="28" cy="29" r="1.8" fill="#e1f5fe"/><circle cx="24" cy="26" r="1.4" fill="#e1f5fe"/>
-        ${face(27,25,.8)}</g>`; break;
-    case 'nepenthes':
-      head = stem + `<g class="p-head">
-        <path d="M19 18q8-3 16 0l2 6q-2 16-10 18q-8-2-10-18z" fill="#6ab04c"/>
-        <path d="M19 18q8 3 16 0q-1 5-8 5t-8-5z" fill="#4e8a2e"/>
-        <ellipse cx="27" cy="20" rx="6.5" ry="2.5" fill="#3a6a1e"/>
-        <path d="M21 30q6 2 12 0" stroke="#4e8a2e" stroke-width="1.4" fill="none"/>
-        ${face(27,28,.85)}</g>`; break;
-    default: /* staghorn 鹿角蕨 */
-      head = `<g class="p-head">
-        <ellipse cx="27" cy="40" rx="9" ry="4" fill="#4a7a2a"/>
-        <path d="M27 38v-10M27 28q-7-3-9-11M27 28q7-3 9-11M18 17q-2-4-1-7M36 17q2-4 1-7M27 24q-5-1-7-7M27 24q5-1 7-7" stroke="#5a8a3a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-        ${face(27,32,.85)}</g>`; break;
-  }
-  return `<svg class="p-svg" viewBox="0 0 54 66" xmlns="http://www.w3.org/2000/svg" aria-label="植物">${shadow}${head}${pot}</svg>`;
+  return PLANT_SVG_ART[id] || PLANT_SVG_ART.glowcap;
 }
 /* 年齡分級閱讀題庫：toddler(3-5 幼幼) / basic(6-8 基礎) / advanced(9-12 進階)
    每篇 {title, text(<b>標重點), q:[{q, a:[選項], c:正解索引}]}
@@ -3631,14 +3577,14 @@ function renderPracticeHub(){
   groups.forEach(grp=>{
     const visible=grp.items.filter(([t])=>state.activeSubjects[t]!==false);
     if(!visible.length) return;
-    html+=`<div class="home-sec"><h2 style="font-size:17px;margin-top:14px;">${grp.icon} ${grp.title}</h2><div class="practice-grid">`;
+    html+=`<div class="home-sec home-module"><div class="module-heading"><div><p class="hint" style="margin:0;">${grp.title.toUpperCase()}</p><h2 style="font-size:17px;margin:2px 0 0;">${grp.icon} ${grp.title}</h2></div></div><div class="practice-grid">`;
     visible.forEach(([t,n,ic])=>{
       html+=`<button class="practice-card" data-tab="${t}"><div class="pc-ic">${ic||subjectIcon(t)}</div><div class="pc-nm">${n||subjectName(t)}</div></button>`;
     });
     html+='</div></div>';
   });
   const reviewCount = dueReviews().length;
-  html+=`<div class="home-sec"><h2 style="font-size:17px;margin-top:14px;">⭐ 今日加分（有空再做）</h2><div class="practice-grid">
+  html+=`<div class="home-sec home-module bonus-group"><div class="module-heading"><div><p class="hint" style="margin:0;">EXTRA CREDIT</p><h2 style="font-size:17px;margin:2px 0 0;">⭐ 今日加分（有空再做）</h2></div></div><div class="practice-grid">
     <button class="practice-card" id="phDq"><div class="pc-ic">⭐</div><div class="pc-nm">每日小考</div><div class="pc-tag">每天一回合</div></button>
     <button class="practice-card" id="phRv"><div class="pc-ic">🔁</div><div class="pc-nm">複習錯題</div><div class="pc-tag">${reviewCount?reviewCount+' 題':'無錯題'}</div></button>
     <button class="practice-card" id="phEx"><div class="pc-ic">📝</div><div class="pc-nm">測驗卷</div><div class="pc-tag">混合測驗</div></button>
@@ -3740,8 +3686,7 @@ function renderHome(){
   const name = c.name || '小朋友';
   const r = todayRoutine();
   const hol = isHolidayToday();
-  const banner = hol ? `<div style="background:#eafbe7;border:2px solid #2e7d32;border-radius:14px;padding:10px 14px;margin:10px 0;font-weight:800;color:#2e7d32;text-align:center;">🎉 今天是「${hol}」，學校功課可以休息，自由練習照樣能賺陽光！</div>` : '';
-  const _rv = dueReviews(); const reviewCount = _rv.length;
+  const banner = hol ? `<div class="holiday-banner"><span class="holiday-mark">休</span><div><strong>🎉 今天是「${hol}」</strong><span>學校功課可以休息，自由練習照樣能賺陽光！</span></div></div>` : '';
   const profileOpts = state.children.map(ch=>`<option value="${ch.id}" ${ch.id===state.activeChildId?'selected':''}>${ch.name||'孩子'}</option>`).join('');
   const leaderboard = state.children.slice().sort((a,b)=>b.sun-a.sun).map((ch,i)=>{
     const done=visibleHW().filter(it=>ch.homework[it.id]===true).length;
@@ -3751,7 +3696,14 @@ function renderHome(){
   }).join('');
   const HM = state.homeModules;
   const secZombie = HM.zombie ? `
-    <div class="home-sec" style="animation-delay:.05s;">
+    <div class="home-sec battle-card" id="secZombieBox" style="animation-delay:.05s;">
+      <div class="module-heading">
+        <div><p class="hint" style="margin:0;">DAILY DEFENSE</p><h2 style="font-size:17px;margin:2px 0 0;">🛡 今日守護戰</h2></div>
+        <div class="battle-condition-row">
+          <span class="shield-badge">🛡 護盾豆 × ${c.streakShields||0}</span>
+          <span class="holiday-badge-sm">${hol?'🎉 假日模式':'📅 平日模式'}</span>
+        </div>
+      </div>
       <div class="threat-label">⏰ 拖延怪倒數：每天 ${r.wake} 起床後出發，${r.sleep} 睡覺前寫完就能打退牠！你的植物會自動發射露珠保衛花園，點掉下來的 ☀️ 還能收集陽光！</div>
       <div class="battle lawn-battle" id="homeBattle">
         <div class="house">🏠</div>
@@ -3768,10 +3720,18 @@ function renderHome(){
       <div class="hp-wrap"><span>🌻 植物血量</span><div class="hp-bar"><i id="hpFill"></i></div></div>
       <div style="text-align:center;margin-top:8px;"><button class="next-btn" id="energyBtn">💥 能量豆大招</button></div>
       <div id="zStatus" style="font-weight:800;margin:8px 0;"></div>
+      <div class="monster-state-panel">
+        <div class="module-heading"><div><p class="hint" style="margin:0;">MONSTER STATUS</p><h2 style="font-size:15px;margin:2px 0 0;">敵人狀態</h2></div></div>
+        <div class="monster-state-list">
+          <div class="monster-state-item active"><img src="assets/monsters/拖延怪/拖延怪_頭像.png" alt="拖延怪"><div><strong>拖延怪</strong><span>日常逼近．被任務推退</span></div><b>目前</b></div>
+          <div class="monster-state-item"><img src="assets/monsters/粗心大王/粗心大王_頭像.png" alt="粗心大王"><div><strong>粗心大王</strong><span>連續答錯 2 題時出現</span></div><b>答錯觸發</b></div>
+          <div class="monster-state-item"><img src="assets/monsters/週末魔王/週末魔王_頭像.png" alt="週末魔王"><div><strong>週末魔王</strong><span>週六日限定．完成簽核可加碼</span></div><b>週末 Boss</b></div>
+        </div>
+      </div>
     </div>` : '';
   const secRoutine = HM.routine ? `
-    <div class="home-sec" style="animation-delay:.12s;">
-      <h2 style="font-size:17px;margin-top:18px;">🕐 今日作息（${['星期一','星期二','星期三','星期四','星期五','星期六','星期日'][todayWeekdayIndex()]}）</h2>
+    <div class="home-sec home-module routine-card" id="secRoutineBox" style="animation-delay:.12s;">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">DAILY RHYTHM</p><h2 style="font-size:17px;margin:2px 0 0;">🕐 今日作息（${['星期一','星期二','星期三','星期四','星期五','星期六','星期日'][todayWeekdayIndex()]}）</h2></div></div>
       <div id="homeClock" style="text-align:center;font-weight:800;font-size:18px;color:#3a7d1f;margin:4px 0;"></div>
       <div id="routineList" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;"></div>
       <div id="nextRoutine" style="text-align:center;font-weight:800;margin:8px 0;color:#7a6a45;"></div>
@@ -3782,34 +3742,34 @@ function renderHome(){
       </div>
       <div id="weekTable" style="display:none;margin-top:10px;"></div>
     </div>` : '';
-  const secHW = HM.homework ? `
-    <div class="home-sec" style="animation-delay:.19s;">
-      <h2 style="font-size:17px;margin-top:10px;">📝 今日功課（${finished}/${visibleHW().length} 完成）</h2>
-      <div id="hwList"></div>
-    </div>` : '';
   const secBadge = HM.badges ? `
-    <div class="home-sec" style="animation-delay:.26s;">
-      <h2 style="font-size:17px;margin-top:16px;">🏅 我的徽章</h2>
+    <div class="home-sec home-module badge-card" id="secBadgeBox" style="animation-delay:.26s;">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">ACHIEVEMENTS</p><h2 style="font-size:17px;margin:2px 0 0;">🏅 我的徽章</h2></div></div>
       <div id="badgeWall" style="display:flex;flex-wrap:wrap;justify-content:center;">${badgesHTML()}</div>
     </div>` : '';
   const secLeader = HM.leaderboard ? `
-    <div class="home-sec" style="animation-delay:.33s;">
-      <h2 style="font-size:17px;margin-top:16px;">🏆 家族排行榜</h2>
+    <div class="home-sec home-module leaderboard-card" id="secLeaderBox" style="animation-delay:.33s;">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">FAMILY GARDEN</p><h2 style="font-size:17px;margin:2px 0 0;">🏆 家族排行榜</h2></div></div>
       <div id="leaderboard">${leaderboard}</div>
     </div>` : '';
   const secGarden = HM.garden ? `
-    <div class="home-sec" style="animation-delay:.4s;">
-      <h2 style="font-size:17px;margin-top:16px;">🌿 上場陣容（${deckIds(c).length}/${MAX_PLANTS} 盆）</h2>
+    <div class="home-sec home-module garden-card" id="secGardenBox" style="animation-delay:.4s;">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">PLANT GARDEN</p><h2 style="font-size:17px;margin:2px 0 0;">🌿 上場陣容（${deckIds(c).length}/${MAX_PLANTS} 盆）</h2></div></div>
       <p class="hint" style="margin:0 0 8px;">點上場中的植物可以「收回溫室」，再從下面的收藏挑別的上場——隨時都能換，解鎖過的植物永遠不會消失。</p>
       <div class="lawn" id="myLawn"></div>
       <h2 style="font-size:15px;margin-top:12px;color:#6a8a3a;">🛒 植物圖鑑（已解鎖 ${ownedPlantCount(c)}/${GARDEN_PLANTS.length}）</h2>
       <div class="garden" id="homeGarden"></div>
     </div>` : '';
 
-  const secSchedule = HM.schedule ? renderSchedulePanel() : '';
-  const foldOpen={routine:false,garden:false,badge:false};
-  if(homeFocus==='garden') foldOpen.garden=true;
-  if(homeFocus==='badge'||homeFocus==='rank') foldOpen.badge=true;
+  const secSchedule = HM.schedule ? renderSchedulePanel().replace('class="home-sec"','class="home-sec home-module schedule-card" id="secScheduleBox"') : '';
+  if(homeFocus){
+    const focusTarget=homeFocus;
+    setTimeout(()=>{
+      const map={garden:'secGardenBox', badge:'secBadgeBox', rank:'secLeaderBox'};
+      const el=$('#'+map[focusTarget]);
+      if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); el.classList.add('section-flash'); setTimeout(()=>el.classList.remove('section-flash'),1600); }
+    },80);
+  }
   homeFocus=null;
   const hwPct = visibleHW().length ? Math.round(finished/visibleHW().length*100) : 100;
   const hasUnfinished = !!firstUnfinishedHW();
@@ -3833,24 +3793,35 @@ function renderHome(){
     </div>
     ${banner}
     ${secZombie}
-    <div style="margin:10px 0 2px;">
-      <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:5px;">
-        <span>📝 今日功課</span><span style="color:#2e8b40;">${finished}/${visibleHW().length} 完成</span>
+    <div class="progress-card-row">
+      <div>
+        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:5px;">
+          <span>📝 今日功課</span><span style="color:#2e8b40;">${finished}/${visibleHW().length} 完成</span>
+        </div>
+        <div style="height:12px;background:#ece0c4;border-radius:8px;overflow:hidden;">
+          <div style="height:100%;width:${hwPct}%;background:linear-gradient(90deg,#7dc855,#4ea63b);transition:width .5s;"></div>
+        </div>
+        <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':'🎉 功課寫完了，自由練習 ▶'}</button>
       </div>
-      <div style="height:12px;background:#ece0c4;border-radius:8px;overflow:hidden;">
-        <div style="height:100%;width:${hwPct}%;background:linear-gradient(90deg,#7dc855,#4ea63b);transition:width .5s;"></div>
+      <div class="home-module">
+        <div class="module-heading"><div><p class="hint" style="margin:0;">TODAY'S FOCUS</p></div></div>
+        <div style="text-align:center;">
+          <div style="font-size:30px;font-weight:900;color:var(--leaf-dark);">${hwPct}<small style="font-size:16px;">%</small></div>
+          <div style="font-size:12px;color:var(--muted);">今日完成度</div>
+        </div>
+        <div class="progress-resources">
+          <div class="resource-stat"><span class="resource-icon streak-icon">連</span><div><strong>${c.streak||0} 天</strong><small>目前連勝</small></div></div>
+          <div class="resource-stat"><span class="resource-icon shield-icon">盾</span><div><strong>${c.streakShields||0} 顆</strong><small>護盾豆</small></div></div>
+        </div>
       </div>
     </div>
-    <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':'🎉 功課寫完了，自由練習 ▶'}</button>
-    <div class="fold-sec${foldOpen.garden?' open':''}" id="foldGarden">
-      <button class="fold-toggle" type="button"><span>🌿 花園圖鑑（${ownedPlantCount(c)}/${GARDEN_PLANTS.length}）</span><span class="fold-ic">▶</span></button>
-      <div class="fold-body">${secGarden}</div>
+    ${secGarden}
+    <div class="home-module-grid">
+      ${secRoutine}
+      ${secBadge}
+      ${secLeader}
+      ${secSchedule}
     </div>
-    <div class="fold-sec${foldOpen.badge?' open':''}" id="foldBadge">
-      <button class="fold-toggle" type="button"><span>🏅 徽章與排行榜</span><span class="fold-ic">▶</span></button>
-      <div class="fold-body">${secBadge}${secLeader}</div>
-    </div>
-    ${secSchedule}
     <div class="home-sec" style="text-align:center;margin-top:14px;">
       <button class="reset-btn" id="newDay">🔄 新的一天（重設功課）</button>
     </div>
@@ -3858,19 +3829,6 @@ function renderHome(){
   if(HM.schedule) attachSchedule();
   if(HM.zombie) renderLawnBattle();   // 先把 SVG 角色放進戰場，再由 updateZombie 定位
   updateZombie(unfinished);
-  const list=$('#hwList');
-  if(list){
-    visibleHW().forEach(it=>{
-      const st=C().homework[it.id];
-      const done=st===true, pend=st==='pending';
-      const card=document.createElement('button');
-      card.className='hw-card'+(done?' done':'')+(pend?' pending':'');
-      const label = done?'已完成 ✅':pend?'申請中 ⏳':'去寫 →';
-      card.innerHTML=`<span>${(done?'✅':pend?'⏳':'⬜')} ${subjectIcon(it.type)} ${displayHWName(it)}</span><span>${label}</span>`;
-      card.onclick=()=>showTab(tabForType(it.type), it.id);
-      list.appendChild(card);
-    });
-  }
   const lawn=$('#myLawn');
   if(lawn){
     const field=deckPlants(c);
@@ -3932,7 +3890,6 @@ function renderHome(){
   renderRoutineBonus($('#routineBonus'));
   updateClock();
   const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{ if(hasUnfinished) renderTodayTasks(); else showTab('practice'); };
-  $$('.fold-toggle').forEach(b=> b.onclick=()=>{ const s=b.parentElement; if(s&&s.classList) s.classList.toggle('open'); });
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
   const eb=$('#energyBtn'); if(eb){ eb.onclick=useEnergy; tickEnergy(); }
   const tb=$('#ttsBtn'); if(tb) tb.onclick=()=>{ state.tts=!state.tts; save(); renderHome(); };
@@ -5539,13 +5496,17 @@ const STREAK_SHIELD_COST=150;
 function renderShop(){
   const rewards=state.rewards; const c=C();
   let html=`<div class="panel">
-    <h2>🎁 獎勵商店</h2>
+    <h2 class="title-sticker">🎁 獎勵商店</h2>
     <p class="hint">用你賺來的陽光，兌換現實中的獎勵！請找爸媽幫你發放喔。</p>
     <div style="margin-bottom:10px;"><span class="sun-box" style="position:static;display:inline-flex;"><span class="sun-emoji">☀️</span><span class="sunCount">${c.sun}</span> 陽光</span></div>
-    <div class="reward" style="align-items:center;">
-      <div><div class="nm">🛡️ 護盾豆 × ${c.streakShields||0}</div><div class="cost">連續紀錄中斷時自動保護一次</div></div>
-      <button class="next-btn" id="buyShield" ${c.sun>=STREAK_SHIELD_COST?'':'disabled'}>購買 ${STREAK_SHIELD_COST}☀️</button>
+    <div class="home-module">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">SHIELD BEAN</p><h2 style="font-size:16px;margin:2px 0 0;">🛡️ 護盾豆</h2></div></div>
+      <div class="reward" style="align-items:center;margin:8px 0 0;">
+        <div><div class="nm">目前持有 × ${c.streakShields||0}</div><div class="cost">連續紀錄中斷時自動保護一次</div></div>
+        <button class="next-btn" id="buyShield" ${c.sun>=STREAK_SHIELD_COST?'':'disabled'}>購買 ${STREAK_SHIELD_COST}☀️</button>
+      </div>
     </div>
+    <h2 style="font-size:17px;margin-top:16px;">🎁 真實獎勵</h2>
     <div id="rewardList"></div>`;
   if(rewards.length===0) html+=`<p style="color:#9a7b2e;">還沒有獎勵喔，請家長到「家長後台」新增真實獎勵。</p>`;
   html+=`</div>`;
@@ -5596,7 +5557,7 @@ function renderParent(){
   if(!parentUnlocked){
     app.innerHTML = `
     <div class="panel">
-      <h2>👨‍👩‍👧 家長後台</h2>
+      <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
       <p class="hint">這裡記錄孩子的學習狀況、設定真實獎勵，需要家長密碼才能查看。</p>
       <div style="text-align:center;padding:14px 0;">
         <input id="pin" inputmode="numeric" maxlength="6" placeholder="請輸入密碼"
@@ -5762,7 +5723,7 @@ function renderParent(){
 
   app.innerHTML = `
   <div class="panel">
-    <h2>👨‍👩‍👧 家長後台</h2>
+    <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
     <p class="hint">孩子的學習狀況與獎勵設定。資料只存在這台裝置，不會上傳。</p>
     <div style="margin:6px 0;"><span class="stat">👦 孩子：${c.name||'（未命名）'}</span>
       <span class="stat">📝 今日功課：${finished}/${allHW().length}</span>
