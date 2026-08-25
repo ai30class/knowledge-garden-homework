@@ -5496,13 +5496,17 @@ const STREAK_SHIELD_COST=150;
 function renderShop(){
   const rewards=state.rewards; const c=C();
   let html=`<div class="panel">
-    <h2>🎁 獎勵商店</h2>
+    <h2 class="title-sticker">🎁 獎勵商店</h2>
     <p class="hint">用你賺來的陽光，兌換現實中的獎勵！請找爸媽幫你發放喔。</p>
     <div style="margin-bottom:10px;"><span class="sun-box" style="position:static;display:inline-flex;"><span class="sun-emoji">☀️</span><span class="sunCount">${c.sun}</span> 陽光</span></div>
-    <div class="reward" style="align-items:center;">
-      <div><div class="nm">🛡️ 護盾豆 × ${c.streakShields||0}</div><div class="cost">連續紀錄中斷時自動保護一次</div></div>
-      <button class="next-btn" id="buyShield" ${c.sun>=STREAK_SHIELD_COST?'':'disabled'}>購買 ${STREAK_SHIELD_COST}☀️</button>
+    <div class="home-module">
+      <div class="module-heading"><div><p class="hint" style="margin:0;">SHIELD BEAN</p><h2 style="font-size:16px;margin:2px 0 0;">🛡️ 護盾豆</h2></div></div>
+      <div class="reward" style="align-items:center;margin:8px 0 0;">
+        <div><div class="nm">目前持有 × ${c.streakShields||0}</div><div class="cost">連續紀錄中斷時自動保護一次</div></div>
+        <button class="next-btn" id="buyShield" ${c.sun>=STREAK_SHIELD_COST?'':'disabled'}>購買 ${STREAK_SHIELD_COST}☀️</button>
+      </div>
     </div>
+    <h2 style="font-size:17px;margin-top:16px;">🎁 真實獎勵</h2>
     <div id="rewardList"></div>`;
   if(rewards.length===0) html+=`<p style="color:#9a7b2e;">還沒有獎勵喔，請家長到「家長後台」新增真實獎勵。</p>`;
   html+=`</div>`;
@@ -5553,7 +5557,7 @@ function renderParent(){
   if(!parentUnlocked){
     app.innerHTML = `
     <div class="panel">
-      <h2>👨‍👩‍👧 家長後台</h2>
+      <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
       <p class="hint">這裡記錄孩子的學習狀況、設定真實獎勵，需要家長密碼才能查看。</p>
       <div style="text-align:center;padding:14px 0;">
         <input id="pin" inputmode="numeric" maxlength="6" placeholder="請輸入密碼"
@@ -5719,7 +5723,7 @@ function renderParent(){
 
   app.innerHTML = `
   <div class="panel">
-    <h2>👨‍👩‍👧 家長後台</h2>
+    <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
     <p class="hint">孩子的學習狀況與獎勵設定。資料只存在這台裝置，不會上傳。</p>
     <div style="margin:6px 0;"><span class="stat">👦 孩子：${c.name||'（未命名）'}</span>
       <span class="stat">📝 今日功課：${finished}/${allHW().length}</span>
