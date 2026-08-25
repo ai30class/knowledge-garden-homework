@@ -505,6 +505,7 @@
   .monster-state-item b{font-size:11px; color:#916615; white-space:nowrap;}
   .section-flash{animation:sectionFlash 1.5s ease;}
   @keyframes sectionFlash{ 0%{box-shadow:0 0 0 4px var(--sun);} 100%{box-shadow:0 8px 20px var(--shadow);} }
+  .bonus-group{background:#fffaf0; border-color:#ecd99d;}
   .cta-hero{display:block; width:100%; max-width:340px; margin:14px auto 4px; border:none; border-radius:24px; padding:16px; font-size:19px; font-weight:900; color:#fff; background:linear-gradient(180deg,var(--accent),var(--accent-dark)); box-shadow:0 5px 0 var(--accent-dark), 0 8px 18px rgba(201,107,91,.3); cursor:pointer; transition:transform .1s; letter-spacing:1px;}
   .cta-hero:hover{transform:translateY(-1px);}
   .cta-hero:active{transform:translateY(3px); box-shadow:0 2px 0 var(--accent-dark);}
@@ -3576,14 +3577,14 @@ function renderPracticeHub(){
   groups.forEach(grp=>{
     const visible=grp.items.filter(([t])=>state.activeSubjects[t]!==false);
     if(!visible.length) return;
-    html+=`<div class="home-sec"><h2 style="font-size:17px;margin-top:14px;">${grp.icon} ${grp.title}</h2><div class="practice-grid">`;
+    html+=`<div class="home-sec home-module"><div class="module-heading"><div><p class="hint" style="margin:0;">${grp.title.toUpperCase()}</p><h2 style="font-size:17px;margin:2px 0 0;">${grp.icon} ${grp.title}</h2></div></div><div class="practice-grid">`;
     visible.forEach(([t,n,ic])=>{
       html+=`<button class="practice-card" data-tab="${t}"><div class="pc-ic">${ic||subjectIcon(t)}</div><div class="pc-nm">${n||subjectName(t)}</div></button>`;
     });
     html+='</div></div>';
   });
   const reviewCount = dueReviews().length;
-  html+=`<div class="home-sec"><h2 style="font-size:17px;margin-top:14px;">⭐ 今日加分（有空再做）</h2><div class="practice-grid">
+  html+=`<div class="home-sec home-module bonus-group"><div class="module-heading"><div><p class="hint" style="margin:0;">EXTRA CREDIT</p><h2 style="font-size:17px;margin:2px 0 0;">⭐ 今日加分（有空再做）</h2></div></div><div class="practice-grid">
     <button class="practice-card" id="phDq"><div class="pc-ic">⭐</div><div class="pc-nm">每日小考</div><div class="pc-tag">每天一回合</div></button>
     <button class="practice-card" id="phRv"><div class="pc-ic">🔁</div><div class="pc-nm">複習錯題</div><div class="pc-tag">${reviewCount?reviewCount+' 題':'無錯題'}</div></button>
     <button class="practice-card" id="phEx"><div class="pc-ic">📝</div><div class="pc-nm">測驗卷</div><div class="pc-tag">混合測驗</div></button>
