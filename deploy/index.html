@@ -643,21 +643,22 @@ const REWARD_TIERS = {
   large:  { label:'大獎', tag:'🟣', color:'#6a1b9a' }
 };
 /* 成本自動歸檔：<160 小獎，160~360 中獎，>360 大獎（即便家長自訂也能對應徽章） */
-function rewardTier(cost){ const c=Number(cost)||0; return c>360 ? 'large' : c>=160 ? 'medium' : 'small'; }
-/* 預設梯度獎勵：小獎吸每日收入、大獎需長期存，陽光才有持續目標（防通膨） */
+function rewardTier(cost){ const c=Number(cost)||0; return c>2000 ? 'large' : c>=500 ? 'medium' : 'small'; }
+/* 預設梯度獎勵：小獎吸每日收入、大獎需長期存，陽光才有持續目標（防通膨）
+   2026-08-25 隨 SUN_DAILY_CAP 250→350 一起重新校準：小獎≈1天收入、中獎≈3-5天、大獎≈12-14天 */
 const PRESET_REWARDS = [
-  { name:'多看 10 分鐘動畫',   cost:80,  tier:'small'  },
-  { name:'選今天晚餐菜色',     cost:100, tier:'small'  },
-  { name:'多玩 15 分鐘平板',   cost:120, tier:'small'  },
-  { name:'吃一份喜歡的點心',   cost:140, tier:'small'  },
-  { name:'去公園玩 30 分鐘',   cost:200, tier:'medium' },
-  { name:'買一個小玩具',       cost:260, tier:'medium' },
-  { name:'晚睡 30 分鐘',       cost:300, tier:'medium' },
-  { name:'邀朋友來家裡玩',     cost:340, tier:'medium' },
-  { name:'買一本喜歡的書',     cost:440, tier:'large'  },
-  { name:'去動物園或半日遊',   cost:480, tier:'large'  },
-  { name:'周末去吃喜歡的餐廳', cost:520, tier:'large'  },
-  { name:'選一份大禮物',       cost:580, tier:'large'  }
+  { name:'多看 10 分鐘動畫',   cost:200, tier:'small'  },
+  { name:'選今天晚餐菜色',     cost:240, tier:'small'  },
+  { name:'多玩 15 分鐘平板',   cost:280, tier:'small'  },
+  { name:'吃一份喜歡的點心',   cost:320, tier:'small'  },
+  { name:'去公園玩 30 分鐘',   cost:800,  tier:'medium' },
+  { name:'買一個小玩具',       cost:950,  tier:'medium' },
+  { name:'晚睡 30 分鐘',       cost:1100, tier:'medium' },
+  { name:'邀朋友來家裡玩',     cost:1300, tier:'medium' },
+  { name:'買一本喜歡的書',     cost:2800, tier:'large'  },
+  { name:'去動物園或半日遊',   cost:3200, tier:'large'  },
+  { name:'周末去吃喜歡的餐廳', cost:3600, tier:'large'  },
+  { name:'選一份大禮物',       cost:4000, tier:'large'  }
 ];
 function tierBadge(tier){
   const t = REWARD_TIERS[tier] || REWARD_TIERS.small;
@@ -1401,7 +1402,7 @@ function save(){
 /* 當前孩子 */
 function C(){ return (state.children.find(c=>c.id===state.activeChildId)) || state.children[0]; }
 
-const SUN_DAILY_CAP = 250;   /* 每日陽光獲取上限：防刷題通膨，合法每日事件極少觸頂 */
+const SUN_DAILY_CAP = 350;   /* 每日陽光獲取上限：防刷題通膨；2026-08-25 從 250 調高——原本乖乖寫完功課+小考+作息獎勵就會逼近 250，變成打壓正常完成度而非防刷題 */
 /* 跨日重置：每日上限計數與「重刷舊題」計數都按日期歸零 */
 function ensureSunDay(c){
   const t=dateKey();
