@@ -4786,10 +4786,10 @@ function renderHome(){
   };
   const nd=$('#newDay');
   if(nd) nd.onclick=()=>{
-    if(confirm('開始新的一天？今日功課會重設為未完成。')){
+    askConfirm('開始新的一天？<br><span class="hint">今日功課會重設為未完成。</span>', ()=>{
       allHW().forEach(it=>c.homework[it.id]=false); c.homeworkDate=dateKey();
       c.zombiePush=0; c.zombieDrift=0; c.plantHP=100; c.combo=0; c.routine={}; c.routineDate=dateKey(); save(); renderHome();
-    }
+    }, '🔄 開始新的一天');
   };
 }
 
@@ -6739,8 +6739,9 @@ function renderParent(){
     save(); $$('.sunCount').forEach(e=>e.textContent=c.sun); renderParent();
   };
   const crl=$('#clearRedemLog'); if(crl) crl.onclick=()=>{
-    if(!confirm('確定要永久清空兌換紀錄嗎？此動作無法復原。')) return;
-    state.redemptions=[]; save(); renderParent();
+    askConfirm('確定要永久清空兌換紀錄嗎？<br><span class="hint">此動作無法復原。</span>', ()=>{
+      state.redemptions=[]; save(); toast('🗑 已清空兌換紀錄'); renderParent();
+    });
   };
 
   /* handlers：功課簽名 */
@@ -6816,10 +6817,20 @@ function renderParent(){
   state.children.forEach(ch=>{
     const sw=$('#sw'+ch.id); if(sw && ch.id!==state.activeChildId) sw.onclick=()=>{ state.activeChildId=ch.id; dailyResetIfNeeded(); save(); renderParent(); };
     const dc=$('#delch'+ch.id); if(dc && state.children.length>1) dc.onclick=()=>{
-      if(!confirm('刪除「'+(ch.name||'孩子')+'」的檔案？此動作無法復原。')) return;
-      state.children=state.children.filter(x=>x.id!==ch.id);
-      if(state.activeChildId===ch.id) state.activeChildId=state.children[0].id;
-      save(); renderParent();
+      const planCnt=studyItemsOf(ch.id).length;
+      askConfirm('刪除「'+(ch.name||'孩子')+'」的檔案？'
+        +(planCnt? '<br><span class="hint">連同讀書計劃的 '+planCnt+' 個課次一起刪除。</span>':'')
+        +'<br><span class="hint">此動作無法復原。</span>', ()=>{
+        state.children=state.children.filter(x=>x.id!==ch.id);
+        /* 讀書計劃放在 state 層、用 childId 關聯，刪孩子時要一起清掉，
+           否則會留下永遠讀不到的孤兒資料，存檔只會愈長愈大 */
+        const sp=studyPlan();
+        sp.items=sp.items.filter(i=>i.childId!==ch.id);
+        sp.subjects=sp.subjects.filter(x=>x.childId!==ch.id);
+        sp.exams=sp.exams.filter(x=>x.childId!==ch.id);
+        if(state.activeChildId===ch.id){ state.activeChildId=state.children[0].id; planSubjectId=null; planMaterial=null; }
+        save(); toast('🗑 已刪除「'+(ch.name||'孩子')+'」'); renderParent();
+      });
     };
     const ai=$('#age'+ch.id); if(ai) ai.onchange=()=>{ const v=Number(ai.value)||7; ch.age=Math.min(15,Math.max(3,v)); ch.levelOverride=''; save(); renderParent(); toast('🎚 '+ch.name+' 年齡設為 '+ch.age+' 歲（'+DIFF_MAP[childLevel(ch)].name+'）'); };
   });
