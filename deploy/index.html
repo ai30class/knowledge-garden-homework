@@ -1840,14 +1840,32 @@ function scheduleForExam(exam, skipHolidays=true){
   }
   if(!usable.length) usable.push(startKey);
 
+  /* 主教材若鋪滿整個期間，最後一課會落在最後一個可用日，後續教材就沒有
+     空間排在它之後（只能壓在同一天，違反先後）。所以先幫每一科的主教材
+     截掉尾端，預留給後續教材。 */
+  const bySubjectPre={};
+  scopes.forEach(g=>{ (bySubjectPre[g.sc.subjectId]=bySubjectPre[g.sc.subjectId]||[]).push(g); });
+  Object.values(bySubjectPre).forEach(groups=>{
+    groups.forEach(g=>{ g.window=usable; });
+    if(groups.length<2) return;
+    groups.sort((a,b)=> materialRank(a.sc.material)-materialRank(b.sc.material));
+    const base=groups[0];
+    const baseMax=Math.max(...base.items.map(i=>i.lesson));
+    let tail=0;
+    groups.slice(1).forEach(g=>{ tail += Math.max(1, g.items.filter(i=>i.lesson>=baseMax).length); });
+    const cut=Math.max(1, usable.length - tail);
+    base.window = usable.slice(0, cut);
+  });
+
   const K=scopes.length;
   const perSubject=[];
   scopes.forEach((grp,k)=>{
     const c=grp.items.length;
+    const win=(grp.window && grp.window.length) ? grp.window : usable;
     /* 相位偏移 (k+0.5)/K：讓各科的第一課不要全部落在同一天 */
     grp.items.forEach((it,n)=>{
-      const pos=Math.floor((n + (k+0.5)/K) * usable.length / c);
-      it.due = usable[Math.min(pos, usable.length-1)];
+      const pos=Math.floor((n + (k+0.5)/K) * win.length / c);
+      it.due = win[Math.min(pos, win.length-1)];
     });
     const sub=studySubjectById(grp.sc.subjectId);
     perSubject.push({
@@ -1863,18 +1881,19 @@ function scheduleForExam(exam, skipHolidays=true){
   scopes.forEach(grp=>{
     const recent=[];
     let prevIdx=-1;
+    const win=(grp.window && grp.window.length) ? grp.window : usable;
     grp.items.forEach(it=>{
-      const ideal=usable.indexOf(it.due);
+      const ideal=win.indexOf(it.due);
       if(ideal<0) return;
       let pick=ideal;
       for(const off of [0,1,-1,2,-2]){
         const i=ideal+off;
-        if(i<0 || i>=usable.length || i<=prevIdx) continue;
-        if(!recent.includes(weekdayOf(usable[i]))){ pick=i; break; }
+        if(i<0 || i>=win.length || i<=prevIdx) continue;
+        if(!recent.includes(weekdayOf(win[i]))){ pick=i; break; }
       }
-      if(pick<=prevIdx) pick=Math.min(prevIdx+1, usable.length-1);
-      it.due=usable[pick];
-      recent.push(weekdayOf(usable[pick]));
+      if(pick<=prevIdx) pick=Math.min(prevIdx+1, win.length-1);
+      it.due=win[pick];
+      recent.push(weekdayOf(win[pick]));
       if(recent.length>2) recent.shift();
       prevIdx=pick;
     });
