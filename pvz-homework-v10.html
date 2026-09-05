@@ -535,6 +535,18 @@
   .row-del:hover{background:#fdecea; color:#c0392b;}
   .row-ins{border:none; background:none; color:var(--leaf-dark); font-size:16px; font-weight:900; cursor:pointer; padding:2px 6px; border-radius:8px; flex:0 0 auto;}
   .row-ins:hover{background:#e5f1df;}
+  .row-btns{display:flex; gap:2px; align-items:center; flex:0 0 auto;}
+  .row-mv{border:none; background:none; color:var(--muted); font-size:14px; cursor:pointer; padding:2px 5px; border-radius:8px;}
+  .row-mv:hover:not(:disabled){background:#e5f1df; color:var(--leaf-dark);}
+  .row-mv:disabled{opacity:.25; cursor:default;}
+  .plan-row.extra{background:#fff8e5; box-shadow:inset 0 0 0 1px #ecd99d;}
+  .plan-row.extra .pr-label{color:#916615;}
+  .ins-kind{display:grid; gap:8px; margin-top:6px;}
+  .ins-opt{display:flex; align-items:flex-start; gap:9px; padding:10px; border:1px solid var(--line); border-radius:12px; cursor:pointer; background:#fff;}
+  .ins-opt.on{border-color:var(--leaf); background:#f3f9ef;}
+  .ins-opt input{margin-top:3px; accent-color:var(--leaf);}
+  .ins-opt b{display:block; font-size:14px;}
+  .ins-opt small{display:block; color:var(--muted); font-size:11px; margin-top:2px; line-height:1.5;}
   .exam-zone{border:1px solid var(--line); border-radius:var(--radius); background:rgba(255,253,247,.95); padding:14px; margin:10px 0;}
   .exam-card{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; border-radius:12px; background:#f8faf6; margin-top:8px;}
   .exam-card.past{opacity:.55;}
@@ -1634,22 +1646,49 @@ function studyMaterialsOf(subjectId){
   return seen;
 }
 function studyItemsOfMaterial(subjectId, material){
-  return studyItemsOfSubject(subjectId).filter(it=>it.material===material)
-    .sort((a,b)=> a.lesson-b.lesson || (a.part||1)-(b.part||1));
+  const list=studyItemsOfSubject(subjectId).filter(it=>it.material===material);
+  ensureSeq(list);
+  return list.sort((a,b)=> a.seq-b.seq);
 }
-/* 同一課次插入第二、三張（例如一個單元兩張測驗卷）：沿用同一個 lesson，用 part 區分 */
-function insertStudyRow(afterItemId, name){
+/* seq＝這本教材裡的排列順序（跟課號分開，才能自由插隊與上下移動）。
+   舊資料沒有 seq 時，依原本的 (課號, part) 順序補上。 */
+function ensureSeq(list){
+  if(list.every(i=>typeof i.seq==='number')) return;
+  list.slice().sort((a,b)=> a.lesson-b.lesson || (a.part||1)-(b.part||1))
+      .forEach((it,i)=>{ if(typeof it.seq!=='number') it.seq=(i+1)*10; });
+}
+/* 插入一列。kind='part' → 同一課的第二張（顯示 第3課(2)）
+                kind='extra' → 獨立項目（只顯示名稱，例如「複習考」） */
+function insertStudyRow(afterItemId, name, kind){
   const it=studyItems().find(x=>x.id===afterItemId); if(!it) return null;
-  const sibs=studyItemsOfMaterial(it.subjectId, it.material).filter(x=>x.lesson===it.lesson);
-  const part=Math.max(...sibs.map(x=>x.part||1))+1;
-  const row={ id:'sp_'+Date.now().toString(36)+'_p'+part+Math.floor(Math.random()*100),
+  const list=studyItemsOfMaterial(it.subjectId, it.material);
+  const idx=list.findIndex(x=>x.id===afterItemId);
+  const nextSeq = idx+1<list.length ? list[idx+1].seq : it.seq+20;
+  const seq=(it.seq+nextSeq)/2;                       // 插在兩者中間
+  const isExtra = kind==='extra';
+  const sibs=list.filter(x=>x.lesson===it.lesson && !x.extra);
+  const row={ id:'sp_'+Date.now().toString(36)+'_i'+Math.floor(Math.random()*1000),
     childId:it.childId, subjectId:it.subjectId, material:it.material,
-    lesson:it.lesson, part, lessonName:(name||'').trim(), due:'', done:false, doneAt:null };
+    lesson:it.lesson, part:isExtra?1:Math.max(...sibs.map(x=>x.part||1))+1,
+    extra:isExtra, seq,
+    lessonName:(name||'').trim()||(isExtra?'複習考':''), due:'', done:false, doneAt:null };
   studyPlan().items.push(row); save(); return row;
+}
+/* 上下移動一列：跟相鄰的那一列交換 seq */
+function moveStudyRow(id, dir){
+  const it=studyItems().find(x=>x.id===id); if(!it) return false;
+  const list=studyItemsOfMaterial(it.subjectId, it.material);
+  const i=list.findIndex(x=>x.id===id);
+  const j=i+(dir<0?-1:1);
+  if(j<0 || j>=list.length) return false;
+  const a=list[i].seq; list[i].seq=list[j].seq; list[j].seq=a;
+  save(); return true;
 }
 /* 這一課有幾張（>1 才需要顯示 (2)(3)） */
 function studySiblingCount(it){
-  return studyItemsOfMaterial(it.subjectId, it.material).filter(x=>x.lesson===it.lesson).length;
+  /* 只算同課次的「張數」，獨立項目（複習考等）不列入，否則會害正常課次被標成 (1) */
+  return studyItemsOfMaterial(it.subjectId, it.material)
+    .filter(x=>x.lesson===it.lesson && !x.extra).length;
 }
 function addStudySubject(childId, name, icon){
   const sub={id:'sub_'+Date.now().toString(36)+Math.floor(Math.random()*100), childId, name:name.trim(), icon:icon||'📚'};
@@ -1673,7 +1712,7 @@ function addStudyLessons(childId, subjectId, material, lessonNames, startNo){
     if(exist.has(lesson)) return;
     made.push({
       id:'sp_'+Date.now().toString(36)+'_'+idx+Math.floor(Math.random()*100),
-      childId, subjectId, material, lesson, part:1,
+      childId, subjectId, material, lesson, part:1, extra:false, seq:(base+idx)*10,
       lessonName:(nm||'').trim(),
       due:'', done:false, doneAt:null
     });
@@ -1683,9 +1722,11 @@ function addStudyLessons(childId, subjectId, material, lessonNames, startNo){
 }
 function studyItemLabel(it){
   const sub=studySubjectById(it.subjectId);
+  const base=(sub?sub.name:'')+' '+it.material+' ';
+  if(it.extra) return base+(it.lessonName||'複習考');
   const nm=it.lessonName? ' '+it.lessonName : '';
   const p=(it.part||1)>1 ? ' ('+it.part+')' : '';
-  return (sub?sub.name:'')+' '+it.material+' 第'+it.lesson+'課'+p+nm;
+  return base+'第'+it.lesson+'課'+p+nm;
 }
 /* 某天是否為假日（排程用，可查任意日期，不只今天） */
 function isHolidayOn(key){
@@ -4018,15 +4059,19 @@ function paintPlanLessons(){
         <button class="reset-btn" id="matDel">🗑</button>
       </span></div>
     <div class="plan-detail">
-      ${items.length? items.map(it=>{
+      ${items.length? items.map((it,i)=>{
         const od=!it.done && it.due && it.due<today, isToday=it.due===today;
-        const multi=studySiblingCount(it)>1;
-        return `<label class="plan-row${it.done?' done':''}${od?' overdue':''}${isToday?' today':''}">
+        const multi=!it.extra && studySiblingCount(it)>1;
+        return `<label class="plan-row${it.done?' done':''}${od?' overdue':''}${isToday?' today':''}${it.extra?' extra':''}">
           <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
-          <span class="pr-main"><span class="pr-label">第${it.lesson}${unitWord}${multi?' ('+(it.part||1)+')':''}${it.lessonName?' '+it.lessonName:''}</span>
+          <span class="pr-main"><span class="pr-label">${it.extra? '📄 '+(it.lessonName||'複習考') : ('第'+it.lesson+unitWord+(multi?' ('+(it.part||1)+')':'')+(it.lessonName?' '+it.lessonName:''))}</span>
             <span class="pr-due">${it.due? ((od?'⚠️ 逾期 · ':'')+(isToday?'📌 今天 · ':'')+it.due.slice(5).replace('-','/')) : '🕗 尚未排程（設定考試後自動排）'}</span></span>
-          <button class="row-ins" data-ins="${it.id}" title="在下面插入一列（同一${unitWord}的第二張）">＋</button>
-          <button class="row-del" data-del="${it.id}" title="刪除這一列">✕</button>
+          <span class="row-btns">
+            <button class="row-mv" data-up="${it.id}" ${i===0?'disabled':''} title="往上移">↑</button>
+            <button class="row-mv" data-down="${it.id}" ${i===items.length-1?'disabled':''} title="往下移">↓</button>
+            <button class="row-ins" data-ins="${it.id}" title="在這一列下面插入">＋</button>
+            <button class="row-del" data-del="${it.id}" title="刪除這一列">✕</button>
+          </span>
         </label>`;
       }).join('') : '<p class="hint">這本教材還沒有課次。</p>'}
     </div>`;
@@ -4044,6 +4089,12 @@ function paintPlanLessons(){
   };
   box.querySelectorAll('input[data-sid]').forEach(inp=>{
     inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
+  });
+  box.querySelectorAll('[data-up],[data-down]').forEach(b=>{
+    b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+      const id=b.dataset.up||b.dataset.down;
+      if(moveStudyRow(id, b.dataset.up?-1:1)) renderStudyPlan();
+    };
   });
   box.querySelectorAll('[data-ins]').forEach(b=>{
     b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation(); openInsertRowModal(b.dataset.ins, unitWord); };
@@ -4155,34 +4206,53 @@ function openCopyModal(subjectId, fromMaterial){
     planMaterial=to; renderStudyPlan();
   };
 }
-/* 在某一列下面插入一列（同一課次的第二、三張，例如一個單元兩張測驗卷） */
+/* 在某一列下面插入一列：可選「獨立項目」（複習考）或「同一課的第二張」 */
 function openInsertRowModal(afterItemId, unitWord){
   const it=studyItems().find(x=>x.id===afterItemId); if(!it) return;
   const w=unitWord||'課';
-  const next=studyItemsOfMaterial(it.subjectId,it.material).filter(x=>x.lesson===it.lesson).length+1;
+  const anchor = it.extra ? (it.lessonName||'複習考') : ('第'+it.lesson+w+(it.lessonName?' '+it.lessonName:''));
   const ov=document.createElement('div'); ov.className='modal-ov';
   ov.innerHTML=`<div class="modal">
     <h3>＋ 插入一列</h3>
-    <p class="hint" style="margin:8px 0 0;">會插在「第${it.lesson}${w}${it.lessonName?' '+it.lessonName:''}」下面，一樣算第${it.lesson}${w}（顯示為 (${next})），後面的編號不會被往後推。</p>
-    <div class="mod-row" style="margin-top:12px;"><label>這一列的名稱</label><br>
-      <input id="insNm" class="in" style="width:100%;max-width:none;" placeholder="例如：測驗卷B、第二回、複習卷">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-        ${['第二張','測驗卷B','第二回','複習卷'].map(t=>`<button class="reset-btn" data-pre2="${t}" style="padding:6px 10px;font-size:13px;">${t}</button>`).join('')}
+    <p class="hint" style="margin:8px 0 0;">會插在「${anchor}」下面。</p>
+    <div class="mod-row" style="margin-top:12px;"><label>這一列是什麼？</label><br>
+      <div class="ins-kind">
+        <label class="ins-opt on"><input type="radio" name="insKind" value="extra" checked>
+          <span><b>獨立項目</b><small>穿插在課次之間，只顯示名稱，例如複習考、段考</small></span></label>
+        <label class="ins-opt"><input type="radio" name="insKind" value="part">
+          <span><b>同一${w}的第二張</b><small>一樣算第${it.lesson}${w}，顯示為 (2)、(3)</small></span></label>
       </div></div>
+    <div class="mod-row"><label>名稱</label><br>
+      <input id="insNm" class="in" style="width:100%;max-width:none;" placeholder="例如：複習考" value="複習考">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;" id="insPre"></div></div>
     <div style="display:flex;gap:10px;margin-top:16px;">
       <button class="next-btn" id="insGo" style="flex:1;">＋ 插入</button>
       <button class="reset-btn" id="insCancel" style="flex:1;">取消</button>
     </div>
   </div>`;
   document.body.appendChild(ov);
-  ov.querySelectorAll('[data-pre2]').forEach(b=> b.onclick=()=>{ ov.querySelector('#insNm').value=b.dataset.pre2; });
+  const PRE={extra:['複習考','段考','小考','補充卷'], part:['第二張','測驗卷B','第二回','複習卷']};
+  const kindOf=()=> ov.querySelector('input[name=insKind]:checked').value;
+  const paintPre=()=>{
+    const k=kindOf();
+    ov.querySelector('#insPre').innerHTML=PRE[k].map(t=>`<button class="reset-btn" data-pre2="${t}" type="button" style="padding:6px 10px;font-size:13px;">${t}</button>`).join('');
+    ov.querySelectorAll('[data-pre2]').forEach(b=> b.onclick=()=>{ ov.querySelector('#insNm').value=b.dataset.pre2; });
+    ov.querySelector('#insNm').value = PRE[k][0];
+  };
+  ov.querySelectorAll('input[name=insKind]').forEach(rd=> rd.onchange=()=>{
+    ov.querySelectorAll('.ins-opt').forEach(l=> l.classList.toggle('on', l.querySelector('input').checked));
+    paintPre();
+  });
+  paintPre();
   ov.querySelector('#insCancel').onclick=()=>ov.remove();
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
   ov.querySelector('#insGo').onclick=()=>{
-    const row=insertStudyRow(afterItemId, ov.querySelector('#insNm').value);
+    const k=kindOf();
+    const row=insertStudyRow(afterItemId, ov.querySelector('#insNm').value, k);
     ov.remove();
     if(!row){ badSound(); return; }
-    goodSound(); toast('＋ 已插入第'+row.lesson+w+' ('+row.part+')');
+    goodSound();
+    toast(k==='extra' ? ('＋ 已插入「'+(row.lessonName)+'」') : ('＋ 已插入第'+row.lesson+w+' ('+row.part+')'));
     renderStudyPlan();
   };
 }
