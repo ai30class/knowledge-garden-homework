@@ -572,6 +572,20 @@
   .exam-card .ex-pace{flex-basis:100%; display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
   .exam-card .ex-pace span{font-size:11px; font-weight:700; color:var(--leaf-dark); background:#eaf3e5; border-radius:99px; padding:3px 9px;}
   .exam-card .ex-late{flex-basis:100%; margin-top:8px; padding:8px 10px; border-radius:10px; background:#fdecea; color:#b03a2b; font-size:12px; line-height:1.6; font-weight:700;}
+  .exam-card .ex-days{background:#e5eef8 !important; color:#426b91 !important;}
+  .day-presets{display:flex; gap:6px; flex-wrap:wrap; margin:6px 0;}
+  .day-presets .reset-btn{padding:6px 12px; font-size:13px;}
+  .day-pick{display:flex; gap:5px; flex-wrap:wrap;}
+  .day-chip{position:relative; cursor:pointer;}
+  .day-chip input{position:absolute; opacity:0; width:0; height:0;}
+  .day-chip span{display:grid; place-items:center; width:40px; height:40px; border:1px solid var(--line);
+    border-radius:12px; background:#fff; font-weight:800; color:var(--muted); transition:background .15s,color .15s;}
+  .day-chip.on span{background:var(--leaf); border-color:var(--leaf); color:#fff;}
+  .overdue-banner{display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer;
+    border:2px solid #f0b8ae; background:#fdecea; border-radius:14px; padding:11px 14px; margin:10px 0;}
+  .overdue-banner b{color:#b03a2b; font-size:15px;}
+  .overdue-banner span{display:block; font-size:12px; color:#8c5045; margin-top:2px;}
+  .overdue-banner .ob-go{margin-left:auto; color:#b03a2b; font-weight:900;}
   .scope-box{max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:6px; background:#fbfdfa;}
   .scope-sub{margin-bottom:10px;}
   .scope-nm{font-weight:800; font-size:14px; margin-bottom:4px;}
@@ -1769,27 +1783,6 @@ function dateKeyOf(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStar
 function parseKey(key){ const [y,m,d]=key.split('-').map(Number); return new Date(y, m-1, d); }
 function addDaysKey(key, n){ const d=parseKey(key); d.setDate(d.getDate()+n); return dateKeyOf(d); }
 function daysBetween(aKey, bKey){ return Math.round((parseKey(bKey)-parseKey(aKey))/86400000); }
-/* 排程核心：把一批項目平均鋪在 startKey~endKey，跳過假日，頭尾貼齊。
-   可用天數不足時會同一天排多筆（回傳仍照順序），呼叫端負責提醒家長。 */
-function spreadDates(count, startKey, endKey, skipHolidays){
-  if(count<=0) return [];
-  const span=Math.max(0, daysBetween(startKey, endKey));
-  const usable=[];
-  for(let i=0;i<=span;i++){
-    const k=addDaysKey(startKey,i);
-    if(skipHolidays && isHolidayOn(k)) continue;
-    usable.push(k);
-  }
-  if(!usable.length) usable.push(startKey);
-  const out=[];
-  for(let n=0;n<count;n++){
-    /* floor(n*天數/課數)：課多天少時會平均分桶（15課3天=5/5/5），
-       課少天多時則平均拉開，不會擠在中間 */
-    const pos = Math.floor(n*usable.length/count);
-    out.push(usable[Math.min(pos, usable.length-1)]);
-  }
-  return out;
-}
 /* 依考試往回推：把範圍內未完成的課次鋪在「今天 ~ 考試前一天」 */
 /* 依考試往回推。
    關鍵：不是把各科串成一長串依序鋪（那會變成先唸完國語才輪到數學），
@@ -1810,11 +1803,21 @@ function scheduleForExam(exam, skipHolidays=true){
 
   /* 可用的日子（跳過假日） */
   const span=Math.max(0, daysBetween(startKey, endKey));
+  const wantDays=examDays(exam);          /* 家長指定的星期，未設定＝每天 */
   const usable=[];
   for(let i=0;i<=span;i++){
     const k=addDaysKey(startKey,i);
     if(skipHolidays && isHolidayOn(k)) continue;
+    if(!wantDays.includes(weekdayOf(k))) continue;
     usable.push(k);
+  }
+  /* 指定的星期在這段期間完全沒出現時，退回不限星期，以免整批排不出去 */
+  if(!usable.length){
+    for(let i=0;i<=span;i++){
+      const k=addDaysKey(startKey,i);
+      if(skipHolidays && isHolidayOn(k)) continue;
+      usable.push(k);
+    }
   }
   if(!usable.length) usable.push(startKey);
 
@@ -1843,11 +1846,32 @@ function scheduleForExam(exam, skipHolidays=true){
   return {count:total, perDay:maxPerDay, tight: maxPerDay>3, days:usable.length, perSubject};
 }
 /* 兩個日期之間、扣掉假日的可用天數（考試卡片顯示節奏用） */
-function countUsableDays(startKey, endKey){
+/* 某個日期是星期幾（0=一 … 6=日，跟 todayWeekdayIndex 同一套） */
+function weekdayOf(key){ return (parseKey(key).getDay()+6)%7; }
+const WEEKDAY_NAMES=['一','二','三','四','五','六','日'];
+/* 考試沒設定 days 時＝每天都可以寫 */
+function examDays(exam){
+  const d=exam && exam.days;
+  return (Array.isArray(d) && d.length) ? d : [0,1,2,3,4,5,6];
+}
+function examDaysLabel(exam){
+  const d=examDays(exam);
+  if(d.length===7) return '每天';
+  if(d.length===5 && [0,1,2,3,4].every(x=>d.includes(x))) return '只有平日';
+  if(d.length===2 && d.includes(5) && d.includes(6)) return '只有週末';
+  return '星期'+d.slice().sort((a,b)=>a-b).map(x=>WEEKDAY_NAMES[x]).join('、');
+}
+function countUsableDays(startKey, endKey, exam){
   const span=daysBetween(startKey, endKey);
   if(span<0) return 0;
+  const days=examDays(exam);
   let n=0;
-  for(let i=0;i<=span;i++){ if(!isHolidayOn(addDaysKey(startKey,i))) n++; }
+  for(let i=0;i<=span;i++){
+    const k=addDaysKey(startKey,i);
+    if(isHolidayOn(k)) continue;
+    if(!days.includes(weekdayOf(k))) continue;
+    n++;
+  }
   return n;
 }
 function examCountdown(exam){ return daysBetween(dateKey(), exam.date); }
@@ -4040,7 +4064,9 @@ function paintExamZone(){
       const od=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material)
         .filter(i=>!i.done && i.due && i.due<dateKey()).length,0);
       /* 顯示各科節奏：這一科的未完成課次，平均幾天要做一項 */
-      const usableDays=Math.max(1, countUsableDays(dateKey(), addDaysKey(e.date,-1)));
+      const usableDays=Math.max(1, countUsableDays(dateKey(), addDaysKey(e.date,-1), e));
+      /* 有限制星期時，「每 N 天」會誤導（那是可寫日不是日曆天），用詞要跟著換 */
+      const everyUnit = examDays(e).length===7 ? '天' : '個可寫日';
       const pace=(e.scopes||[]).map(sc=>{
         const items=studyItemsOfMaterial(sc.subjectId,sc.material).filter(i=>!i.done);
         if(!items.length) return null;
@@ -4054,7 +4080,7 @@ function paintExamZone(){
           <div class="ex-meta">${e.date.replace(/-/g,'/')} · 範圍 ${(e.scopes||[]).length} 項 · 共 ${cnt} 課，還剩 ${left} 課沒讀</div>
         </div>
         <div class="ex-count ${d<=3?'urgent':''}">${d<0?'已結束':d===0?'就是今天':'還有 '+d+' 天'}</div>
-        ${pace.length?`<div class="ex-pace">${pace.map(x=>`<span>${x.name}：每 ${x.everyDays} 天 1 ${x.unit}</span>`).join('')}</div>`:''}
+        ${pace.length?`<div class="ex-pace"><span class="ex-days">🗓 ${examDaysLabel(e)}</span>${pace.map(x=>`<span>${x.name}：每 ${x.everyDays} ${everyUnit} 1 ${x.unit}</span>`).join('')}</div>`:''}
         ${od?`<div class="ex-late">⚠️ 有 ${od} 項已經過了預定日期，全部堆在今天。按「重新安排進度」可以把還沒做的重新平均分配到考試前。</div>`:''}
         <div class="ex-btns">
           <button class="${od?'next-btn':'reset-btn'}" data-exre="${e.id}" style="${od?'padding:8px 12px;font-size:14px;':''}">🔄 重新安排進度</button>
@@ -4675,6 +4701,16 @@ function openExamModal(){
       <input id="exDate" class="in" type="date" value="${addDaysKey(dateKey(),21)}"></div>
     <div class="mod-row"><label>考試範圍（勾選要讀完的教材）</label>
       <div class="scope-box">${scopeRows||'<p class="hint">還沒有任何教材可以勾選。</p>'}</div></div>
+    <div class="mod-row"><label>哪幾天要寫？</label>
+      <div class="day-presets">
+        <button class="reset-btn" data-dpre="all" type="button">每天</button>
+        <button class="reset-btn" data-dpre="weekday" type="button">只有平日</button>
+        <button class="reset-btn" data-dpre="weekend" type="button">只有週末</button>
+      </div>
+      <div class="day-pick" id="exDays">
+        ${WEEKDAY_NAMES.map((n,i)=>`<label class="day-chip on"><input type="checkbox" value="${i}" checked><span>${n}</span></label>`).join('')}
+      </div>
+      <div class="hint" id="exDaysHint" style="margin:6px 0 0;"></div></div>
     <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;">
       <input type="checkbox" id="exSkipHol" checked> 排程時跳過假日
     </label>
@@ -4684,6 +4720,25 @@ function openExamModal(){
     </div>
   </div>`;
   document.body.appendChild(ov);
+  const dayBoxes=[...ov.querySelectorAll('#exDays input')];
+  const pickedDays=()=>dayBoxes.filter(b=>b.checked).map(b=>Number(b.value));
+  const syncDays=()=>{
+    dayBoxes.forEach(b=>b.closest('.day-chip').classList.toggle('on', b.checked));
+    const d=pickedDays();
+    const dateEl=ov.querySelector('#exDate');
+    const days=d.length? countUsableDays(dateKey(), addDaysKey(dateEl.value||dateKey(),-1), {days:d}) : 0;
+    const h=ov.querySelector('#exDaysHint');
+    h.textContent = !d.length ? '⚠️ 至少要選一天，否則沒有日子可以排。'
+      : ('考試前總共有 '+days+' 個可寫的日子'+(days<3?'（很少，排程會很擠）':''));
+  };
+  dayBoxes.forEach(b=> b.onchange=syncDays);
+  ov.querySelector('#exDate').addEventListener('change', syncDays);
+  ov.querySelectorAll('[data-dpre]').forEach(b=> b.onclick=()=>{
+    const m={all:[0,1,2,3,4,5,6], weekday:[0,1,2,3,4], weekend:[5,6]}[b.dataset.dpre];
+    dayBoxes.forEach(x=>{ x.checked=m.includes(Number(x.value)); });
+    syncDays();
+  });
+  syncDays();
   ov.querySelector('#exCancel').onclick=()=>ov.remove();
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
   ov.querySelector('#exSave').onclick=()=>{
@@ -4695,13 +4750,16 @@ function openExamModal(){
       return {subjectId, material:decodeURIComponent(m)};
     });
     if(!scopes.length){ badSound(); toast('請至少勾選一個考試範圍'); return; }
-    const exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes};
+    const days=pickedDays();
+    if(!days.length){ badSound(); toast('請至少選一天可以寫的日子'); return; }
+    const exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes, days};
     studyPlan().exams.push(exam);
     const r=scheduleForExam(exam, ov.querySelector('#exSkipHol').checked);
     ov.remove(); goodSound();
     if(r.tight) toast('🎯 已排 '+r.count+' 項，但時間很緊：最多一天要做 '+r.perDay+' 項');
     else {
-      const pace=(r.perSubject||[]).map(x=>x.name.split(' ')[0]+' 每'+x.everyDays+'天').join('、');
+      const u = days.length===7 ? '天' : '個可寫日';
+      const pace=(r.perSubject||[]).map(x=>x.name.split(' ')[0]+' 每'+x.everyDays+u).join('、');
       toast('🎯 已建立「'+name+'」，'+r.count+' 項依各科交錯排開'+(pace?'：'+pace:''));
     }
     renderStudyPlan();
@@ -4883,6 +4941,16 @@ function renderHome(){
   const hwPct = visibleHW().length ? Math.round(finished/visibleHW().length*100) : 100;
   const hasUnfinished = !!firstUnfinishedHW();
   const studyDueCount = studyDueToday(c.id).length;
+  /* 逾期要在最上面就看得到——原本只排在「今日讀書計劃」區塊裡，
+     而那是首頁第 6 個區塊，要捲很久才看得到 */
+  const overdueCount = studyOverdue(c.id).length;
+  const overdueBanner = overdueCount ? `
+    <button class="overdue-banner" id="goOverdue">
+      <span style="font-size:24px;">⏰</span>
+      <span style="flex:1;"><b>有 ${overdueCount} 項讀書計劃還沒做</b>
+        <span>已經過了預定日期。點我去看，可以一鍵重新安排到考試前。</span></span>
+      <span class="ob-go">›</span>
+    </button>` : '';
   app.innerHTML = `
   <div class="panel">
     <h2 class="title-sticker">🌻 ${name} 的小花園</h2>
@@ -4902,6 +4970,7 @@ function renderHome(){
       <button class="reset-btn" id="bgmBtn">${state.bgm?'🎵 音樂：開':'🎵 音樂：關'}</button>
     </div>
     ${banner}
+    ${overdueBanner}
     ${secZombie}
     <div class="progress-card-row">
       <div>
@@ -5007,6 +5076,7 @@ function renderHome(){
     else showTab('practice');
   };
   $$('input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderHome(); }; });
+  const gob=$('#goOverdue'); if(gob) gob.onclick=()=>showTab('plan');
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
   const eb=$('#energyBtn'); if(eb){ eb.onclick=useEnergy; tickEnergy(); }
   const tb=$('#ttsBtn'); if(tb) tb.onclick=()=>{ state.tts=!state.tts; save(); renderHome(); };
