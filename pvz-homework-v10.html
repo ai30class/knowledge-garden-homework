@@ -4084,6 +4084,7 @@ function paintExamZone(){
         ${od?`<div class="ex-late">⚠️ 有 ${od} 項已經過了預定日期，全部堆在今天。按「重新安排進度」可以把還沒做的重新平均分配到考試前。</div>`:''}
         <div class="ex-btns">
           <button class="${od?'next-btn':'reset-btn'}" data-exre="${e.id}" style="${od?'padding:8px 12px;font-size:14px;':''}">🔄 重新安排進度</button>
+          <button class="reset-btn" data-exedit="${e.id}">✏️ 編輯</button>
           <button class="reset-btn" data-exdel="${e.id}">🗑</button>
         </div>
       </div>`;
@@ -4099,6 +4100,7 @@ function paintExamZone(){
       +(r.tight?'（時間很緊，最多一天 '+r.perDay+' 項）':'，各科交錯排開'));
     renderStudyPlan();
   });
+  box.querySelectorAll('[data-exedit]').forEach(b=> b.onclick=()=>openExamModal(b.dataset.exedit));
   box.querySelectorAll('[data-exdel]').forEach(b=> b.onclick=()=>{
     const e=studyPlan().exams.find(x=>x.id===b.dataset.exdel); if(!e) return;
     askConfirm('刪除考試「'+e.name+'」？<br><span class="hint">已排好的課次日期會保留，不會被清掉。</span>', ()=>{
@@ -4678,10 +4680,12 @@ function openLessonModal(subjectId, fixedMaterial){
   };
 }
 /* 新增考試：日期 + 範圍（勾選科目底下的教材） */
-function openExamModal(){
+function openExamModal(examId){
   const c=C();
   const subs=studySubjectsOf(c.id);
   if(!subs.length){ toast('請先新增科目與課次，才能設定考試範圍'); return; }
+  /* 帶 examId＝編輯既有考試（原本只能新增，設定好就再也改不到） */
+  const editing = examId ? studyPlan().exams.find(x=>x.id===examId) : null;
   const ov=document.createElement('div'); ov.className='modal-ov';
   const scopeRows=subs.map(s=>{
     const mats=studyMaterialsOf(s.id);
@@ -4689,16 +4693,17 @@ function openExamModal(){
     return `<div class="scope-sub"><div class="scope-nm">${s.icon||'📚'} ${s.name}</div>
       ${mats.map(m=>{
         const n=studyItemsOfMaterial(s.id,m).filter(i=>!i.done).length;
-        return `<label class="scope-row"><input type="checkbox" data-sc="${s.id}|${encodeURIComponent(m)}">
+        const on = editing && (editing.scopes||[]).some(x=>x.subjectId===s.id && x.material===m);
+        return `<label class="scope-row"><input type="checkbox" data-sc="${s.id}|${encodeURIComponent(m)}" ${on?'checked':''}>
           <span>${m}<small style="color:var(--muted);"> · 還剩 ${n} 課</small></span></label>`;
       }).join('')}</div>`;
   }).join('');
   ov.innerHTML=`<div class="modal">
-    <h3>🎯 新增考試</h3>
+    <h3>${editing?'✏️ 編輯考試':'🎯 新增考試'}</h3>
     <div class="mod-row"><label>考試名稱</label><br>
-      <input id="exNm" class="in" style="width:100%;max-width:none;" placeholder="例如：第一次段考" value="段考"></div>
+      <input id="exNm" class="in" style="width:100%;max-width:none;" placeholder="例如：第一次段考" value="${editing?editing.name:'段考'}"></div>
     <div class="mod-row"><label>考試日期</label><br>
-      <input id="exDate" class="in" type="date" value="${addDaysKey(dateKey(),21)}"></div>
+      <input id="exDate" class="in" type="date" value="${editing?editing.date:addDaysKey(dateKey(),21)}"></div>
     <div class="mod-row"><label>考試範圍（勾選要讀完的教材）</label>
       <div class="scope-box">${scopeRows||'<p class="hint">還沒有任何教材可以勾選。</p>'}</div></div>
     <div class="mod-row"><label>哪幾天要寫？</label>
@@ -4708,14 +4713,14 @@ function openExamModal(){
         <button class="reset-btn" data-dpre="weekend" type="button">只有週末</button>
       </div>
       <div class="day-pick" id="exDays">
-        ${WEEKDAY_NAMES.map((n,i)=>`<label class="day-chip on"><input type="checkbox" value="${i}" checked><span>${n}</span></label>`).join('')}
+        ${WEEKDAY_NAMES.map((n,i)=>{const on=examDays(editing||{}).includes(i);return `<label class="day-chip${on?' on':''}"><input type="checkbox" value="${i}" ${on?'checked':''}><span>${n}</span></label>`;}).join('')}
       </div>
       <div class="hint" id="exDaysHint" style="margin:6px 0 0;"></div></div>
     <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;">
       <input type="checkbox" id="exSkipHol" checked> 排程時跳過假日
     </label>
     <div style="display:flex;gap:10px;margin-top:14px;">
-      <button class="next-btn" id="exSave" style="flex:1;">🎯 建立並自動排程</button>
+      <button class="next-btn" id="exSave" style="flex:1;">${editing?'💾 儲存並重新安排':'🎯 建立並自動排程'}</button>
       <button class="reset-btn" id="exCancel" style="flex:1;">取消</button>
     </div>
   </div>`;
@@ -4752,15 +4757,17 @@ function openExamModal(){
     if(!scopes.length){ badSound(); toast('請至少勾選一個考試範圍'); return; }
     const days=pickedDays();
     if(!days.length){ badSound(); toast('請至少選一天可以寫的日子'); return; }
-    const exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes, days};
-    studyPlan().exams.push(exam);
+    let exam;
+    if(editing){ exam=editing; exam.name=name; exam.date=date; exam.scopes=scopes; exam.days=days; }
+    else { exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes, days};
+           studyPlan().exams.push(exam); }
     const r=scheduleForExam(exam, ov.querySelector('#exSkipHol').checked);
     ov.remove(); goodSound();
     if(r.tight) toast('🎯 已排 '+r.count+' 項，但時間很緊：最多一天要做 '+r.perDay+' 項');
     else {
       const u = days.length===7 ? '天' : '個可寫日';
       const pace=(r.perSubject||[]).map(x=>x.name.split(' ')[0]+' 每'+x.everyDays+u).join('、');
-      toast('🎯 已建立「'+name+'」，'+r.count+' 項依各科交錯排開'+(pace?'：'+pace:''));
+      toast((editing?'💾 已更新「':'🎯 已建立「')+name+'」，'+r.count+' 項依各科交錯排開'+(pace?'：'+pace:''));
     }
     renderStudyPlan();
   };
