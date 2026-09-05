@@ -527,6 +527,26 @@
   .plan-sub .ps-go{color:var(--muted); font-size:20px; flex:0 0 auto;}
   .plan-detail{border:1px solid var(--line); border-radius:var(--radius); background:#fff; padding:14px; min-height:120px;}
   .plan-detail-head{margin-bottom:10px;}
+  .plan-add{width:100%; border:2px dashed var(--line); background:#fbfdfa; color:var(--leaf-dark); border-radius:14px; padding:12px; font-weight:800; font-size:14px; cursor:pointer; transition:border-color .15s,background .15s;}
+  .plan-add:hover{border-color:var(--leaf); background:#f1f8ed;}
+  .plan-crumb{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+  .plan-crumb .crumb-now{font-weight:800; color:var(--ink);}
+  .row-del{border:none; background:none; color:var(--muted); font-size:15px; cursor:pointer; padding:2px 6px; border-radius:8px; flex:0 0 auto;}
+  .row-del:hover{background:#fdecea; color:#c0392b;}
+  .exam-zone{border:1px solid var(--line); border-radius:var(--radius); background:rgba(255,253,247,.95); padding:14px; margin:10px 0;}
+  .exam-card{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; border-radius:12px; background:#f8faf6; margin-top:8px;}
+  .exam-card.past{opacity:.55;}
+  .exam-card .ex-main{flex:1; min-width:150px;}
+  .exam-card .ex-name{font-weight:800; font-size:15px; color:var(--ink);}
+  .exam-card .ex-meta{font-size:11px; color:var(--muted); margin-top:2px;}
+  .exam-card .ex-count{font-weight:900; font-size:14px; color:var(--leaf-dark); white-space:nowrap;}
+  .exam-card .ex-count.urgent{color:#c0392b;}
+  .exam-card .ex-btns{display:flex; gap:6px;}
+  .scope-box{max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:6px; background:#fbfdfa;}
+  .scope-sub{margin-bottom:10px;}
+  .scope-nm{font-weight:800; font-size:14px; margin-bottom:4px;}
+  .scope-row{display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer;}
+  .scope-row input{width:18px; height:18px; accent-color:var(--leaf);}
   .plan-row{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:12px; background:#f8faf6; margin-bottom:6px; cursor:pointer; transition:background .15s;}
   .plan-row:hover{background:#eef5ea;}
   .plan-row input{width:20px; height:20px; accent-color:var(--leaf); flex:0 0 auto; cursor:pointer;}
@@ -572,7 +592,7 @@
 <nav class="tabs" id="tabs">
   <button class="tab-btn active" data-tab="home">🌻 小花園</button>
   <button class="tab-btn" data-tab="practice">🎮 練習場</button>
-  <button class="tab-btn" data-tab="plan">📅 計畫</button>
+  <button class="tab-btn" data-tab="plan">📅 讀書計劃</button>
   <button class="tab-btn" data-tab="collection">🏆 收藏</button>
 </nav>
 
@@ -1413,8 +1433,11 @@ function load(seed){
       if(s.routineStep===undefined) s.routineStep=5;
       if(s.routinePenalty===undefined) s.routinePenalty=5;
       if(!Array.isArray(s.schedule)) s.schedule=[];
-      /* 計畫工作台：舊存檔沒有這欄，補空的排程 */
-      if(!s.studyPlan || typeof s.studyPlan!=='object' || !Array.isArray(s.studyPlan.items)) s.studyPlan={items:[]};
+      /* 讀書計劃：舊存檔沒有這欄（或只有早期的 items），把三個陣列都補齊 */
+      if(!s.studyPlan || typeof s.studyPlan!=='object') s.studyPlan={};
+      if(!Array.isArray(s.studyPlan.subjects)) s.studyPlan.subjects=[];
+      if(!Array.isArray(s.studyPlan.items)) s.studyPlan.items=[];
+      if(!Array.isArray(s.studyPlan.exams)) s.studyPlan.exams=[];
       if(s.scheduleDate===undefined) s.scheduleDate='';
       if(s.schedCheckin===undefined) s.schedCheckin=5;
       if(s.schedOnTime===undefined) s.schedOnTime=10;
@@ -1564,13 +1587,69 @@ function dailyResetIfNeeded(){
 }
 dailyResetIfNeeded();
 
-/* ---------- 計畫工作台：考前複習排程 ----------
+/* ---------- 讀書計劃 ----------
    跟「功課清單」的分工：功課清單＝學校出的作業（每天重設、家長簽名 +30）；
-   這裡＝家長事先排好的自修／測驗卷複習進度（不重設、有到期日、孩子自己勾、+10）。
-   排程綁 childId，因為兄弟姊妹的學校進度不同。 */
+   這裡＝家長排的自修／測驗卷／評量複習進度（不重設、有到期日、孩子自己勾、+10）。
+   三層結構：科目（可自訂）→ 教材（自修/測驗卷/評量…）→ 課次（含課名）。
+   全部綁 childId，因為兄弟姊妹的學校進度不同。 */
 const STUDY_ITEM_SUN = 10;
-function studyItems(){ const sp=state.studyPlan; return (sp && Array.isArray(sp.items)) ? sp.items : (state.studyPlan={items:[]}).items; }
+function studyPlan(){
+  let sp=state.studyPlan;
+  if(!sp || typeof sp!=='object'){ sp=state.studyPlan={}; }
+  if(!Array.isArray(sp.subjects)) sp.subjects=[];
+  if(!Array.isArray(sp.items)) sp.items=[];
+  if(!Array.isArray(sp.exams)) sp.exams=[];
+  return sp;
+}
+function studySubjectsOf(childId){ return studyPlan().subjects.filter(s=>s.childId===childId); }
+function studySubjectById(id){ return studyPlan().subjects.find(s=>s.id===id)||null; }
+function studyItems(){ return studyPlan().items; }
 function studyItemsOf(childId){ return studyItems().filter(it=>it.childId===childId); }
+function studyItemsOfSubject(subjectId){ return studyItems().filter(it=>it.subjectId===subjectId); }
+/* 某科底下有哪些教材（依建立順序） */
+function studyMaterialsOf(subjectId){
+  const seen=[];
+  studyItemsOfSubject(subjectId).forEach(it=>{ if(!seen.includes(it.material)) seen.push(it.material); });
+  return seen;
+}
+function studyItemsOfMaterial(subjectId, material){
+  return studyItemsOfSubject(subjectId).filter(it=>it.material===material).sort((a,b)=>a.lesson-b.lesson);
+}
+function addStudySubject(childId, name, icon){
+  const sub={id:'sub_'+Date.now().toString(36)+Math.floor(Math.random()*100), childId, name:name.trim(), icon:icon||'📚'};
+  studyPlan().subjects.push(sub); save(); return sub;
+}
+function deleteStudySubject(subjectId){
+  const sp=studyPlan();
+  sp.items = sp.items.filter(i=>i.subjectId!==subjectId);
+  sp.subjects = sp.subjects.filter(s=>s.id!==subjectId);
+  sp.exams.forEach(e=>{ e.scopes=(e.scopes||[]).filter(s=>s.subjectId!==subjectId); });
+  save();
+}
+/* 批次建立課次：lessonNames 是一行一課的字串陣列，沒填名字就只留課號。
+   新建的課次 due 先留空（尚未排程），等設定考試或手動排程才填日期。 */
+function addStudyLessons(childId, subjectId, material, lessonNames, startNo){
+  const base=Math.max(1, parseInt(startNo)||1);
+  const exist=new Set(studyItemsOfMaterial(subjectId, material).map(i=>i.lesson));
+  const made=[];
+  lessonNames.forEach((nm,idx)=>{
+    const lesson=base+idx;
+    if(exist.has(lesson)) return;
+    made.push({
+      id:'sp_'+Date.now().toString(36)+'_'+idx+Math.floor(Math.random()*100),
+      childId, subjectId, material, lesson,
+      lessonName:(nm||'').trim(),
+      due:'', done:false, doneAt:null
+    });
+  });
+  studyPlan().items.push(...made); save();
+  return made;
+}
+function studyItemLabel(it){
+  const sub=studySubjectById(it.subjectId);
+  const nm=it.lessonName? ' '+it.lessonName : '';
+  return (sub?sub.name:'')+' '+it.material+' 第'+it.lesson+'課'+nm;
+}
 /* 某天是否為假日（排程用，可查任意日期，不只今天） */
 function isHolidayOn(key){
   const md=key.slice(5);
@@ -1582,58 +1661,64 @@ function dateKeyOf(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStar
 function parseKey(key){ const [y,m,d]=key.split('-').map(Number); return new Date(y, m-1, d); }
 function addDaysKey(key, n){ const d=parseKey(key); d.setDate(d.getDate()+n); return dateKeyOf(d); }
 function daysBetween(aKey, bKey){ return Math.round((parseKey(bKey)-parseKey(aKey))/86400000); }
-/* 自動排程：把 lessonFrom~lessonTo 平均鋪在 startKey~endKey 之間，跳過假日。
-   若可用天數不足，就允許同一天排多筆（回傳仍照順序）。 */
-function planLessons({childId, subject, material, lessonFrom, lessonTo, startKey, endKey, skipHolidays=true}){
-  const total = lessonTo - lessonFrom + 1;
-  if(total<=0) return [];
-  const span = Math.max(0, daysBetween(startKey, endKey));
+/* 排程核心：把一批項目平均鋪在 startKey~endKey，跳過假日，頭尾貼齊。
+   可用天數不足時會同一天排多筆（回傳仍照順序），呼叫端負責提醒家長。 */
+function spreadDates(count, startKey, endKey, skipHolidays){
+  if(count<=0) return [];
+  const span=Math.max(0, daysBetween(startKey, endKey));
   const usable=[];
   for(let i=0;i<=span;i++){
-    const k=addDaysKey(startKey, i);
+    const k=addDaysKey(startKey,i);
     if(skipHolidays && isHolidayOn(k)) continue;
     usable.push(k);
   }
   if(!usable.length) usable.push(startKey);
   const out=[];
-  for(let n=0;n<total;n++){
-    /* 平均分配：第 n 筆落在第 round(n * (可用天數-1)/(總數-1)) 天，讓頭尾剛好貼齊起訖日 */
-    const pos = total===1 ? 0 : Math.round(n*(usable.length-1)/(total-1));
-    out.push({
-      id:'sp_'+Date.now().toString(36)+'_'+n+Math.floor(Math.random()*100),
-      childId, subject, material,
-      lesson: lessonFrom + n,
-      label: material+' 第'+(lessonFrom+n)+'課',
-      due: usable[Math.min(pos, usable.length-1)],
-      done:false, doneAt:null
-    });
+  for(let n=0;n<count;n++){
+    /* floor(n*天數/課數)：課多天少時會平均分桶（15課3天=5/5/5），
+       課少天多時則平均拉開，不會擠在中間 */
+    const pos = Math.floor(n*usable.length/count);
+    out.push(usable[Math.min(pos, usable.length-1)]);
   }
   return out;
 }
+/* 依考試往回推：把範圍內未完成的課次鋪在「今天 ~ 考試前一天」 */
+function scheduleForExam(exam, skipHolidays=true){
+  const targets=[];
+  (exam.scopes||[]).forEach(sc=>{
+    studyItemsOfMaterial(sc.subjectId, sc.material).forEach(it=>{ if(!it.done) targets.push(it); });
+  });
+  if(!targets.length) return {count:0, perDay:0, tight:false};
+  const today=dateKey();
+  const lastDay=addDaysKey(exam.date, -1);
+  const startKey = lastDay < today ? exam.date : today;
+  const endKey = lastDay < today ? exam.date : lastDay;
+  const dates=spreadDates(targets.length, startKey, endKey, skipHolidays);
+  targets.forEach((it,i)=>{ it.due=dates[i]; });
+  save();
+  const uniqueDays=new Set(dates).size;
+  return {count:targets.length, perDay: uniqueDays? Math.ceil(targets.length/uniqueDays):targets.length, tight: targets.length>uniqueDays};
+}
+function examCountdown(exam){ return daysBetween(dateKey(), exam.date); }
+function examsOf(childId){ return studyPlan().exams.filter(e=>e.childId===childId).sort((a,b)=>a.date<b.date?-1:1); }
 /* 今日該做的複習：到期日 <= 今天且未完成（用 <= 才抓得到逾期未補的） */
 function studyDueToday(childId){
   const t=dateKey();
-  return studyItemsOf(childId).filter(it=>!it.done && it.due<=t)
+  return studyItemsOf(childId).filter(it=>!it.done && it.due && it.due<=t)
     .sort((a,b)=> a.due===b.due ? a.lesson-b.lesson : (a.due<b.due?-1:1));
 }
-function studyOverdue(childId){ const t=dateKey(); return studyItemsOf(childId).filter(it=>!it.done && it.due<t); }
-function studySubjects(childId){
-  const seen=[];
-  studyItemsOf(childId).forEach(it=>{ if(!seen.includes(it.subject)) seen.push(it.subject); });
-  return seen;
-}
+function studyOverdue(childId){ const t=dateKey(); return studyItemsOf(childId).filter(it=>!it.done && it.due && it.due<t); }
+function studyUnscheduled(childId){ return studyItemsOf(childId).filter(it=>!it.due); }
 function toggleStudyItem(id){
   const it=studyItems().find(x=>x.id===id); if(!it) return;
-  const c=C();
   if(it.done){ it.done=false; it.doneAt=null; addSun(-STUDY_ITEM_SUN); toast('↩ 取消完成 -'+STUDY_ITEM_SUN+' 陽光'); }
   else{
     it.done=true; it.doneAt=Date.now();
     addSun(STUDY_ITEM_SUN); goodSound(); pushZombie(0.06);
-    toast('📚 完成「'+it.label+'」+'+STUDY_ITEM_SUN+' 陽光！');
+    toast('📚 完成「'+studyItemLabel(it)+'」+'+STUDY_ITEM_SUN+' 陽光！');
   }
   save();
 }
-
 /* ---------- 功課清單 ---------- */
 function allHW(){ return state.homeworkList; }
 function hwItem(id){ return allHW().find(x=>x.id===id); }
@@ -3720,49 +3805,6 @@ function renderPracticeHub(){
   const ph=$('#phHome'); if(ph) ph.onclick=()=>showTab('home');
 }
 
-/* 家長後台：複習進度排程管理（建立器 + 已排清單，依科目摺疊統計） */
-function planMgmtHTML(c){
-  const mine=studyItemsOf(c.id);
-  const subOpts=Object.keys(HW_TYPES).filter(t=>t!=='custom')
-    .map(t=>`<option value="${t}">${subjectIcon(t)} ${subjectName(t)}</option>`).join('');
-  let list='';
-  if(!mine.length){ list='<p style="color:#9a7b2e;">還沒有排任何複習進度。</p>'; }
-  else{
-    list = studySubjects(c.id).map(s=>{
-      const items=mine.filter(i=>i.subject===s).sort((a,b)=>a.lesson-b.lesson);
-      const done=items.filter(i=>i.done).length;
-      const first=items[0], last=items[items.length-1];
-      return `<div class="reward" style="align-items:center;">
-        <div><div class="nm">${subjectIcon(s)} ${subjectName(s)}${items[0]&&items[0].material?'：'+items[0].material:''}</div>
-          <div class="cost">第${first.lesson}~${last.lesson}課 · ${items.length} 項 · 已完成 ${done} · ${first.due.slice(5).replace('-','/')} ~ ${last.due.slice(5).replace('-','/')}</div></div>
-        <button class="reset-btn" id="delplan_${s}">🗑 刪除整科</button>
-      </div>`;
-    }).join('');
-  }
-  const t=dateKey();
-  return `${list}
-    <div style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:#fbfdfa;">
-      <div style="font-weight:800;margin-bottom:8px;">➕ 新增一段排程</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-        <select id="planSubSel" class="in" style="max-width:180px;">${subOpts}</select>
-        <input id="planMaterial" class="in" placeholder="教材名稱（如：國語自修）" style="max-width:200px;">
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;">
-        <label>第 <input id="planFrom" class="in" type="number" min="1" value="1" style="width:70px;"> 課</label>
-        <label>到第 <input id="planTo" class="in" type="number" min="1" value="10" style="width:70px;"> 課</label>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px;">
-        <label>開始 <input id="planStart" class="in" type="date" value="${t}" style="max-width:170px;"></label>
-        <label>結束 <input id="planEnd" class="in" type="date" value="${addDaysKey(t,41)}" style="max-width:170px;"></label>
-      </div>
-      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;">
-        <input type="checkbox" id="planSkipHol" checked> 自動跳過假日（國定假日與手動標記的放假日）
-      </label>
-      <div style="margin-top:10px;"><button class="next-btn" id="planAdd">📅 產生排程</button></div>
-      <div id="planPreview" class="hint" style="margin-top:8px;"></div>
-    </div>`;
-}
-
 /* 首頁「今日複習」：學校功課之外、今天到期（含逾期未補）的複習項目 */
 function studyTodayHTML(c){
   const due=studyDueToday(c.id);
@@ -3771,109 +3813,183 @@ function studyTodayHTML(c){
   const od=due.filter(i=>i.due<today).length;
   return `<div class="today-study">
     <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin:12px 0 5px;">
-      <span>📚 今日複習</span>
+      <span>📚 今日讀書計劃</span>
       <span style="color:${od?'#c0392b':'var(--muted)'};">${od?od+' 項逾期 · ':''}${due.length} 項</span>
     </div>
     ${due.slice(0,5).map(it=>`
       <label class="plan-row${it.due<today?' overdue':''}">
         <input type="checkbox" data-hsid="${it.id}">
-        <span class="pr-main"><span class="pr-label">${subjectIcon(it.subject)} ${it.label}</span>
+        <span class="pr-main"><span class="pr-label">${studyItemLabel(it)}</span>
           <span class="pr-due">${it.due<today?'⚠️ 逾期 ':''}${it.due.slice(5).replace('-','/')} · 完成 +${STUDY_ITEM_SUN} ☀️</span></span>
       </label>`).join('')}
-    ${due.length>5?`<div class="hint" style="margin:4px 0 0;">還有 ${due.length-5} 項，到「📅 計畫」看全部</div>`:''}
+    ${due.length>5?`<div class="hint" style="margin:4px 0 0;">還有 ${due.length-5} 項，到「📅 讀書計劃」看全部</div>`:''}
   </div>`;
 }
 
-/* ---------- 計畫工作台 ----------
-   兩個視圖：科目（單科整學期進度，桌機左右欄／手機 drill-down）、本週（每天的量）。
-   孩子端只勾完成；建立與刪除排程在家長後台。 */
+/* ---------- 讀書計劃工作台 ----------
+   三層導覽：科目 → 教材 → 課次；另有「本週」視圖。
+   考試設定也在這裡（不放家長後台，因為設定考試→排進度→看進度是同一件事）。 */
 let planView='subject';      // 'subject' | 'week'
-let planSubject=null;        // 科目視圖目前選到的科目
-let planWeekOffset=0;        // 週視圖：0=本週，-1 上週，+1 下週
+let planSubjectId=null;      // 選到的科目
+let planMaterial=null;       // 選到的教材（null = 停在教材清單那層）
+let planWeekOffset=0;
 function renderStudyPlan(){
   const c=C();
+  const subs=studySubjectsOf(c.id);
+  if(planSubjectId && !subs.some(s=>s.id===planSubjectId)){ planSubjectId=null; planMaterial=null; }
   const mine=studyItemsOf(c.id);
-  const subs=studySubjects(c.id);
-  if(planSubject && !subs.includes(planSubject)) planSubject=null;
   const doneCount=mine.filter(i=>i.done).length;
   const overdue=studyOverdue(c.id).length;
-  const head=`
-    <h2 class="title-sticker">📅 ${c.name||'我'}的計畫工作台</h2>
-    <p class="hint">學校功課以外，家長排好的自修／測驗卷複習進度。做完一項就勾起來，可以拿 ${STUDY_ITEM_SUN} 陽光。</p>
+  const unsched=studyUnscheduled(c.id).length;
+  app.innerHTML=`
+  <div class="panel">
+    <h2 class="title-sticker">📅 ${c.name||'我'}的讀書計劃</h2>
+    <p class="hint">學校功課以外的自修／測驗卷／評量進度。設定考試日期與範圍，系統會自動幫你往回推該哪天讀哪一課。做完一項 +${STUDY_ITEM_SUN} 陽光。</p>
+    <div id="examZone"></div>
     <div class="plan-toolbar">
       <div class="plan-tabs">
-        <button class="plan-tab${planView==='subject'?' on':''}" data-pv="subject">📚 依科目</button>
+        <button class="plan-tab${planView==='subject'?' on':''}" data-pv="subject">📚 科目</button>
         <button class="plan-tab${planView==='week'?' on':''}" data-pv="week">🗓 本週</button>
       </div>
       <div class="plan-stats">
-        <span class="stat">✅ ${doneCount}/${mine.length} 完成</span>
-        ${overdue?`<span class="stat" style="color:#c0392b;">⚠️ ${overdue} 項逾期</span>`:''}
+        <span class="stat">✅ ${doneCount}/${mine.length}</span>
+        ${overdue?`<span class="stat" style="color:#c0392b;">⚠️ ${overdue} 逾期</span>`:''}
+        ${unsched?`<span class="stat" style="color:#916615;">🕗 ${unsched} 未排</span>`:''}
       </div>
-    </div>`;
-  if(!mine.length){
-    app.innerHTML=`<div class="panel">${head}
-      <div class="plan-empty">
-        <div style="font-size:52px;line-height:1;">🗓</div>
-        <p style="font-weight:800;margin:10px 0 4px;">還沒有排任何複習進度</p>
-        <p class="hint" style="margin:0;">請家長到「家長後台 → 複習進度排程」，選科目、填課次範圍與起訖日期，系統會自動幫你分配到每一天（假日自動跳過）。</p>
-        <div style="margin-top:14px;"><button class="reset-btn" id="planToParent">👨‍👩‍👧 去家長後台排程</button></div>
-      </div></div>`;
-    $$('.plan-tab').forEach(b=> b.onclick=()=>{ planView=b.dataset.pv; renderStudyPlan(); });
-    const tp=$('#planToParent'); if(tp) tp.onclick=()=>showTab('parent');
-    return;
-  }
-  app.innerHTML=`<div class="panel">${head}<div id="planBody"></div></div>`;
+    </div>
+    <div id="planBody"></div>
+  </div>`;
+  paintExamZone();
   $$('.plan-tab').forEach(b=> b.onclick=()=>{ planView=b.dataset.pv; renderStudyPlan(); });
   if(planView==='week') paintPlanWeek(); else paintPlanSubject();
 }
-/* 視圖一：依科目（左欄科目 / 右欄該科課次；手機自動變 drill-down） */
-function paintPlanSubject(){
-  const c=C(); const subs=studySubjects(c.id); const box=$('#planBody'); if(!box) return;
-  const isNarrow = window.matchMedia('(max-width:700px)').matches;
-  const listHTML = subs.map(s=>{
-    const items=studyItemsOf(c.id).filter(i=>i.subject===s);
-    const done=items.filter(i=>i.done).length;
-    const od=items.filter(i=>!i.done && i.due<dateKey()).length;
-    const pct=items.length?Math.round(done/items.length*100):0;
-    return `<button class="plan-sub${planSubject===s?' on':''}" data-sub="${s}">
-      <span class="ps-ic">${subjectIcon(s)}</span>
-      <span class="ps-main"><span class="ps-nm">${subjectName(s)}</span>
-        <span class="ps-sub">${done}/${items.length} 完成${od?` · <b style="color:#c0392b;">${od} 逾期</b>`:''}</span>
-        <span class="ps-bar"><i style="width:${pct}%"></i></span></span>
-      <span class="ps-go">${isNarrow?'›':''}</span></button>`;
-  }).join('');
-  /* 手機：沒選科目就只顯示清單，選了就只顯示該科明細（drill-down）；桌機一律左右並排 */
-  if(isNarrow && planSubject){
-    box.innerHTML=`<div class="plan-detail-head"><button class="reset-btn" id="planBack">‹ 返回科目</button></div><div id="planDetail"></div>`;
-    $('#planBack').onclick=()=>{ planSubject=null; renderStudyPlan(); };
-    paintPlanDetail();
-    return;
-  }
-  box.innerHTML = isNarrow
-    ? `<div class="plan-sublist">${listHTML}</div>`
-    : `<div class="plan-split"><div class="plan-sublist">${listHTML}</div><div id="planDetail" class="plan-detail"></div></div>`;
-  $$('.plan-sub').forEach(b=> b.onclick=()=>{ planSubject=b.dataset.sub; renderStudyPlan(); });
-  if(!isNarrow){
-    if(!planSubject) planSubject=subs[0];
-    paintPlanDetail();
-  }
+/* 考試區：列出考試與倒數，可新增／重排／刪除 */
+function paintExamZone(){
+  const c=C(); const box=$('#examZone'); if(!box) return;
+  const list=examsOf(c.id);
+  box.innerHTML=`<div class="exam-zone">
+    <div class="module-heading"><div><p class="hint" style="margin:0;">EXAM COUNTDOWN</p><h2 style="font-size:16px;margin:2px 0 0;">🎯 考試</h2></div>
+      <button class="reset-btn" id="examAdd">＋ 新增考試</button></div>
+    ${list.length? list.map(e=>{
+      const d=examCountdown(e);
+      const cnt=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material).length,0);
+      const left=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material).filter(i=>!i.done).length,0);
+      return `<div class="exam-card${d<0?' past':''}">
+        <div class="ex-main">
+          <div class="ex-name">${e.name}</div>
+          <div class="ex-meta">${e.date.replace(/-/g,'/')} · 範圍 ${(e.scopes||[]).length} 項 · 共 ${cnt} 課，還剩 ${left} 課沒讀</div>
+        </div>
+        <div class="ex-count ${d<=3?'urgent':''}">${d<0?'已結束':d===0?'就是今天':'還有 '+d+' 天'}</div>
+        <div class="ex-btns">
+          <button class="reset-btn" data-exre="${e.id}">🔄 重排</button>
+          <button class="reset-btn" data-exdel="${e.id}">🗑</button>
+        </div>
+      </div>`;
+    }).join('') : '<p class="hint" style="margin:8px 0 0;">還沒設定考試。設定後系統會自動把範圍內的課次往回推、排進每一天。</p>'}
+  </div>`;
+  $('#examAdd').onclick=()=>openExamModal(null);
+  box.querySelectorAll('[data-exre]').forEach(b=> b.onclick=()=>{
+    const e=studyPlan().exams.find(x=>x.id===b.dataset.exre); if(!e) return;
+    const r=scheduleForExam(e);
+    if(!r.count){ toast('這個考試範圍裡沒有還沒讀完的課次'); return; }
+    goodSound(); toast('📅 已重排 '+r.count+' 課'+(r.tight?'（時間很緊，有些天要讀多課）':''));
+    renderStudyPlan();
+  });
+  box.querySelectorAll('[data-exdel]').forEach(b=> b.onclick=()=>{
+    const e=studyPlan().exams.find(x=>x.id===b.dataset.exdel); if(!e) return;
+    if(!confirm('刪除考試「'+e.name+'」？（已排好的課次日期會保留，不會被清掉）')) return;
+    studyPlan().exams=studyPlan().exams.filter(x=>x.id!==e.id); save(); renderStudyPlan();
+  });
 }
-function paintPlanDetail(){
-  const c=C(); const box=$('#planDetail'); if(!box) return;
-  const items=studyItemsOf(c.id).filter(i=>i.subject===planSubject).sort((a,b)=>a.lesson-b.lesson);
-  if(!items.length){ box.innerHTML='<p class="hint">這一科還沒有排程。</p>'; return; }
+/* 層級一：科目清單 */
+function paintPlanSubject(){
+  const c=C(); const box=$('#planBody'); if(!box) return;
+  const subs=studySubjectsOf(c.id);
+  if(planSubjectId){ paintPlanMaterials(); return; }
+  box.innerHTML=`
+    <div class="plan-sublist">
+      ${subs.map(s=>{
+        const items=studyItemsOfSubject(s.id);
+        const done=items.filter(i=>i.done).length;
+        const od=items.filter(i=>!i.done && i.due && i.due<dateKey()).length;
+        const pct=items.length?Math.round(done/items.length*100):0;
+        const mats=studyMaterialsOf(s.id);
+        return `<button class="plan-sub" data-sub="${s.id}">
+          <span class="ps-ic">${s.icon||'📚'}</span>
+          <span class="ps-main"><span class="ps-nm">${s.name}</span>
+            <span class="ps-sub">${mats.length? mats.join('・') : '尚未新增教材'} · ${done}/${items.length} 完成${od?` · <b style="color:#c0392b;">${od} 逾期</b>`:''}</span>
+            <span class="ps-bar"><i style="width:${pct}%"></i></span></span>
+          <span class="ps-go">›</span></button>`;
+      }).join('')}
+      <button class="plan-add" id="subAdd">＋ 新增科目</button>
+    </div>
+    ${subs.length?'':'<p class="hint" style="margin-top:10px;">先新增科目（國語、數學…），再進去加教材（自修、測驗卷、評量）與課次。</p>'}`;
+  $$('.plan-sub').forEach(b=> b.onclick=()=>{ planSubjectId=b.dataset.sub; planMaterial=null; renderStudyPlan(); });
+  $('#subAdd').onclick=()=>openSubjectModal();
+}
+/* 層級二：某科的教材清單 */
+function paintPlanMaterials(){
+  const box=$('#planBody'); if(!box) return;
+  const sub=studySubjectById(planSubjectId); if(!sub){ planSubjectId=null; return paintPlanSubject(); }
+  if(planMaterial){ return paintPlanLessons(); }
+  const mats=studyMaterialsOf(sub.id);
+  box.innerHTML=`
+    <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ 所有科目</button>
+      <span class="crumb-now">${sub.icon||'📚'} ${sub.name}</span>
+      <button class="reset-btn" id="subDel" style="margin-left:auto;">🗑 刪除此科</button></div>
+    <div class="plan-sublist">
+      ${mats.map(m=>{
+        const items=studyItemsOfMaterial(sub.id,m);
+        const done=items.filter(i=>i.done).length;
+        const pct=items.length?Math.round(done/items.length*100):0;
+        return `<button class="plan-sub" data-mat="${encodeURIComponent(m)}">
+          <span class="ps-ic">📖</span>
+          <span class="ps-main"><span class="ps-nm">${m}</span>
+            <span class="ps-sub">共 ${items.length} 課 · ${done} 完成</span>
+            <span class="ps-bar"><i style="width:${pct}%"></i></span></span>
+          <span class="ps-go">›</span></button>`;
+      }).join('')}
+      <button class="plan-add" id="matAdd">＋ 新增教材與課次</button>
+    </div>
+    ${mats.length?'':'<p class="hint" style="margin-top:10px;">還沒有教材。點「新增教材與課次」，一次把整本的課名貼進來。</p>'}`;
+  $('#planBack').onclick=()=>{ planSubjectId=null; planMaterial=null; renderStudyPlan(); };
+  $('#subDel').onclick=()=>{
+    const n=studyItemsOfSubject(sub.id).length;
+    if(!confirm('刪除「'+sub.name+'」以及底下 '+n+' 筆課次？')) return;
+    deleteStudySubject(sub.id); planSubjectId=null; planMaterial=null; toast('🗑 已刪除 '+sub.name); renderStudyPlan();
+  };
+  $$('.plan-sub').forEach(b=> b.onclick=()=>{ planMaterial=decodeURIComponent(b.dataset.mat); renderStudyPlan(); });
+  $('#matAdd').onclick=()=>openLessonModal(sub.id, null);
+}
+/* 層級三：某教材的課次清單 */
+function paintPlanLessons(){
+  const box=$('#planBody'); if(!box) return;
+  const sub=studySubjectById(planSubjectId);
+  const items=studyItemsOfMaterial(sub.id, planMaterial);
   const today=dateKey();
-  box.innerHTML=`<h2 style="font-size:17px;margin:0 0 8px;">${subjectIcon(planSubject)} ${subjectName(planSubject)}</h2>`
-    + items.map(it=>{
-      const od=!it.done && it.due<today, isToday=it.due===today;
-      return `<label class="plan-row${it.done?' done':''}${od?' overdue':''}${isToday?' today':''}">
-        <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
-        <span class="pr-main"><span class="pr-label">${it.label}</span>
-          <span class="pr-due">${od?'⚠️ 逾期 · ':''}${isToday?'📌 今天 · ':''}${it.due.slice(5).replace('-','/')}</span></span>
-      </label>`;
-    }).join('');
+  box.innerHTML=`
+    <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ ${sub.name}</button>
+      <span class="crumb-now">${sub.icon||'📚'} ${sub.name} · ${planMaterial}</span>
+      <button class="reset-btn" id="matAdd2" style="margin-left:auto;">＋ 加課次</button></div>
+    <div class="plan-detail">
+      ${items.length? items.map(it=>{
+        const od=!it.done && it.due && it.due<today, isToday=it.due===today;
+        return `<label class="plan-row${it.done?' done':''}${od?' overdue':''}${isToday?' today':''}">
+          <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
+          <span class="pr-main"><span class="pr-label">第${it.lesson}課${it.lessonName?' '+it.lessonName:''}</span>
+            <span class="pr-due">${it.due? ((od?'⚠️ 逾期 · ':'')+(isToday?'📌 今天 · ':'')+it.due.slice(5).replace('-','/')) : '🕗 尚未排程（設定考試後自動排）'}</span></span>
+          <button class="row-del" data-del="${it.id}" title="刪除這一課">✕</button>
+        </label>`;
+      }).join('') : '<p class="hint">這本教材還沒有課次。</p>'}
+    </div>`;
+  $('#planBack').onclick=()=>{ planMaterial=null; renderStudyPlan(); };
+  $('#matAdd2').onclick=()=>openLessonModal(sub.id, planMaterial);
   box.querySelectorAll('input[data-sid]').forEach(inp=>{
     inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
+  });
+  box.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+      const sp=studyPlan(); sp.items=sp.items.filter(i=>i.id!==b.dataset.del); save(); renderStudyPlan(); };
   });
 }
 /* 視圖二：本週（一天一列，看得出哪天塞太多） */
@@ -3898,7 +4014,7 @@ function paintPlanWeek(){
       ${items.length?('<div class="pd-items">'+items.map(it=>`
         <label class="plan-row${it.done?' done':''}">
           <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
-          <span class="pr-main"><span class="pr-label">${subjectIcon(it.subject)} ${it.label}</span></span>
+          <span class="pr-main"><span class="pr-label">${studyItemLabel(it)}</span></span>
         </label>`).join('')+'</div>'):''}
     </div>`;
   }
@@ -3909,7 +4025,135 @@ function paintPlanWeek(){
     inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
   });
 }
-
+/* 新增科目 */
+function openSubjectModal(){
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  const preset=['📘 國語','➕ 數學','🔤 英文','🔬 自然','🏘️ 社會','🎨 藝術','💪 健體','🌏 本土語','🧩 綜合'];
+  ov.innerHTML=`<div class="modal">
+    <h3>➕ 新增科目</h3>
+    <div class="mod-row"><label>科目名稱</label><br>
+      <input id="subNm" class="in" style="width:100%;max-width:none;" placeholder="例如：國語"></div>
+    <div class="mod-row"><label>圖示</label><br>
+      <input id="subIc" class="in" maxlength="4" value="📚" style="width:80px;"></div>
+    <div class="mod-row"><label>快速選擇</label><br>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        ${preset.map(p=>`<button class="reset-btn" data-pre="${p}" style="padding:6px 10px;font-size:13px;">${p}</button>`).join('')}
+      </div></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="subSave" style="flex:1;">➕ 新增</button>
+      <button class="reset-btn" id="subCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-pre]').forEach(b=> b.onclick=()=>{
+    const [ic,...nm]=b.dataset.pre.split(' ');
+    ov.querySelector('#subIc').value=ic; ov.querySelector('#subNm').value=nm.join(' ');
+  });
+  ov.querySelector('#subCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#subSave').onclick=()=>{
+    const nm=ov.querySelector('#subNm').value.trim();
+    if(!nm){ badSound(); toast('請輸入科目名稱'); return; }
+    addStudySubject(C().id, nm, ov.querySelector('#subIc').value.trim()||'📚');
+    ov.remove(); goodSound(); toast('📚 已新增科目「'+nm+'」'); renderStudyPlan();
+  };
+}
+/* 新增教材與課次（可一次貼一整份課名清單） */
+function openLessonModal(subjectId, fixedMaterial){
+  const sub=studySubjectById(subjectId); if(!sub) return;
+  const mats=studyMaterialsOf(subjectId);
+  const exist=fixedMaterial? studyItemsOfMaterial(subjectId, fixedMaterial):[];
+  const nextNo=exist.length? Math.max(...exist.map(i=>i.lesson))+1 : 1;
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>${fixedMaterial?'＋ 加課次到「'+fixedMaterial+'」':'＋ 新增教材與課次'}</h3>
+    ${fixedMaterial?'':`<div class="mod-row"><label>教材名稱</label><br>
+      <input id="matNm" class="in" style="width:100%;max-width:none;" placeholder="例如：自修 / 測驗卷 / 評量" list="matList">
+      <datalist id="matList">${['自修','測驗卷','評量','講義','習作'].concat(mats).map(m=>`<option value="${m}">`).join('')}</datalist></div>`}
+    <div class="mod-row"><label>從第幾課開始</label><br>
+      <input id="lsStart" class="in" type="number" min="1" value="${nextNo}" style="width:90px;"></div>
+    <div class="mod-row"><label>課名（一行一課）</label><br>
+      <textarea id="lsNames" class="in" style="width:100%;max-width:none;height:130px;" placeholder="秋天的樹林&#10;神奇的種子&#10;下雨的時候"></textarea>
+      <div class="hint" style="margin:4px 0 0;">課本目錄可以直接複製貼上，一行一課。</div></div>
+    <div class="mod-row"><label>或者不打課名，直接指定共幾課</label><br>
+      <input id="lsCount" class="in" type="number" min="1" max="99" placeholder="例如 10" style="width:110px;">
+      <span class="hint">（上面課名留空時才會用這個）</span></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="lsSave" style="flex:1;">➕ 新增</button>
+      <button class="reset-btn" id="lsCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#lsCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#lsSave').onclick=()=>{
+    const material = fixedMaterial || (ov.querySelector('#matNm').value||'').trim();
+    if(!material){ badSound(); toast('請輸入教材名稱'); return; }
+    const typed=(ov.querySelector('#lsNames').value||'').split('\n').map(s=>s.trim()).filter(s=>s!=='');
+    const cnt=parseInt(ov.querySelector('#lsCount').value)||0;
+    /* 有打課名就用課名；沒打就看「共幾課」，產生沒有課名的課次 */
+    const names = typed.length ? typed : (cnt>0 ? new Array(cnt).fill('') : []);
+    if(!names.length){ badSound(); toast('請貼上課名，或填「共幾課」'); return; }
+    const made=addStudyLessons(C().id, subjectId, material, names, ov.querySelector('#lsStart').value);
+    ov.remove();
+    if(!made.length){ badSound(); toast('這些課次已經存在了'); return; }
+    goodSound(); toast('📖 已新增 '+made.length+' 課到「'+material+'」');
+    planMaterial=material; renderStudyPlan();
+  };
+}
+/* 新增考試：日期 + 範圍（勾選科目底下的教材） */
+function openExamModal(){
+  const c=C();
+  const subs=studySubjectsOf(c.id);
+  if(!subs.length){ toast('請先新增科目與課次，才能設定考試範圍'); return; }
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  const scopeRows=subs.map(s=>{
+    const mats=studyMaterialsOf(s.id);
+    if(!mats.length) return '';
+    return `<div class="scope-sub"><div class="scope-nm">${s.icon||'📚'} ${s.name}</div>
+      ${mats.map(m=>{
+        const n=studyItemsOfMaterial(s.id,m).filter(i=>!i.done).length;
+        return `<label class="scope-row"><input type="checkbox" data-sc="${s.id}|${encodeURIComponent(m)}">
+          <span>${m}<small style="color:var(--muted);"> · 還剩 ${n} 課</small></span></label>`;
+      }).join('')}</div>`;
+  }).join('');
+  ov.innerHTML=`<div class="modal">
+    <h3>🎯 新增考試</h3>
+    <div class="mod-row"><label>考試名稱</label><br>
+      <input id="exNm" class="in" style="width:100%;max-width:none;" placeholder="例如：第一次段考" value="段考"></div>
+    <div class="mod-row"><label>考試日期</label><br>
+      <input id="exDate" class="in" type="date" value="${addDaysKey(dateKey(),21)}"></div>
+    <div class="mod-row"><label>考試範圍（勾選要讀完的教材）</label>
+      <div class="scope-box">${scopeRows||'<p class="hint">還沒有任何教材可以勾選。</p>'}</div></div>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;">
+      <input type="checkbox" id="exSkipHol" checked> 排程時跳過假日
+    </label>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="exSave" style="flex:1;">🎯 建立並自動排程</button>
+      <button class="reset-btn" id="exCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#exCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#exSave').onclick=()=>{
+    const name=(ov.querySelector('#exNm').value||'').trim()||'段考';
+    const date=ov.querySelector('#exDate').value;
+    if(!date){ badSound(); toast('請選擇考試日期'); return; }
+    const scopes=[...ov.querySelectorAll('[data-sc]:checked')].map(b=>{
+      const [subjectId, m]=b.dataset.sc.split('|');
+      return {subjectId, material:decodeURIComponent(m)};
+    });
+    if(!scopes.length){ badSound(); toast('請至少勾選一個考試範圍'); return; }
+    const exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes};
+    studyPlan().exams.push(exam);
+    const r=scheduleForExam(exam, ov.querySelector('#exSkipHol').checked);
+    ov.remove(); goodSound();
+    if(r.tight) toast('🎯 已排 '+r.count+' 課，但時間很緊：平均一天要讀 '+r.perDay+' 課');
+    else toast('🎯 已建立「'+name+'」並排好 '+r.count+' 課');
+    renderStudyPlan();
+  };
+}
 /* 收藏入口 */
 function renderCollection(){
   const c=C();
@@ -6065,9 +6309,9 @@ function renderParent(){
     <p class="hint">改名、換練習種類、排序、新增或刪除。完成任何一項都需家長簽名 +30 陽光。至少保留一項。</p>
     ${hwMgmt}
 
-    <h2 style="margin-top:18px;font-size:17px;">📅 複習進度排程（計畫工作台）</h2>
-    <p class="hint">排「學校功課以外」的自修／測驗卷進度。填課次範圍與起訖日期，系統會平均分配到每一天並自動跳過假日。孩子在「📅 計畫」分頁勾完成，每項 +${STUDY_ITEM_SUN} 陽光（不需要簽名）。目前排給：<b>${c.name||'孩子'}</b>。</p>
-    ${planMgmtHTML(c)}
+    <h2 style="margin-top:18px;font-size:17px;">📅 讀書計劃</h2>
+    <p class="hint">科目、教材、課次與考試排程都在「📅 讀書計劃」分頁裡設定（不放在這裡，才不用兩個地方來回跑）。目前 <b>${c.name||'孩子'}</b> 有 ${studySubjectsOf(c.id).length} 科、${studyItemsOf(c.id).length} 課、${examsOf(c.id).length} 個考試。</p>
+    <div style="margin-top:8px;"><button class="reset-btn" id="goPlanTab">📅 開啟讀書計劃</button></div>
 
     <h2 style="margin-top:18px;font-size:17px;">📚 自訂題庫管理</h2>
     <p class="hint">貼上自己的題目（格式見下方），新增後會自動加入功課清單，孩子就能練習。</p>
@@ -6160,38 +6404,7 @@ function renderParent(){
     };
     const e=$('#edt'+r.id); if(e) e.onclick=()=>{ editingRewardId=r.id; const n=$('#rName'),cc2=$('#rCost'); if(n) n.value=r.name; if(cc2) cc2.value=r.cost; renderParent(); };
   });
-  /* handlers：複習進度排程 */
-  studySubjects(c.id).forEach(s=>{
-    const d=$('#delplan_'+s);
-    if(d) d.onclick=()=>{
-      const n=studyItemsOf(c.id).filter(i=>i.subject===s).length;
-      if(!confirm('確定刪除「'+subjectName(s)+'」整科的 '+n+' 筆複習排程？已完成的紀錄也會一起移除。')) return;
-      state.studyPlan.items = studyItems().filter(i=>!(i.childId===c.id && i.subject===s));
-      save(); toast('🗑 已刪除 '+subjectName(s)+' 的排程'); renderParent();
-    };
-  });
-  const planAdd=$('#planAdd');
-  if(planAdd) planAdd.onclick=()=>{
-    const subject=$('#planSubSel').value;
-    const material=($('#planMaterial').value||'').trim() || (subjectName(subject)+'複習');
-    const lessonFrom=parseInt($('#planFrom').value)||1;
-    const lessonTo=parseInt($('#planTo').value)||lessonFrom;
-    const startKey=$('#planStart').value;
-    const endKey=$('#planEnd').value;
-    const skipHolidays=$('#planSkipHol').checked;
-    if(lessonTo<lessonFrom){ badSound(); toast('結束課次不能小於開始課次'); return; }
-    if(!startKey||!endKey||endKey<startKey){ badSound(); toast('請確認起訖日期（結束不能早於開始）'); return; }
-    const made=planLessons({childId:c.id, subject, material, lessonFrom, lessonTo, startKey, endKey, skipHolidays});
-    if(!made.length){ badSound(); toast('沒有產生任何項目，請檢查課次範圍'); return; }
-    /* 同科同課次已存在就不重複加 */
-    const exist=new Set(studyItemsOf(c.id).filter(i=>i.subject===subject).map(i=>i.material+'#'+i.lesson));
-    const fresh=made.filter(m=>!exist.has(m.material+'#'+m.lesson));
-    if(!fresh.length){ badSound(); toast('這些課次都已經排過了'); return; }
-    state.studyPlan.items = studyItems().concat(fresh);
-    save(); goodSound();
-    toast('📅 已排入 '+fresh.length+' 筆（'+fresh[0].due.slice(5).replace('-','/')+' ~ '+fresh[fresh.length-1].due.slice(5).replace('-','/')+'）');
-    renderParent();
-  };
+  const gp=$('#goPlanTab'); if(gp) gp.onclick=()=>showTab('plan');
   const addPreset=$('#addPreset'); if(addPreset) addPreset.onclick=()=>{
     const have=new Set(state.rewards.map(r=>r.name));
     let added=0;
