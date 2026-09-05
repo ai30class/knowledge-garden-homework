@@ -876,7 +876,7 @@ function defaultChild(name){
     routine:{}, routineDate:dateKey(),
     sched:{}, bonusSun:0,
     age:7, levelOverride:'',
-    wrongQuestions:[], accWin:[], badges:{}, lastDoneDate:'', streak:0, streakShields:0, wrongStreak:0, _reviewIdx:0,
+    wrongQuestions:[], accWin:[], badges:{}, lastDoneDate:'', streak:0, streakShields:0, wrongStreak:0, _reviewIdx:0, studyDoneDate:'', studyDoneCount:0,
     quizLog:{}, quizStreak:0,
     subjectDiff:{},
     eyeRestUntil:0, studyMs:0, studyMsDate:dateKey()
@@ -1442,6 +1442,8 @@ function load(seed){
       }
       s.children.forEach(ch=>{ if(ch.zombieDrift===undefined) ch.zombieDrift=0; if(!ch.routine) ch.routine={}; if(ch.routineDate===undefined) ch.routineDate=dateKey(); if(ch.sched===undefined) ch.sched={}; if(ch.bonusSun===undefined) ch.bonusSun=0; if(ch.age===undefined) ch.age=7; if(ch.levelOverride===undefined) ch.levelOverride=''; ch.levelOverride=normLevel(ch.levelOverride); if(ch.accWin===undefined) ch.accWin=[]; if(!ch.quizLog) ch.quizLog={}; if(ch.quizStreak===undefined) ch.quizStreak=0; if(ch.wrongQuestions===undefined) ch.wrongQuestions=[]; if(ch.routineBonusDate===undefined) ch.routineBonusDate='';
       if(ch.eyeRestUntil===undefined) ch.eyeRestUntil=0;
+      if(ch.studyDoneDate===undefined) ch.studyDoneDate='';
+      if(ch.studyDoneCount===undefined) ch.studyDoneCount=0;
       if(ch.studyMs===undefined) ch.studyMs=0;
       if(ch.studyMsDate===undefined) ch.studyMsDate=dateKey();
         if(!Array.isArray(ch.deck)) ch.deck=Object.keys(ch.garden||{}).filter(k=>ch.garden[k]).slice(0,5); });
@@ -1625,7 +1627,19 @@ function textbookLessons(pub, grade, subject, sem){
    這裡＝家長排的自修／測驗卷／評量複習進度（不重設、有到期日、孩子自己勾、+10）。
    三層結構：科目（可自訂）→ 教材（自修/測驗卷/評量…）→ 課次（含課名）。
    全部綁 childId，因為兄弟姊妹的學校進度不同。 */
-const STUDY_ITEM_SUN = 10;
+const STUDY_ITEM_SUN = 10;        /* 當天前 STUDY_FULL_COUNT 筆的全額 */
+const STUDY_FULL_COUNT = 6;       /* 前 6 筆全額，之後遞減 */
+const STUDY_ITEM_SUN_LOW = 3;     /* 第 7 筆起 */
+/* 考前衝刺期排程會把大量課次擠在同幾天（實測考前3天可達 17 筆/日），
+   若每筆都給全額會撞上 SUN_DAILY_CAP、反而在最需要鼓勵時中斷回饋，
+   也會稀釋獎勵梯度。改成沿用練習場那套遞減邏輯。 */
+function studyDoneToday(c){
+  if(c.studyDoneDate!==dateKey()){ c.studyDoneDate=dateKey(); c.studyDoneCount=0; }
+  return c.studyDoneCount||0;
+}
+function studySunFor(n){ return n < STUDY_FULL_COUNT ? STUDY_ITEM_SUN : STUDY_ITEM_SUN_LOW; }
+/* 下一筆完成可以拿多少（給畫面提示用） */
+function studyNextSun(){ return studySunFor(studyDoneToday(C())); }
 function studyPlan(){
   let sp=state.studyPlan;
   if(!sp || typeof sp!=='object'){ sp=state.studyPlan={}; }
@@ -1789,11 +1803,21 @@ function studyOverdue(childId){ const t=dateKey(); return studyItemsOf(childId).
 function studyUnscheduled(childId){ return studyItemsOf(childId).filter(it=>!it.due); }
 function toggleStudyItem(id){
   const it=studyItems().find(x=>x.id===id); if(!it) return;
-  if(it.done){ it.done=false; it.doneAt=null; addSun(-STUDY_ITEM_SUN); toast('↩ 取消完成 -'+STUDY_ITEM_SUN+' 陽光'); }
-  else{
-    it.done=true; it.doneAt=Date.now();
-    addSun(STUDY_ITEM_SUN); goodSound(); pushZombie(0.06);
-    toast('📚 完成「'+studyItemLabel(it)+'」+'+STUDY_ITEM_SUN+' 陽光！');
+  const c=C();
+  if(it.done){
+    /* 退回時要退「當初實際給的金額」，不能一律當成全額 */
+    const back = (typeof it.sunGot==='number') ? it.sunGot : STUDY_ITEM_SUN;
+    it.done=false; it.doneAt=null; it.sunGot=0;
+    c.studyDoneCount = Math.max(0, studyDoneToday(c)-1);
+    addSun(-back); toast('↩ 取消完成 -'+back+' 陽光');
+  } else {
+    const n=studyDoneToday(c);
+    const gain=studySunFor(n);
+    it.done=true; it.doneAt=Date.now(); it.sunGot=gain;
+    c.studyDoneCount=n+1;
+    addSun(gain); goodSound(); pushZombie(0.06);
+    toast('📚 完成「'+studyItemLabel(it)+'」+'+gain+' 陽光！'
+      + (gain<STUDY_ITEM_SUN ? '（今天已完成 '+(n+1)+' 項，之後每項 '+STUDY_ITEM_SUN_LOW+' 陽光）' : ''));
   }
   save();
 }
@@ -3898,7 +3922,7 @@ function studyTodayHTML(c){
       <label class="plan-row${it.due<today?' overdue':''}">
         <input type="checkbox" data-hsid="${it.id}">
         <span class="pr-main"><span class="pr-label">${studyItemLabel(it)}</span>
-          <span class="pr-due">${it.due<today?'⚠️ 逾期 ':''}${it.due.slice(5).replace('-','/')} · 完成 +${STUDY_ITEM_SUN} ☀️</span></span>
+          <span class="pr-due">${it.due<today?'⚠️ 逾期 ':''}${it.due.slice(5).replace('-','/')} · 完成 +${studyNextSun()} ☀️</span></span>
       </label>`).join('')}
     ${due.length>5?`<div class="hint" style="margin:4px 0 0;">還有 ${due.length-5} 項，到「📅 讀書計劃」看全部</div>`:''}
   </div>`;
@@ -3922,7 +3946,7 @@ function renderStudyPlan(){
   app.innerHTML=`
   <div class="panel">
     <h2 class="title-sticker">📅 ${c.name||'我'}的讀書計劃</h2>
-    <p class="hint">學校功課以外的自修／測驗卷／評量進度。設定考試日期與範圍，系統會自動幫你往回推該哪天讀哪一課。做完一項 +${STUDY_ITEM_SUN} 陽光。</p>
+    <p class="hint">學校功課以外的自修／測驗卷／評量進度。設定考試日期與範圍，系統會自動幫你往回推該哪天讀哪一課。做完一項 +${STUDY_ITEM_SUN} 陽光（每天前 ${STUDY_FULL_COUNT} 項全額，之後每項 ${STUDY_ITEM_SUN_LOW} 陽光）。</p>
     <div id="examZone"></div>
     <div class="plan-toolbar">
       <div class="plan-tabs">
