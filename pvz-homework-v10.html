@@ -591,8 +591,8 @@
 
 <nav class="tabs" id="tabs">
   <button class="tab-btn active" data-tab="home">🌻 小花園</button>
-  <button class="tab-btn" data-tab="practice">🎮 練習場</button>
   <button class="tab-btn" data-tab="plan">📅 讀書計劃</button>
+  <button class="tab-btn" data-tab="practice">🎮 練習場</button>
   <button class="tab-btn" data-tab="collection">🏆 收藏</button>
 </nav>
 
@@ -4417,6 +4417,7 @@ function renderHome(){
   homeFocus=null;
   const hwPct = visibleHW().length ? Math.round(finished/visibleHW().length*100) : 100;
   const hasUnfinished = !!firstUnfinishedHW();
+  const studyDueCount = studyDueToday(c.id).length;
   app.innerHTML = `
   <div class="panel">
     <h2 class="title-sticker">🌻 ${name} 的小花園</h2>
@@ -4445,7 +4446,7 @@ function renderHome(){
         <div style="height:12px;background:#ece0c4;border-radius:8px;overflow:hidden;">
           <div style="height:100%;width:${hwPct}%;background:linear-gradient(90deg,#7dc855,#4ea63b);transition:width .5s;"></div>
         </div>
-        <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':'🎉 功課寫完了，自由練習 ▶'}</button>
+        <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':(studyDueCount?'📚 功課寫完了，換讀書計劃 ▶':'🎉 今天都完成了，自由練習 ▶')}</button>
         ${studyTodayHTML(c)}
       </div>
       <div class="home-module">
@@ -4534,7 +4535,12 @@ function renderHome(){
   }
   renderRoutineBonus($('#routineBonus'));
   updateClock();
-  const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{ if(hasUnfinished) renderTodayTasks(); else showTab('practice'); };
+  /* 優先序：學校功課 → 讀書計劃 → 練習場（加分） */
+  const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{
+    if(hasUnfinished) renderTodayTasks();
+    else if(studyDueCount) showTab('plan');
+    else showTab('practice');
+  };
   $$('input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderHome(); }; });
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
   const eb=$('#energyBtn'); if(eb){ eb.onclick=useEnergy; tickEnergy(); }
