@@ -586,6 +586,16 @@
   .overdue-banner b{color:#b03a2b; font-size:15px;}
   .overdue-banner span{display:block; font-size:12px; color:#8c5045; margin-top:2px;}
   .overdue-banner .ob-go{margin-left:auto; color:#b03a2b; font-weight:900;}
+  /* 自訂扣分項：名稱可能很長（例：「太晚還沒去睡覺」），手機上讓按鈕自己換到下一行，
+     不要把文字擠成兩三個字一行 */
+  .pn-row{border:2px solid var(--line); background:#fff; border-radius:14px; padding:10px 12px; margin-top:8px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  .pn-row .pn-info{flex:1 1 190px; min-width:0;}
+  .pn-row .pn-nm{font-weight:800; color:var(--ink); font-size:15px;}
+  .pn-row .pn-amt{font-size:13px; color:#b03a2b; font-weight:800; margin-top:2px;}
+  .pn-row .pn-btns{display:flex; gap:6px; margin-left:auto;}
+  .pn-row .pn-btns .reset-btn{padding:6px 12px; font-size:14px;}
+  .pn-row.done{opacity:.5;}
   .scope-box{max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:6px; background:#fbfdfa;}
   .scope-sub{margin-bottom:10px;}
   .scope-nm{font-weight:800; font-size:14px; margin-bottom:4px;}
@@ -1434,6 +1444,14 @@ function openAbout(){
 }
 (function(){ const bl=document.getElementById('homeByline'); if(bl) bl.textContent='by '+CREATOR_INFO.author; })();
 
+/* 自訂扣分項：家長在後台按一下就扣，kind='sun' 扣固定陽光、kind='zero' 陽光全部歸零 */
+function defaultPenalties(){
+  return [
+    {id:'pn1', emoji:'💤', name:'太晚還沒去睡覺', kind:'sun',  amount:200},
+    {id:'pn2', emoji:'🤥', name:'說謊',           kind:'zero', amount:0},
+    {id:'pn3', emoji:'📱', name:'偷玩手機／平板', kind:'sun',  amount:100}
+  ];
+}
 function freshState(){
   const ch=defaultChild('');
   return {
@@ -1443,6 +1461,7 @@ function freshState(){
     tts:true, sleepLock:true, sleepOverrideTonight:false, notifiedDate:'',
     homeModules:defaultHomeModules(), activeSubjects:defaultActiveSubjects(), subjectIcons:defaultSubjectIcons(), subjectNames:defaultSubjectNames(), bgm:false,
     routineLimit:{eat:40,bath:30}, routineStep:5, routinePenalty:5,
+    penalties: defaultPenalties(), penaltyLog:[],
     schedule:[], scheduleDate:'', schedCheckin:5, schedOnTime:10,
     studyPlan:{items:[]}
   };
@@ -1456,6 +1475,8 @@ function load(seed){
         s.rewards.forEach(r=>{ if(r.claimed!==undefined && r.status===undefined){ r.status=r.claimed?'approved':'none'; delete r.claimed; } if(r.status===undefined) r.status='none'; });
       }
       if(!Array.isArray(s.redemptions)) s.redemptions=[];
+      if(!Array.isArray(s.penalties)) s.penalties=defaultPenalties();
+      if(!Array.isArray(s.penaltyLog)) s.penaltyLog=[];
       if(s.weekRoutine===undefined){
         const d=defaultWeekRoutine();
         if(s.routine){ for(let i=0;i<7;i++) s.weekRoutine[i]={...d[i], ...s.routine}; }
@@ -3782,6 +3803,43 @@ function finishRoutine(key){
   save(); toast(msg); renderHome();
 }
 
+/* ---------- 自訂扣分項（家長手動執行） ---------- */
+function penaltyList(){ if(!Array.isArray(state.penalties)) state.penalties=defaultPenalties(); return state.penalties; }
+function penaltyDesc(p){ return p.kind==='zero' ? '陽光全部歸零' : '扣 '+p.amount+' 陽光'; }
+/* 實際執行：回傳真正扣掉的數量（孩子陽光不夠時會少於設定值，紀錄要寫真實數字才不會誤導） */
+function runPenalty(p){
+  const c=C(); const before=c.sun;
+  if(p.kind==='zero') c.sun=0; else c.sun=Math.max(0, c.sun-(Number(p.amount)||0));
+  const actual=before-c.sun;
+  state.penaltyLog=state.penaltyLog||[];
+  state.penaltyLog.push({
+    id:'pl'+Date.now()+Math.floor(Math.random()*1000),
+    childId:c.id, childName:c.name||'孩子',
+    emoji:p.emoji||'⚠️', name:p.name, kind:p.kind, amount:Number(p.amount)||0,
+    actual, at:Date.now(), undone:false
+  });
+  c.penaltyDate=dateKey();
+  save(); $$('.sunCount').forEach(e=>e.textContent=c.sun);
+  return actual;
+}
+/* 撤銷：把當初真正扣掉的數量還回去。不能走 addSun()，
+   否則會被每日上限吃掉，變成「按錯一下就永久少掉陽光」 */
+function undoPenalty(logId){
+  const rec=(state.penaltyLog||[]).find(x=>x.id===logId);
+  if(!rec || rec.undone) return false;
+  const ch=state.children.find(x=>x.id===rec.childId);
+  if(!ch) return false;
+  ch.sun=(ch.sun||0)+rec.actual;
+  rec.undone=true; rec.undoneAt=Date.now();
+  save(); $$('.sunCount').forEach(e=>e.textContent=C().sun);
+  return true;
+}
+/* 今天被扣過分嗎？孩子首頁要看得到，陽光不能無聲無息消失 */
+function todayPenalties(childId){
+  const k=dateKey();
+  return (state.penaltyLog||[]).filter(p=>p.childId===childId && !p.undone && dateKeyOf(new Date(p.at))===k);
+}
+
 /* ---------- 功課完成（需家長簽名） ---------- */
 function completeHomework(){
   const id=currentHWId; if(!id) return;
@@ -4437,7 +4495,7 @@ function askInput(opts, onOk){
       <input id="ai_${f.id}" class="in" type="${f.type||'text'}"
         ${f.maxlength?`maxlength="${f.maxlength}"`:''}
         ${f.inputmode?`inputmode="${f.inputmode}"`:''}
-        placeholder="${f.placeholder||''}" value="${(f.value||'').replace(/"/g,'&quot;')}"
+        placeholder="${f.placeholder||''}" value="${String(f.value==null?'':f.value).replace(/"/g,'&quot;')}"
         style="width:100%;max-width:none;"></div>`).join('')}
     <div class="feedback" id="aiErr" style="margin-top:4px;"></div>
     <div style="display:flex;gap:10px;margin-top:14px;">
@@ -5141,10 +5199,18 @@ function renderHome(){
         <span>已經過了預定日期。點我去看，可以一鍵重新安排到考試前。</span></span>
       <span class="ob-go">›</span>
     </button>` : '';
+  /* 被扣分要講清楚原因。陽光無聲無息變少，孩子只會以為是程式壞掉 */
+  const pensToday = todayPenalties(c.id);
+  const penaltyBanner = pensToday.length ? `
+    <div class="overdue-banner" style="cursor:default;">
+      <span style="font-size:24px;">⚠️</span>
+      <span style="flex:1;"><b>今天被扣了 ${pensToday.reduce((s,p)=>s+p.actual,0)} 陽光</b>
+        <span>${pensToday.map(p=>(p.emoji||'⚠️')+' '+p.name+'（－'+p.actual+'）').join('　')}</span></span>
+    </div>` : '';
   app.innerHTML = `
   <div class="panel">
     <h2 class="title-sticker">🌻 ${name} 的小花園</h2>
-    <p class="hint">把今天的功課都寫完（請爸媽簽名），拖延怪就會被打退，植物就安全囉！陽光會一直累積，不會消失。</p>
+    <p class="hint">把今天的功課都寫完（請爸媽簽名），拖延怪就會被打退，植物就安全囉！陽光會一直累積，除非超時或違規被扣。</p>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
       <div class="sun-box" style="position:static;display:inline-flex;margin:0;">
         <span class="sun-emoji">☀️</span><span class="sunCount">${c.sun}</span> 陽光</div>
@@ -5160,6 +5226,7 @@ function renderHome(){
       <button class="reset-btn" id="bgmBtn">${state.bgm?'🎵 音樂：開':'🎵 音樂：關'}</button>
     </div>
     ${banner}
+    ${penaltyBanner}
     ${overdueBanner}
     ${secZombie}
     <div class="progress-card-row">
@@ -7082,6 +7149,33 @@ function renderParent(){
       <td style="padding:4px;"><input class="in" type="time" id="w${i}_sleep" value="${rr.sleep}" style="max-width:90px;"></td>
     </tr>`;
   }
+  /* 自訂扣分項：每一列＝一個家規，右邊「扣」直接對目前選到的孩子執行 */
+  const pens=penaltyList();
+  const penaltyRows = pens.length ? pens.map(p=>`
+    <div class="pn-row">
+      <div class="pn-info">
+        <div class="pn-nm">${p.emoji||'⚠️'} ${p.name}</div>
+        <div class="pn-amt">${p.kind==='zero'?'🚨 陽光全部歸零':'－'+p.amount+' 陽光'}</div>
+      </div>
+      <div class="pn-btns">
+        <button class="reset-btn pnDo" data-id="${p.id}" style="background:#c94f3d;color:#fff;">扣</button>
+        <button class="reset-btn pnEdit" data-id="${p.id}">✏️</button>
+        <button class="reset-btn pnDel" data-id="${p.id}">🗑</button>
+      </div>
+    </div>`).join('') : '<p class="hint">還沒有自訂扣分項。</p>';
+
+  const penLog=(state.penaltyLog||[]).slice().sort((a,b)=>b.at-a.at).slice(0,20);
+  let penaltyLogHTML = penLog.length
+    ? penLog.map(r=>`<div class="pn-row${r.undone?' done':''}">
+        <div class="pn-info">
+          <div class="pn-nm">${r.emoji||'⚠️'} ${r.name}${r.undone?' <span class="hint">（已撤銷）</span>':''}</div>
+          <div class="pn-amt" style="color:#7a6a52;font-weight:600;">－${r.actual} 陽光 · ${r.childName||''} · ${fmtDT(r.at)}</div>
+        </div>
+        ${r.undone?'':`<div class="pn-btns"><button class="reset-btn pnUndo" data-id="${r.id}">↩ 撤銷</button></div>`}
+      </div>`).join('')
+    : '<p class="hint">還沒有扣分紀錄。</p>';
+  if(penLog.length) penaltyLogHTML += '<div style="margin-top:10px;"><button class="reset-btn" id="clearPenLog">🗑 清空扣分紀錄</button></div>';
+
   const holNow=isHolidayToday();
   const todayK=dateKey();
   const isManualToday=(state.manualHolidays||[]).includes(todayK);
@@ -7194,6 +7288,23 @@ function renderParent(){
       <label>扣 <input id="rPen" type="number" min="1" value="${state.routinePenalty}" style="width:50px;border:2px solid #c9b98a;border-radius:8px;padding:4px;"> 陽光</label>
       <button class="next-btn" id="saveRoutineSet">💾 儲存扣分設定</button>
     </div>
+
+    <h2 style="margin-top:18px;font-size:17px;">⚠️ 自訂扣分項</h2>
+    <p class="hint">自己訂家規，違規時按「扣」立刻執行，對象是目前選到的孩子（<b>${(C().name||'孩子')}</b>）。孩子首頁會看到被扣的原因，按錯了可以在下方紀錄撤銷。</p>
+    ${penaltyRows}
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <input id="pnName" class="in" placeholder="扣分原因（例：太晚還沒去睡覺）" style="flex:1;min-width:180px;">
+      <select id="pnKind" class="in" style="max-width:150px;">
+        <option value="sun">扣固定陽光</option>
+        <option value="zero">陽光全部歸零</option>
+      </select>
+      <input id="pnAmt" class="in" type="number" min="1" value="100" style="max-width:90px;">
+      <button class="next-btn" id="addPen">➕ 新增扣分項</button>
+    </div>
+
+    <h2 style="margin-top:18px;font-size:17px;">🧾 扣分紀錄</h2>
+    ${penaltyLogHTML}
+
     <h2 style="margin-top:18px;font-size:17px;">🎉 今天放假嗎？</h2>
     <div style="margin-top:8px;">
       <button class="next-btn" id="toggleHol">${isManualToday?'↩ 取消今天放假（改上課）':'✅ 標記今天放假（休息一天）'}</button>
@@ -7342,6 +7453,7 @@ function renderParent(){
         sp.items=sp.items.filter(i=>i.childId!==ch.id);
         sp.subjects=sp.subjects.filter(x=>x.childId!==ch.id);
         sp.exams=sp.exams.filter(x=>x.childId!==ch.id);
+        state.penaltyLog=(state.penaltyLog||[]).filter(p=>p.childId!==ch.id);
         if(state.activeChildId===ch.id){ state.activeChildId=state.children[0].id; planSubjectId=null; planMaterial=null; }
         save(); toast('🗑 已刪除「'+(ch.name||'孩子')+'」'); renderParent();
       });
@@ -7415,6 +7527,57 @@ function renderParent(){
     const step=parseInt($('#rStep').value)||5, pen=parseInt($('#rPen').value)||5;
     state.routineLimit={eat,bath}; state.routineStep=step; state.routinePenalty=pen; save();
     goodSound(); toast('⏱ 作息扣分設定已儲存'); renderParent();
+  };
+
+  /* ---- 自訂扣分項 ---- */
+  $$('.pnDo').forEach(b=>b.onclick=()=>{
+    const p=penaltyList().find(x=>x.id===b.dataset.id); if(!p) return;
+    const c=C();
+    const willLose = p.kind==='zero' ? c.sun : Math.min(c.sun, Number(p.amount)||0);
+    askConfirm('要對「'+(c.name||'孩子')+'」執行<br><b>'+(p.emoji||'⚠️')+' '+p.name+'（'+penaltyDesc(p)+'）</b>嗎？'
+      +'<br><span class="hint">目前有 '+c.sun+' 陽光，會扣掉 '+willLose+'，剩下 '+(c.sun-willLose)+'。</span>'
+      +(p.kind==='zero'?'<br><span class="hint">歸零會清掉存很久的陽光，按錯可以在扣分紀錄撤銷。</span>':''),
+      ()=>{ const actual=runPenalty(p); toast((p.emoji||'⚠️')+' '+p.name+' －'+actual+' 陽光'); renderParent(); }, '確定扣分');
+  });
+  $$('.pnEdit').forEach(b=>b.onclick=()=>{
+    const p=penaltyList().find(x=>x.id===b.dataset.id); if(!p) return;
+    askInput({title:'修改扣分項', fields:[
+      {id:'nm', label:'扣分原因', value:p.name},
+      {id:'am', label:'扣多少陽光（填 0 代表全部歸零）', type:'number', value:p.kind==='zero'?0:p.amount}
+    ]}, v=>{
+      const nm=(v.nm||'').trim(); if(!nm) return '請填扣分原因';
+      const am=parseInt(v.am); if(isNaN(am)||am<0) return '陽光數要是 0 或正整數';
+      p.name=nm; p.kind = am===0?'zero':'sun'; p.amount = am===0?0:am;
+      save(); toast('✏️ 已更新'); renderParent();
+    });
+  });
+  $$('.pnDel').forEach(b=>b.onclick=()=>{
+    const p=penaltyList().find(x=>x.id===b.dataset.id); if(!p) return;
+    askConfirm('刪除扣分項「'+p.name+'」？<br><span class="hint">已經扣過的紀錄不會被刪掉。</span>', ()=>{
+      state.penalties=penaltyList().filter(x=>x.id!==p.id);
+      save(); toast('🗑 已刪除'); renderParent();
+    });
+  });
+  const ap=$('#addPen'); if(ap) ap.onclick=()=>{
+    const nm=($('#pnName').value||'').trim();
+    if(!nm){ toast('請先填扣分原因'); return; }
+    const kind=$('#pnKind').value;
+    const amt=parseInt($('#pnAmt').value)||0;
+    if(kind==='sun' && amt<1){ toast('扣的陽光要大於 0'); return; }
+    penaltyList().push({id:'pn'+Date.now(), emoji:'⚠️', name:nm, kind, amount:kind==='zero'?0:amt});
+    save(); goodSound(); toast('➕ 已新增「'+nm+'」'); renderParent();
+  };
+  $$('.pnUndo').forEach(b=>b.onclick=()=>{
+    const rec=(state.penaltyLog||[]).find(x=>x.id===b.dataset.id); if(!rec) return;
+    askConfirm('把「'+rec.name+'」扣掉的 '+rec.actual+' 陽光還給「'+(rec.childName||'孩子')+'」？', ()=>{
+      if(undoPenalty(rec.id)){ toast('↩ 已還回 '+rec.actual+' 陽光'); renderParent(); }
+      else toast('這筆撤銷不了（孩子檔案可能已刪除）');
+    }, '確定撤銷');
+  });
+  const cpl=$('#clearPenLog'); if(cpl) cpl.onclick=()=>{
+    askConfirm('清空扣分紀錄？<br><span class="hint">清空後就不能再撤銷了，陽光不會退回。</span>', ()=>{
+      state.penaltyLog=[]; save(); toast('🗑 已清空扣分紀錄'); renderParent();
+    });
   };
   const th=$('#toggleHol'); if(th) th.onclick=()=>{
     const k=dateKey(); const arr=state.manualHolidays||(state.manualHolidays=[]);
