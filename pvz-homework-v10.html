@@ -569,6 +569,8 @@
   .exam-card .ex-count{font-weight:900; font-size:14px; color:var(--leaf-dark); white-space:nowrap;}
   .exam-card .ex-count.urgent{color:#c0392b;}
   .exam-card .ex-btns{display:flex; gap:6px;}
+  .exam-card .ex-pace{flex-basis:100%; display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
+  .exam-card .ex-pace span{font-size:11px; font-weight:700; color:var(--leaf-dark); background:#eaf3e5; border-radius:99px; padding:3px 9px;}
   .scope-box{max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:6px; background:#fbfdfa;}
   .scope-sub{margin-bottom:10px;}
   .scope-nm{font-weight:800; font-size:14px; margin-bottom:4px;}
@@ -1788,21 +1790,64 @@ function spreadDates(count, startKey, endKey, skipHolidays){
   return out;
 }
 /* 依考試往回推：把範圍內未完成的課次鋪在「今天 ~ 考試前一天」 */
+/* 依考試往回推。
+   關鍵：不是把各科串成一長串依序鋪（那會變成先唸完國語才輪到數學），
+   而是「每一科各自平均分散在整個備考期間」，這樣每天自然會有不同科目交錯，
+   每科的節奏也各自正確（例如 8 週 6 課 → 約每 9~10 天一課）。
+   各科起跑點再錯開一點，避免第一天所有科目擠在一起。 */
 function scheduleForExam(exam, skipHolidays=true){
-  const targets=[];
-  (exam.scopes||[]).forEach(sc=>{
-    studyItemsOfMaterial(sc.subjectId, sc.material).forEach(it=>{ if(!it.done) targets.push(it); });
-  });
-  if(!targets.length) return {count:0, perDay:0, tight:false};
+  const scopes=(exam.scopes||[]).map(sc=>({
+    sc, items: studyItemsOfMaterial(sc.subjectId, sc.material).filter(it=>!it.done)
+  })).filter(x=>x.items.length);
+  const total=scopes.reduce((n,x)=>n+x.items.length,0);
+  if(!total) return {count:0, perDay:0, tight:false, perSubject:[]};
+
   const today=dateKey();
-  const lastDay=addDaysKey(exam.date, -1);
+  const lastDay=addDaysKey(exam.date,-1);
   const startKey = lastDay < today ? exam.date : today;
-  const endKey = lastDay < today ? exam.date : lastDay;
-  const dates=spreadDates(targets.length, startKey, endKey, skipHolidays);
-  targets.forEach((it,i)=>{ it.due=dates[i]; });
+  const endKey   = lastDay < today ? exam.date : lastDay;
+
+  /* 可用的日子（跳過假日） */
+  const span=Math.max(0, daysBetween(startKey, endKey));
+  const usable=[];
+  for(let i=0;i<=span;i++){
+    const k=addDaysKey(startKey,i);
+    if(skipHolidays && isHolidayOn(k)) continue;
+    usable.push(k);
+  }
+  if(!usable.length) usable.push(startKey);
+
+  const K=scopes.length;
+  const perSubject=[];
+  scopes.forEach((grp,k)=>{
+    const c=grp.items.length;
+    /* 相位偏移 (k+0.5)/K：讓各科的第一課不要全部落在同一天 */
+    grp.items.forEach((it,n)=>{
+      const pos=Math.floor((n + (k+0.5)/K) * usable.length / c);
+      it.due = usable[Math.min(pos, usable.length-1)];
+    });
+    const sub=studySubjectById(grp.sc.subjectId);
+    perSubject.push({
+      name:(sub?sub.name:'')+' '+grp.sc.material,
+      count:c,
+      everyDays: c>1 ? Math.round(usable.length/c) : usable.length
+    });
+  });
   save();
-  const uniqueDays=new Set(dates).size;
-  return {count:targets.length, perDay: uniqueDays? Math.ceil(targets.length/uniqueDays):targets.length, tight: targets.length>uniqueDays};
+
+  const byDay={};
+  scopes.forEach(g=>g.items.forEach(it=>{ byDay[it.due]=(byDay[it.due]||0)+1; }));
+  const days=Object.keys(byDay).length;
+  const maxPerDay=Math.max(...Object.values(byDay));
+  return {count:total, perDay:maxPerDay, tight: maxPerDay>3, days:usable.length, perSubject};
+}
+/* 兩個日期之間、扣掉假日的可用天數（考試卡片顯示節奏用） */
+function countUsableDays(startKey, endKey){
+  const span=daysBetween(startKey, endKey);
+  if(span<0) return 0;
+  let n=0;
+  for(let i=0;i<=span;i++){ if(!isHolidayOn(addDaysKey(startKey,i))) n++; }
+  return n;
 }
 function examCountdown(exam){ return daysBetween(dateKey(), exam.date); }
 function examsOf(childId){ return studyPlan().exams.filter(e=>e.childId===childId).sort((a,b)=>a.date<b.date?-1:1); }
@@ -3989,12 +4034,22 @@ function paintExamZone(){
       const d=examCountdown(e);
       const cnt=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material).length,0);
       const left=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material).filter(i=>!i.done).length,0);
+      /* 顯示各科節奏：這一科的未完成課次，平均幾天要做一項 */
+      const usableDays=Math.max(1, countUsableDays(dateKey(), addDaysKey(e.date,-1)));
+      const pace=(e.scopes||[]).map(sc=>{
+        const items=studyItemsOfMaterial(sc.subjectId,sc.material).filter(i=>!i.done);
+        if(!items.length) return null;
+        const sub=studySubjectById(sc.subjectId);
+        return { name:(sub?sub.name:''), unit:(items[0].extra?'項':(/數學|社會|自然/.test(sub?sub.name:'')?'單元':'課')),
+                 everyDays: Math.max(1, Math.round(usableDays/items.length)) };
+      }).filter(Boolean);
       return `<div class="exam-card${d<0?' past':''}">
         <div class="ex-main">
           <div class="ex-name">${e.name}</div>
           <div class="ex-meta">${e.date.replace(/-/g,'/')} · 範圍 ${(e.scopes||[]).length} 項 · 共 ${cnt} 課，還剩 ${left} 課沒讀</div>
         </div>
         <div class="ex-count ${d<=3?'urgent':''}">${d<0?'已結束':d===0?'就是今天':'還有 '+d+' 天'}</div>
+        ${pace.length?`<div class="ex-pace">${pace.map(x=>`<span>${x.name}：每 ${x.everyDays} 天 1 ${x.unit}</span>`).join('')}</div>`:''}
         <div class="ex-btns">
           <button class="reset-btn" data-exre="${e.id}">🔄 重排</button>
           <button class="reset-btn" data-exdel="${e.id}">🗑</button>
@@ -4007,7 +4062,7 @@ function paintExamZone(){
     const e=studyPlan().exams.find(x=>x.id===b.dataset.exre); if(!e) return;
     const r=scheduleForExam(e);
     if(!r.count){ toast('這個考試範圍裡沒有還沒讀完的課次'); return; }
-    goodSound(); toast('📅 已重排 '+r.count+' 課'+(r.tight?'（時間很緊，有些天要讀多課）':''));
+    goodSound(); toast('📅 已重排 '+r.count+' 項'+(r.tight?'（時間很緊，最多一天 '+r.perDay+' 項）':'，各科交錯排開'));
     renderStudyPlan();
   });
   box.querySelectorAll('[data-exdel]').forEach(b=> b.onclick=()=>{
@@ -4636,8 +4691,11 @@ function openExamModal(){
     studyPlan().exams.push(exam);
     const r=scheduleForExam(exam, ov.querySelector('#exSkipHol').checked);
     ov.remove(); goodSound();
-    if(r.tight) toast('🎯 已排 '+r.count+' 課，但時間很緊：平均一天要讀 '+r.perDay+' 課');
-    else toast('🎯 已建立「'+name+'」並排好 '+r.count+' 課');
+    if(r.tight) toast('🎯 已排 '+r.count+' 項，但時間很緊：最多一天要做 '+r.perDay+' 項');
+    else {
+      const pace=(r.perSubject||[]).map(x=>x.name.split(' ')[0]+' 每'+x.everyDays+'天').join('、');
+      toast('🎯 已建立「'+name+'」，'+r.count+' 項依各科交錯排開'+(pace?'：'+pace:''));
+    }
     renderStudyPlan();
   };
 }
