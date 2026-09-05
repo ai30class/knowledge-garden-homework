@@ -570,7 +570,7 @@
   .exam-card .ex-count.urgent{color:#c0392b;}
   .exam-card .ex-btns{display:flex; gap:6px;}
   .exam-card .ex-pace{flex-basis:100%; display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
-  .exam-card .ex-pace span{font-size:11px; font-weight:700; color:var(--leaf-dark); background:#eaf3e5; border-radius:99px; padding:3px 9px;}
+  .exam-card .ex-pace span{font-size:11px; font-weight:700; color:var(--leaf-dark); background:#eaf3e5; border-radius:99px; padding:3px 9px; white-space:nowrap;}
   .exam-card .ex-late{flex-basis:100%; margin-top:8px; padding:8px 10px; border-radius:10px; background:#fdecea; color:#b03a2b; font-size:12px; line-height:1.6; font-weight:700;}
   .exam-card .ex-days{background:#e5eef8 !important; color:#426b91 !important;}
   .day-presets{display:flex; gap:6px; flex-wrap:wrap; margin:6px 0;}
@@ -1832,7 +1832,7 @@ function scheduleForExam(exam, skipHolidays=true){
     });
     const sub=studySubjectById(grp.sc.subjectId);
     perSubject.push({
-      name:(sub?sub.name:'')+' '+grp.sc.material,
+      name:(sub?sub.name:'')+' · '+grp.sc.material,
       count:c,
       everyDays: c>1 ? Math.round(usable.length/c) : usable.length
     });
@@ -4071,7 +4071,8 @@ function paintExamZone(){
         const items=studyItemsOfMaterial(sc.subjectId,sc.material).filter(i=>!i.done);
         if(!items.length) return null;
         const sub=studySubjectById(sc.subjectId);
-        return { name:(sub?sub.name:''), unit:(items[0].extra?'項':(/數學|社會|自然/.test(sub?sub.name:'')?'單元':'課')),
+        return { name:(sub?sub.name:'')+' · '+sc.material,
+                 unit:(items[0].extra?'項':(/數學|社會|自然/.test(sub?sub.name:'')?'單元':'課')),
                  everyDays: Math.max(1, Math.round(usableDays/items.length)) };
       }).filter(Boolean);
       return `<div class="exam-card${d<0?' past':''}">
@@ -4766,7 +4767,7 @@ function openExamModal(examId){
     if(r.tight) toast('🎯 已排 '+r.count+' 項，但時間很緊：最多一天要做 '+r.perDay+' 項');
     else {
       const u = days.length===7 ? '天' : '個可寫日';
-      const pace=(r.perSubject||[]).map(x=>x.name.split(' ')[0]+' 每'+x.everyDays+u).join('、');
+      const pace=(r.perSubject||[]).map(x=>x.name+' 每'+x.everyDays+u).join('、');
       toast((editing?'💾 已更新「':'🎯 已建立「')+name+'」，'+r.count+' 項依各科交錯排開'+(pace?'：'+pace:''));
     }
     renderStudyPlan();
