@@ -547,6 +547,19 @@
   .ins-opt input{margin-top:3px; accent-color:var(--leaf);}
   .ins-opt b{display:block; font-size:14px;}
   .ins-opt small{display:block; color:var(--muted); font-size:11px; margin-top:2px; line-height:1.5;}
+  .row-word{border:none; background:none; color:var(--muted); font-size:13px; font-weight:800; cursor:pointer; padding:2px 6px; border-radius:8px; flex:0 0 auto;}
+  .row-word:hover{background:#e5eef8; color:#426b91;}
+  .row-word.has{color:#426b91; background:#eef4fb;}
+  .word-card{max-width:420px; margin:16px auto 0; padding:20px; border:1px solid var(--line); border-radius:var(--radius); background:#fff; text-align:center;}
+  .word-card .wd-zh{font-size:28px; font-weight:900; color:var(--ink);}
+  .word-card .wd-hint{margin-top:8px; font-size:20px; letter-spacing:3px; color:var(--muted); font-family:ui-monospace,Menlo,monospace;}
+  .wd-input{width:100%; max-width:none; margin-top:14px; font-size:22px; text-align:center; letter-spacing:1px;}
+  .wd-input.ok{border-color:var(--leaf); background:#f1f8ed;}
+  .wd-input.ng{border-color:#c0392b; background:#fdecea;}
+  .wd-review{max-width:420px; margin:14px auto 0; padding:14px; border:1px solid var(--line); border-radius:14px; background:#fbfdfa; text-align:left;}
+  .wd-row{display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px dashed var(--line); font-size:15px;}
+  .wd-row:last-child{border-bottom:none;}
+  .wd-row b{color:#426b91;}
   .exam-zone{border:1px solid var(--line); border-radius:var(--radius); background:rgba(255,253,247,.95); padding:14px; margin:10px 0;}
   .exam-card{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; border-radius:12px; background:#f8faf6; margin-top:8px;}
   .exam-card.past{opacity:.55;}
@@ -4091,6 +4104,7 @@ function paintPlanLessons(){
           <span class="pr-main"><span class="pr-label">${it.extra? '📄 '+(it.lessonName||'複習考') : ('第'+it.lesson+unitWord+(multi?' ('+(it.part||1)+')':'')+(it.lessonName?' '+it.lessonName:''))}</span>
             <span class="pr-due">${it.due? ((od?'⚠️ 逾期 · ':'')+(isToday?'📌 今天 · ':'')+it.due.slice(5).replace('-','/')) : '🕗 尚未排程（設定考試後自動排）'}</span></span>
           <span class="row-btns">
+            <button class="row-word${itemWords(it).length?' has':''}" data-word="${it.id}" title="${itemWords(it).length?('這一課有 '+itemWords(it).length+' 個單字，點我考試'):'加入單字'}">📝${itemWords(it).length||''}</button>
             <button class="row-mv" data-up="${it.id}" ${i===0?'disabled':''} title="往上移">↑</button>
             <button class="row-mv" data-down="${it.id}" ${i===items.length-1?'disabled':''} title="往下移">↓</button>
             <button class="row-ins" data-ins="${it.id}" title="在這一列下面插入">＋</button>
@@ -4113,6 +4127,12 @@ function paintPlanLessons(){
   };
   box.querySelectorAll('input[data-sid]').forEach(inp=>{
     inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
+  });
+  box.querySelectorAll('[data-word]').forEach(b=>{
+    b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+      const it=studyItems().find(x=>x.id===b.dataset.word);
+      if(itemWords(it).length) openWordChoice(b.dataset.word); else openWordsModal(b.dataset.word);
+    };
   });
   box.querySelectorAll('[data-up],[data-down]').forEach(b=>{
     b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
@@ -4229,6 +4249,167 @@ function openCopyModal(subjectId, fromMaterial){
     goodSound(); toast('📋 已複製 '+made.length+' 課到「'+to+'」');
     planMaterial=to; renderStudyPlan();
   };
+}
+/* ---------- 課次單字本（英文拼寫） ----------
+   單字掛在讀書計劃的課次上：it.words=[{en,zh}]。
+   家長一次貼一課的單字，孩子用打字拼寫測驗。 */
+function itemWords(it){ return Array.isArray(it && it.words) ? it.words : []; }
+/* 支援多種貼上格式。切分規則（依序）：
+   1) 有明確分隔符（逗號/等號/tab/ - ）就用它切
+   2) 否則從「第一個中文字」切開——英文片語本身含空白，不能用第一個空白切，
+      否則 "go to school 上學" 會被切成 en="go"
+   3) 整行都是英文就當成沒有中文釋義 */
+function parseWordLines(text){
+  const out=[];
+  (text||'').split('\n').forEach(line=>{
+    let t=line.trim(); if(!t) return;
+    let en='', zh='';
+    const sep=t.match(/^(.+?)\s*(?:[,，=＝\t]|\s+[-–—]\s+)\s*(.+)$/);
+    if(sep){ en=sep[1]; zh=sep[2]; }
+    else {
+      const cjk=t.search(/[\u3400-\u9fff\uf900-\ufaff\u3000-\u303f\uff01-\uff60]/);
+      if(cjk>0){ en=t.slice(0,cjk); zh=t.slice(cjk); }
+      else if(cjk===0){ return; }          /* 整行中文，沒有英文可考 */
+      else { en=t; zh=''; }
+    }
+    en=en.trim().replace(/\s+/g,' ');
+    zh=zh.trim();
+    if(!en || !/[A-Za-z]/.test(en)) return;
+    out.push({en, zh});
+  });
+  return out;
+}
+function setItemWords(itemId, words){
+  const it=studyItems().find(x=>x.id===itemId); if(!it) return 0;
+  it.words=words; save(); return words.length;
+}
+/* 家長：編輯某一課的單字 */
+function openWordsModal(itemId){
+  const it=studyItems().find(x=>x.id===itemId); if(!it) return;
+  const sub=studySubjectById(it.subjectId);
+  const cur=itemWords(it);
+  const title=it.extra ? (it.lessonName||'複習考') : ('第'+it.lesson+'課'+(it.lessonName?' '+it.lessonName:''));
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>📝 ${sub?sub.name:''} ${title} 的單字</h3>
+    <p class="hint" style="margin:8px 0 0;">一行一個單字，英文和中文用空白或逗號隔開。例如：<br>
+      <code>apple 蘋果</code>　<code>banana,香蕉</code>　<code>go to school 上學</code></p>
+    <div class="mod-row" style="margin-top:10px;">
+      <textarea id="wdText" class="in" style="width:100%;max-width:none;height:170px;font-size:15px;" placeholder="apple 蘋果&#10;banana 香蕉&#10;cat 貓">${cur.map(w=>w.en+' '+w.zh).join('\n')}</textarea>
+      <div class="hint" id="wdCount" style="margin:6px 0 0;"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="wdSave" style="flex:1;">💾 儲存</button>
+      <button class="reset-btn" id="wdCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const ta=ov.querySelector('#wdText'), cnt=ov.querySelector('#wdCount');
+  const upd=()=>{ const w=parseWordLines(ta.value);
+    cnt.innerHTML = w.length? ('辨識到 <b>'+w.length+'</b> 個單字'+(w.some(x=>!x.zh)?'（有幾個沒填中文，測驗時會用單字本身提示）':'')) : '還沒有可辨識的單字'; };
+  ta.addEventListener('input', upd); upd();
+  ov.querySelector('#wdCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#wdSave').onclick=()=>{
+    const w=parseWordLines(ta.value);
+    setItemWords(itemId, w); ov.remove(); goodSound();
+    toast('📝 已存 '+w.length+' 個單字'); renderStudyPlan();
+  };
+}
+/* 已經有單字時，先問要考試還是編輯 */
+function openWordChoice(itemId){
+  const it=studyItems().find(x=>x.id===itemId); if(!it) return;
+  const n=itemWords(it).length;
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>📝 這一課有 ${n} 個單字</h3>
+    <div style="display:grid;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="wcTest">✏️ 開始拼寫測驗</button>
+      <button class="reset-btn" id="wcEdit">📋 編輯單字</button>
+      <button class="reset-btn" id="wcCancel">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#wcCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#wcTest').onclick=()=>{ ov.remove(); renderWordTest(itemId); };
+  ov.querySelector('#wcEdit').onclick=()=>{ ov.remove(); openWordsModal(itemId); };
+}
+/* 孩子：拼寫測驗（看中文打英文） */
+function renderWordTest(itemId){
+  const it=studyItems().find(x=>x.id===itemId); if(!it) return;
+  const sub=studySubjectById(it.subjectId);
+  const all=itemWords(it);
+  if(!all.length){ toast('這一課還沒有單字'); return; }
+  const queue=all.slice().sort(()=>Math.random()-0.5);
+  let i=0, right=0, wrongList=[], answered=false;
+  const title=(sub?sub.name:'')+' '+(it.extra?(it.lessonName||''):('第'+it.lesson+'課'));
+  const paint=()=>{
+    if(i>=queue.length) return done();
+    const w=queue[i];
+    const hint=w.en.length>1 ? (w.en[0]+'＿'.repeat(Math.max(0,w.en.length-1))) : '＿';
+    app.innerHTML=`
+    <div class="panel">
+      <h2 class="title-sticker">📝 單字拼寫</h2>
+      <p class="hint">${title}　第 ${i+1} / ${queue.length} 題　✅ ${right}</p>
+      <div class="word-card">
+        <div class="wd-zh">${w.zh|| '（沒有中文提示）'}</div>
+        <div class="wd-hint" id="wdMask">${hint}</div>
+        <input id="wdIn" class="in wd-input" type="text" autocomplete="off" autocapitalize="off"
+               autocorrect="off" spellcheck="false" placeholder="輸入英文單字">
+        <div class="feedback" id="wdFb"></div>
+      </div>
+      <div style="text-align:center;margin-top:12px;">
+        <button class="next-btn" id="wdGo">✅ 檢查</button>
+        <button class="reset-btn" id="wdSkip">跳過</button>
+      </div>
+      <div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="wdQuit">⬅ 回讀書計劃</button></div>
+    </div>`;
+    const inp=$('#wdIn'); inp.focus();
+    answered=false;
+    const check=()=>{
+      if(answered) return;
+      const val=(inp.value||'').trim().toLowerCase().replace(/\s+/g,' ');
+      const ans=w.en.trim().toLowerCase();
+      const fb=$('#wdFb');
+      answered=true;
+      if(val===ans){
+        right++; fb.textContent='🎉 答對了！'; fb.className='feedback good';
+        inp.classList.add('ok');
+        const ps=practiceSun(3,'enword'); addSun(ps); goodSound(); onCorrect(ps);
+      } else {
+        wrongList.push(w);
+        fb.innerHTML='💡 正確拼法：<b>'+w.en+'</b>'; fb.className='feedback bad';
+        inp.classList.add('ng'); badSound();
+        /* logWrong 的第 5 個參數是「選項陣列」，而且它內部已經會呼叫 onWrong()，
+           不要再自己呼叫一次，也不要傳物件進去（會在 .slice() 拋錯） */
+        logWrong('enword', (w.zh||w.en)+' 的英文', val||'（空白）', w.en, [w.en]);
+      }
+      $('#wdGo').textContent='下一題 ▶';
+      $('#wdGo').onclick=()=>{ i++; paint(); };
+    };
+    $('#wdGo').onclick=check;
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ answered? (i++,paint()) : check(); } });
+    $('#wdSkip').onclick=()=>{ if(!answered){ wrongList.push(w); } i++; paint(); };
+    $('#wdQuit').onclick=()=>{ showTab('plan'); };
+  };
+  const done=()=>{
+    const pct=Math.round(right/queue.length*100);
+    app.innerHTML=`
+    <div class="panel" style="text-align:center;">
+      <h2 class="title-sticker">${pct>=80?'🎉 太棒了！':pct>=60?'👍 不錯！':'💪 再練一次'}</h2>
+      <p style="font-size:20px;font-weight:800;margin:12px 0;">${queue.length} 題答對 ${right} 題（${pct}%）</p>
+      ${wrongList.length?`<div class="wd-review"><div style="font-weight:800;margin-bottom:6px;">要再記一下的單字</div>
+        ${wrongList.map(w=>`<div class="wd-row"><b>${w.en}</b><span>${w.zh||''}</span></div>`).join('')}</div>`:''}
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+        <button class="next-btn" id="wdAgain">🔁 再考一次</button>
+        <button class="reset-btn" id="wdBack">⬅ 回讀書計劃</button>
+      </div>
+    </div>`;
+    $('#wdAgain').onclick=()=>renderWordTest(itemId);
+    $('#wdBack').onclick=()=>showTab('plan');
+  };
+  paint();
 }
 /* 在某一列下面插入一列：可選「獨立項目」（複習考）或「同一課的第二張」 */
 function openInsertRowModal(afterItemId, unitWord){
