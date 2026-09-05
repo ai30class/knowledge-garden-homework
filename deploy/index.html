@@ -4104,7 +4104,7 @@ function paintPlanLessons(){
           <span class="pr-main"><span class="pr-label">${it.extra? '📄 '+(it.lessonName||'複習考') : ('第'+it.lesson+unitWord+(multi?' ('+(it.part||1)+')':'')+(it.lessonName?' '+it.lessonName:''))}</span>
             <span class="pr-due">${it.due? ((od?'⚠️ 逾期 · ':'')+(isToday?'📌 今天 · ':'')+it.due.slice(5).replace('-','/')) : '🕗 尚未排程（設定考試後自動排）'}</span></span>
           <span class="row-btns">
-            <button class="row-word${itemWords(it).length?' has':''}" data-word="${it.id}" title="${itemWords(it).length?('這一課有 '+itemWords(it).length+' 個單字，點我考試'):'加入單字'}">📝${itemWords(it).length||''}</button>
+            ${showWordsFor(it)?`<button class="row-word${itemWords(it).length?' has':''}" data-word="${it.id}" title="${itemWords(it).length?('這一課有 '+itemWords(it).length+' 個單字，點我考試'):'加入單字'}">📝${itemWords(it).length||''}</button>`:''}
             <button class="row-mv" data-up="${it.id}" ${i===0?'disabled':''} title="往上移">↑</button>
             <button class="row-mv" data-down="${it.id}" ${i===items.length-1?'disabled':''} title="往下移">↓</button>
             <button class="row-ins" data-ins="${it.id}" title="在這一列下面插入">＋</button>
@@ -4254,6 +4254,10 @@ function openCopyModal(subjectId, fromMaterial){
    單字掛在讀書計劃的課次上：it.words=[{en,zh}]。
    家長一次貼一課的單字，孩子用打字拼寫測驗。 */
 function itemWords(it){ return Array.isArray(it && it.words) ? it.words : []; }
+/* 單字拼寫只對英文科目有意義，社會/自然/數學顯示只會變雜訊。
+   依科目名稱判斷；已經存過單字的課次一律顯示，免得舊資料被藏起來讀不到。 */
+function subjectWantsWords(sub){ return !!sub && /英|english|美語|eng/i.test(sub.name||''); }
+function showWordsFor(it){ return subjectWantsWords(studySubjectById(it.subjectId)) || itemWords(it).length>0; }
 /* 支援多種貼上格式。切分規則（依序）：
    1) 有明確分隔符（逗號/等號/tab/ - ）就用它切
    2) 否則從「第一個中文字」切開——英文片語本身含空白，不能用第一個空白切，
