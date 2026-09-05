@@ -571,6 +571,7 @@
   .exam-card .ex-btns{display:flex; gap:6px;}
   .exam-card .ex-pace{flex-basis:100%; display:flex; gap:6px; flex-wrap:wrap; margin-top:6px;}
   .exam-card .ex-pace span{font-size:11px; font-weight:700; color:var(--leaf-dark); background:#eaf3e5; border-radius:99px; padding:3px 9px;}
+  .exam-card .ex-late{flex-basis:100%; margin-top:8px; padding:8px 10px; border-radius:10px; background:#fdecea; color:#b03a2b; font-size:12px; line-height:1.6; font-weight:700;}
   .scope-box{max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:6px; background:#fbfdfa;}
   .scope-sub{margin-bottom:10px;}
   .scope-nm{font-weight:800; font-size:14px; margin-bottom:4px;}
@@ -3983,6 +3984,7 @@ function studyTodayHTML(c){
           <span class="pr-due">${it.due<today?'⚠️ 逾期 ':''}${it.due.slice(5).replace('-','/')} · 完成 +${studyNextSun()} ☀️</span></span>
       </label>`).join('')}
     ${due.length>5?`<div class="hint" style="margin:4px 0 0;">還有 ${due.length-5} 項，到「📅 讀書計劃」看全部</div>`:''}
+    ${od?`<div class="hint" style="margin:6px 0 0;">💡 其中 ${od} 項是之前沒做完累積下來的。可以到「📅 讀書計劃」按「重新安排進度」，把剩下的重新分配到考試前。</div>`:''}
   </div>`;
 }
 
@@ -4034,6 +4036,9 @@ function paintExamZone(){
       const d=examCountdown(e);
       const cnt=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material).length,0);
       const left=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material).filter(i=>!i.done).length,0);
+      /* 逾期：進度落後或排程是舊版排的，都會堆在今天。要讓家長看得到、也知道怎麼處理 */
+      const od=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material)
+        .filter(i=>!i.done && i.due && i.due<dateKey()).length,0);
       /* 顯示各科節奏：這一科的未完成課次，平均幾天要做一項 */
       const usableDays=Math.max(1, countUsableDays(dateKey(), addDaysKey(e.date,-1)));
       const pace=(e.scopes||[]).map(sc=>{
@@ -4050,8 +4055,9 @@ function paintExamZone(){
         </div>
         <div class="ex-count ${d<=3?'urgent':''}">${d<0?'已結束':d===0?'就是今天':'還有 '+d+' 天'}</div>
         ${pace.length?`<div class="ex-pace">${pace.map(x=>`<span>${x.name}：每 ${x.everyDays} 天 1 ${x.unit}</span>`).join('')}</div>`:''}
+        ${od?`<div class="ex-late">⚠️ 有 ${od} 項已經過了預定日期，全部堆在今天。按「重新安排進度」可以把還沒做的重新平均分配到考試前。</div>`:''}
         <div class="ex-btns">
-          <button class="reset-btn" data-exre="${e.id}">🔄 重排</button>
+          <button class="${od?'next-btn':'reset-btn'}" data-exre="${e.id}" style="${od?'padding:8px 12px;font-size:14px;':''}">🔄 重新安排進度</button>
           <button class="reset-btn" data-exdel="${e.id}">🗑</button>
         </div>
       </div>`;
@@ -4062,7 +4068,9 @@ function paintExamZone(){
     const e=studyPlan().exams.find(x=>x.id===b.dataset.exre); if(!e) return;
     const r=scheduleForExam(e);
     if(!r.count){ toast('這個考試範圍裡沒有還沒讀完的課次'); return; }
-    goodSound(); toast('📅 已重排 '+r.count+' 項'+(r.tight?'（時間很緊，最多一天 '+r.perDay+' 項）':'，各科交錯排開'));
+    goodSound();
+    toast('📅 已把還沒做的 '+r.count+' 項從今天重新分配到考試前'
+      +(r.tight?'（時間很緊，最多一天 '+r.perDay+' 項）':'，各科交錯排開'));
     renderStudyPlan();
   });
   box.querySelectorAll('[data-exdel]').forEach(b=> b.onclick=()=>{
