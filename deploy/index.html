@@ -1772,7 +1772,8 @@ function studyItemLabel(it){
   const p=(it.part||1)>1 ? ' ('+it.part+')' : '';
   return base+'第'+it.lesson+'課'+p+nm;
 }
-/* 某天是否為假日（排程用，可查任意日期，不只今天） */
+/* 某天是不是國定假日（或家長手動標記的放假日）。注意：不含一般的週六日，
+   週末要不要排是由 exam.days 決定的 */
 function isHolidayOn(key){
   const md=key.slice(5);
   if(TAIWAN_HOLIDAYS_2026[md]) return TAIWAN_HOLIDAYS_2026[md];
@@ -1819,7 +1820,7 @@ function scheduleForExam(exam, skipHolidays=true){
   const startKey = lastDay < today ? exam.date : today;
   const endKey   = lastDay < today ? exam.date : lastDay;
 
-  /* 可用的日子（跳過假日） */
+  /* 可用的日子（扣掉國定假日、只留選定的星期） */
   const span=Math.max(0, daysBetween(startKey, endKey));
   const wantDays=examDays(exam);          /* 家長指定的星期，未設定＝每天 */
   const usable=[];
@@ -1915,7 +1916,7 @@ function scheduleForExam(exam, skipHolidays=true){
   const maxPerDay=Math.max(...Object.values(byDay));
   return {count:total, perDay:maxPerDay, tight: maxPerDay>3, days:usable.length, perSubject};
 }
-/* 兩個日期之間、扣掉假日的可用天數（考試卡片顯示節奏用） */
+/* 兩個日期之間、扣掉國定假日與未選星期後的可用天數（卡片顯示節奏用） */
 /* 某個日期是星期幾（0=一 … 6=日，跟 todayWeekdayIndex 同一套） */
 function weekdayOf(key){ return (parseKey(key).getDay()+6)%7; }
 const WEEKDAY_NAMES=['一','二','三','四','五','六','日'];
@@ -4327,7 +4328,7 @@ function paintPlanWeek(){
     const isToday=k===today;
     html+=`<div class="plan-day${isToday?' today':''}${hol?' holiday':''}">
       <div class="pd-head"><span class="pd-name">${days[i]}${isToday?'（今天）':''}</span>
-        <span class="pd-date">${k.slice(5).replace('-','/')}${hol?' · 🎉'+hol:''}</span>
+        <span class="pd-date">${k.slice(5).replace('-','/')}${hol?' · 🎉 國定假日：'+hol:''}</span>
         <span class="pd-count">${items.length?items.length+' 項':'—'}</span></div>
       ${items.length?('<div class="pd-items">'+items.map(it=>`
         <label class="plan-row${it.done?' done':''}">
@@ -4777,7 +4778,7 @@ function openExamModal(examId){
       <input id="exDate" class="in" type="date" value="${editing?editing.date:addDaysKey(dateKey(),21)}"></div>
     <div class="mod-row"><label>考試範圍（勾選要讀完的教材）</label>
       <div class="scope-box">${scopeRows||'<p class="hint">還沒有任何教材可以勾選。</p>'}</div></div>
-    <div class="mod-row"><label>哪幾天要寫？</label>
+    <div class="mod-row"><label>哪幾天要寫？<small style="font-weight:400;color:var(--muted);">（含週六日，這裡決定每週的固定節奏）</small></label>
       <div class="day-presets">
         <button class="reset-btn" data-dpre="all" type="button">每天</button>
         <button class="reset-btn" data-dpre="weekday" type="button">只有平日</button>
@@ -4787,8 +4788,11 @@ function openExamModal(examId){
         ${WEEKDAY_NAMES.map((n,i)=>{const on=examDays(editing||{}).includes(i);return `<label class="day-chip${on?' on':''}"><input type="checkbox" value="${i}" ${on?'checked':''}><span>${n}</span></label>`;}).join('')}
       </div>
       <div class="hint" id="exDaysHint" style="margin:6px 0 0;"></div></div>
-    <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;">
-      <input type="checkbox" id="exSkipHol" checked> 排程時跳過假日
+    <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:14px;">
+      <input type="checkbox" id="exSkipHol" checked style="margin-top:3px;">
+      <span>排程時跳過<b>國定假日</b>
+        <small style="display:block;color:var(--muted);font-size:12px;line-height:1.6;margin-top:2px;">
+          指中秋、國慶這類放假日，以及家長後台手動標記的「今天放假」。<b>不含週六日</b>——週末要不要寫，請用上面的星期設定。</small></span>
     </label>
     <div style="display:flex;gap:10px;margin-top:14px;">
       <button class="next-btn" id="exSave" style="flex:1;">${editing?'💾 儲存並重新安排':'🎯 建立並自動排程'}</button>
@@ -4805,7 +4809,7 @@ function openExamModal(examId){
     const days=d.length? countUsableDays(dateKey(), addDaysKey(dateEl.value||dateKey(),-1), {days:d}) : 0;
     const h=ov.querySelector('#exDaysHint');
     h.textContent = !d.length ? '⚠️ 至少要選一天，否則沒有日子可以排。'
-      : ('考試前總共有 '+days+' 個可寫的日子'+(days<3?'（很少，排程會很擠）':''));
+      : ('考試前總共有 '+days+' 個可寫的日子（已扣掉國定假日）'+(days<3?'，很少，排程會很擠':''));
   };
   dayBoxes.forEach(b=> b.onchange=syncDays);
   ov.querySelector('#exDate').addEventListener('change', syncDays);
