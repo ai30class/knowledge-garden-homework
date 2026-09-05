@@ -506,6 +506,101 @@
   .section-flash{animation:sectionFlash 1.5s ease;}
   @keyframes sectionFlash{ 0%{box-shadow:0 0 0 4px var(--sun);} 100%{box-shadow:0 8px 20px var(--shadow);} }
   .bonus-group{background:#fffaf0; border-color:#ecd99d;}
+
+  /* ===== 計畫工作台 ===== */
+  .plan-toolbar{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin:10px 0 6px;}
+  .plan-tabs{display:flex; gap:6px;}
+  .plan-tab{border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:999px; padding:7px 14px; font-weight:800; font-size:14px; cursor:pointer; transition:background .15s,color .15s;}
+  .plan-tab.on{background:var(--leaf); border-color:var(--leaf); color:#fff;}
+  .plan-empty{text-align:center; padding:26px 14px; border:2px dashed var(--line); border-radius:var(--radius); background:#fbfdfa;}
+  .plan-split{display:grid; grid-template-columns:240px minmax(0,1fr); gap:14px; align-items:start;}
+  .plan-sublist{display:grid; gap:8px;}
+  .plan-sub{display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer; border:1px solid var(--line); background:#fff; border-radius:14px; padding:10px 12px; transition:border-color .15s, box-shadow .15s;}
+  .plan-sub:hover{border-color:var(--leaf);}
+  .plan-sub.on{border-color:var(--leaf); box-shadow:0 0 0 2px rgba(77,149,100,.25); background:#f3f9ef;}
+  .plan-sub .ps-ic{font-size:24px; flex:0 0 auto;}
+  .plan-sub .ps-main{flex:1; min-width:0; display:block;}
+  .plan-sub .ps-nm{display:block; font-weight:800; font-size:15px; color:var(--ink);}
+  .plan-sub .ps-sub{display:block; font-size:11px; color:var(--muted); margin-top:2px;}
+  .plan-sub .ps-bar{display:block; height:5px; border-radius:99px; background:#e8efe4; margin-top:6px; overflow:hidden;}
+  .plan-sub .ps-bar > i{display:block; height:100%; background:linear-gradient(90deg,#7dc855,#4ea63b);}
+  .plan-sub .ps-go{color:var(--muted); font-size:20px; flex:0 0 auto;}
+  .plan-detail{border:1px solid var(--line); border-radius:var(--radius); background:#fff; padding:14px; min-height:120px;}
+  .plan-detail-head{margin-bottom:10px;}
+  .plan-add{width:100%; border:2px dashed var(--line); background:#fbfdfa; color:var(--leaf-dark); border-radius:14px; padding:12px; font-weight:800; font-size:14px; cursor:pointer; transition:border-color .15s,background .15s;}
+  .plan-add:hover{border-color:var(--leaf); background:#f1f8ed;}
+  .plan-crumb{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px;}
+  .plan-crumb .crumb-now{font-weight:800; color:var(--ink);}
+  .row-del{border:none; background:none; color:var(--muted); font-size:15px; cursor:pointer; padding:2px 6px; border-radius:8px; flex:0 0 auto;}
+  .row-del:hover{background:#fdecea; color:#c0392b;}
+  .row-ins{border:none; background:none; color:var(--leaf-dark); font-size:16px; font-weight:900; cursor:pointer; padding:2px 6px; border-radius:8px; flex:0 0 auto;}
+  .row-ins:hover{background:#e5f1df;}
+  .row-btns{display:flex; gap:2px; align-items:center; flex:0 0 auto;}
+  .row-mv{border:none; background:none; color:var(--muted); font-size:14px; cursor:pointer; padding:2px 5px; border-radius:8px;}
+  .row-mv:hover:not(:disabled){background:#e5f1df; color:var(--leaf-dark);}
+  .row-mv:disabled{opacity:.25; cursor:default;}
+  .plan-row.extra{background:#fff8e5; box-shadow:inset 0 0 0 1px #ecd99d;}
+  .plan-row.extra .pr-label{color:#916615;}
+  .ins-kind{display:grid; gap:8px; margin-top:6px;}
+  .ins-opt{display:flex; align-items:flex-start; gap:9px; padding:10px; border:1px solid var(--line); border-radius:12px; cursor:pointer; background:#fff;}
+  .ins-opt.on{border-color:var(--leaf); background:#f3f9ef;}
+  .ins-opt input{margin-top:3px; accent-color:var(--leaf);}
+  .ins-opt b{display:block; font-size:14px;}
+  .ins-opt small{display:block; color:var(--muted); font-size:11px; margin-top:2px; line-height:1.5;}
+  .row-word{border:none; background:none; color:var(--muted); font-size:13px; font-weight:800; cursor:pointer; padding:2px 6px; border-radius:8px; flex:0 0 auto;}
+  .row-word:hover{background:#e5eef8; color:#426b91;}
+  .row-word.has{color:#426b91; background:#eef4fb;}
+  .word-card{max-width:420px; margin:16px auto 0; padding:20px; border:1px solid var(--line); border-radius:var(--radius); background:#fff; text-align:center;}
+  .word-card .wd-zh{font-size:28px; font-weight:900; color:var(--ink);}
+  .word-card .wd-hint{margin-top:8px; font-size:20px; letter-spacing:3px; color:var(--muted); font-family:ui-monospace,Menlo,monospace;}
+  .wd-input{width:100%; max-width:none; margin-top:14px; font-size:22px; text-align:center; letter-spacing:1px;}
+  .wd-input.ok{border-color:var(--leaf); background:#f1f8ed;}
+  .wd-input.ng{border-color:#c0392b; background:#fdecea;}
+  .wd-review{max-width:420px; margin:14px auto 0; padding:14px; border:1px solid var(--line); border-radius:14px; background:#fbfdfa; text-align:left;}
+  .wd-row{display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-bottom:1px dashed var(--line); font-size:15px;}
+  .wd-row:last-child{border-bottom:none;}
+  .wd-row b{color:#426b91;}
+  .exam-zone{border:1px solid var(--line); border-radius:var(--radius); background:rgba(255,253,247,.95); padding:14px; margin:10px 0;}
+  .exam-card{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; border-radius:12px; background:#f8faf6; margin-top:8px;}
+  .exam-card.past{opacity:.55;}
+  .exam-card .ex-main{flex:1; min-width:150px;}
+  .exam-card .ex-name{font-weight:800; font-size:15px; color:var(--ink);}
+  .exam-card .ex-meta{font-size:11px; color:var(--muted); margin-top:2px;}
+  .exam-card .ex-count{font-weight:900; font-size:14px; color:var(--leaf-dark); white-space:nowrap;}
+  .exam-card .ex-count.urgent{color:#c0392b;}
+  .exam-card .ex-btns{display:flex; gap:6px;}
+  .scope-box{max-height:230px; overflow-y:auto; border:1px solid var(--line); border-radius:12px; padding:10px; margin-top:6px; background:#fbfdfa;}
+  .scope-sub{margin-bottom:10px;}
+  .scope-nm{font-weight:800; font-size:14px; margin-bottom:4px;}
+  .scope-row{display:flex; align-items:center; gap:8px; padding:5px 4px; font-size:14px; cursor:pointer;}
+  .scope-row input{width:18px; height:18px; accent-color:var(--leaf);}
+  .tb-pick{margin-top:12px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#f7faf4;}
+  .tb-pick select.in{font-size:14px; padding:7px 9px;}
+  .plan-row{display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:12px; background:#f8faf6; margin-bottom:6px; cursor:pointer; transition:background .15s;}
+  .plan-row:hover{background:#eef5ea;}
+  .plan-row input{width:20px; height:20px; accent-color:var(--leaf); flex:0 0 auto; cursor:pointer;}
+  .plan-row .pr-main{min-width:0; flex:1;}
+  .plan-row .pr-label{display:block; font-weight:700; font-size:14px; color:var(--ink);}
+  .plan-row .pr-due{display:block; font-size:11px; color:var(--muted); margin-top:2px;}
+  .plan-row.done{opacity:.55;}
+  .plan-row.done .pr-label{text-decoration:line-through;}
+  .plan-row.overdue{background:#fdecea;}
+  .plan-row.overdue .pr-due{color:#c0392b; font-weight:800;}
+  .plan-row.today{background:#fff8e5; box-shadow:inset 0 0 0 1px #ecd99d;}
+  .plan-weeknav{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;}
+  .plan-day{border:1px solid var(--line); border-radius:14px; padding:10px 12px; margin-bottom:8px; background:#fff;}
+  .plan-day.today{border-color:var(--sun); box-shadow:0 0 0 2px rgba(242,184,63,.3);}
+  .plan-day.holiday{background:#f7faf4;}
+  .plan-day .pd-head{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
+  .plan-day .pd-name{font-weight:800; font-size:14px; color:var(--ink);}
+  .plan-day .pd-date{font-size:11px; color:var(--muted); flex:1;}
+  .plan-day .pd-count{font-size:11px; font-weight:800; color:var(--muted);}
+  .plan-day .pd-items{margin-top:8px;}
+  @media (max-width:700px){ .plan-split{grid-template-columns:1fr;} }
+
+  /* 首頁「今日複習」區塊 */
+  .today-study{margin-top:10px;}
+  .today-study .ts-empty{font-size:13px; color:var(--muted);}
   .cta-hero{display:block; width:100%; max-width:340px; margin:14px auto 4px; border:none; border-radius:24px; padding:16px; font-size:19px; font-weight:900; color:#fff; background:linear-gradient(180deg,var(--accent),var(--accent-dark)); box-shadow:0 5px 0 var(--accent-dark), 0 8px 18px rgba(201,107,91,.3); cursor:pointer; transition:transform .1s; letter-spacing:1px;}
   .cta-hero:hover{transform:translateY(-1px);}
   .cta-hero:active{transform:translateY(3px); box-shadow:0 2px 0 var(--accent-dark);}
@@ -525,6 +620,7 @@
 
 <nav class="tabs" id="tabs">
   <button class="tab-btn active" data-tab="home">🌻 小花園</button>
+  <button class="tab-btn" data-tab="plan">📅 讀書計劃</button>
   <button class="tab-btn" data-tab="practice">🎮 練習場</button>
   <button class="tab-btn" data-tab="collection">🏆 收藏</button>
 </nav>
@@ -793,7 +889,7 @@ function defaultChild(name){
     routine:{}, routineDate:dateKey(),
     sched:{}, bonusSun:0,
     age:7, levelOverride:'',
-    wrongQuestions:[], accWin:[], badges:{}, lastDoneDate:'', streak:0, streakShields:0, wrongStreak:0, _reviewIdx:0,
+    wrongQuestions:[], accWin:[], badges:{}, lastDoneDate:'', streak:0, streakShields:0, wrongStreak:0, _reviewIdx:0, studyDoneDate:'', studyDoneCount:0,
     quizLog:{}, quizStreak:0,
     subjectDiff:{},
     eyeRestUntil:0, studyMs:0, studyMsDate:dateKey()
@@ -1330,7 +1426,8 @@ function freshState(){
     tts:true, sleepLock:true, sleepOverrideTonight:false, notifiedDate:'',
     homeModules:defaultHomeModules(), activeSubjects:defaultActiveSubjects(), subjectIcons:defaultSubjectIcons(), subjectNames:defaultSubjectNames(), bgm:false,
     routineLimit:{eat:40,bath:30}, routineStep:5, routinePenalty:5,
-    schedule:[], scheduleDate:'', schedCheckin:5, schedOnTime:10
+    schedule:[], scheduleDate:'', schedCheckin:5, schedOnTime:10,
+    studyPlan:{items:[]}
   };
 }
 function load(seed){
@@ -1358,6 +1455,8 @@ function load(seed){
       }
       s.children.forEach(ch=>{ if(ch.zombieDrift===undefined) ch.zombieDrift=0; if(!ch.routine) ch.routine={}; if(ch.routineDate===undefined) ch.routineDate=dateKey(); if(ch.sched===undefined) ch.sched={}; if(ch.bonusSun===undefined) ch.bonusSun=0; if(ch.age===undefined) ch.age=7; if(ch.levelOverride===undefined) ch.levelOverride=''; ch.levelOverride=normLevel(ch.levelOverride); if(ch.accWin===undefined) ch.accWin=[]; if(!ch.quizLog) ch.quizLog={}; if(ch.quizStreak===undefined) ch.quizStreak=0; if(ch.wrongQuestions===undefined) ch.wrongQuestions=[]; if(ch.routineBonusDate===undefined) ch.routineBonusDate='';
       if(ch.eyeRestUntil===undefined) ch.eyeRestUntil=0;
+      if(ch.studyDoneDate===undefined) ch.studyDoneDate='';
+      if(ch.studyDoneCount===undefined) ch.studyDoneCount=0;
       if(ch.studyMs===undefined) ch.studyMs=0;
       if(ch.studyMsDate===undefined) ch.studyMsDate=dateKey();
         if(!Array.isArray(ch.deck)) ch.deck=Object.keys(ch.garden||{}).filter(k=>ch.garden[k]).slice(0,5); });
@@ -1365,6 +1464,11 @@ function load(seed){
       if(s.routineStep===undefined) s.routineStep=5;
       if(s.routinePenalty===undefined) s.routinePenalty=5;
       if(!Array.isArray(s.schedule)) s.schedule=[];
+      /* 讀書計劃：舊存檔沒有這欄（或只有早期的 items），把三個陣列都補齊 */
+      if(!s.studyPlan || typeof s.studyPlan!=='object') s.studyPlan={};
+      if(!Array.isArray(s.studyPlan.subjects)) s.studyPlan.subjects=[];
+      if(!Array.isArray(s.studyPlan.items)) s.studyPlan.items=[];
+      if(!Array.isArray(s.studyPlan.exams)) s.studyPlan.exams=[];
       if(s.scheduleDate===undefined) s.scheduleDate='';
       if(s.schedCheckin===undefined) s.schedCheckin=5;
       if(s.schedOnTime===undefined) s.schedOnTime=10;
@@ -1514,6 +1618,222 @@ function dailyResetIfNeeded(){
 }
 dailyResetIfNeeded();
 
+/* ---------- 課本課次資料（108課綱，三家出版社）----------
+   資料來源（皆為公開資料）：
+   - 康軒官方課程計畫 knsh.com.tw/service/plan（115學年度）：國語/數學/社會/自然
+   - 教育部教育百科 pedia.cloud.edu.tw（115學年度）：三家國語
+   - 均一教育平台 junyiacademy.org（113學年度）：三家數學（含下學期）
+   115下學期國語尚未公布，故僅有上學期；數學以均一113為基準所以上下學期都有。
+   結構：{出版社:{N年級:{科目:{上/下:{u:'課'|'單元', n:[名稱...]}}}}} */
+const TEXTBOOKS = {"康軒":{"1年級":{"國語":{"上":{"u":"課","n":["拍拍手","這是誰的?","秋千","大個子，小個子","比一比","小路"]}},"數學":{"上":{"u":"單元","n":["10以內的數","比長短","排順序、比多少","分與合","方盒、圓罐、球","30以內的數","10以內的加法","10以內的減法","幾點鐘"]},"下":{"u":"單元","n":["50 以內的數","18 以內的加法","圖形與分類","18 以內的減法","有多長","100 以內的數","認識錢幣","二位數的加減","幾月幾日星期幾"]}}},"2年級":{"國語":{"上":{"u":"課","n":["新學年新希望","一起做早餐","走過小巷","運動會","坐竹籃船","小鎮的柿餅節","國王的新衣裳","「聰明」的小熊","大象有多重？","新年快樂","遠方來的黑皮","我愛冬天"]}},"數學":{"上":{"u":"單元","n":["200以內的數","二位數的直式加減","量長度","加減關係與應用","面積的大小比較","兩步驟的加減","2、5、4、8的乘法","幾時幾分","3、6、9、7的乘法","容量與重量"]},"下":{"u":"單元","n":["1000 以內的數","三位數的加減","平面圖形","年、月、日","乘法","兩步驟應用問題","公尺和公分","分類與立體圖形","分分看","分數"]}}},"3年級":{"國語":{"上":{"u":"課","n":["字的小旅行","妙故事點點名","繞口令村","小丑魚和海葵","飛舞的絲帶","小女生","淡水小鎮","安平古堡參觀記","馬太鞍的巴拉告","狐狸的故事","巨人的花園","模仿貓"]}},"數學":{"上":{"u":"單元","n":["10000以內的數","四位數的加減","毫米","乘法","角","面積","除法","公升和毫升","分數"]},"下":{"u":"單元","n":["分數的加減","除法","尋找規律","公斤和公克","小數","圓","乘法與除法","時間","統計表"]}},"社會":{"上":{"u":"單元","n":["我的家庭","學習與成長","班級與我","學校與我"]}},"自然":{"上":{"u":"單元","n":["多采多姿的植物","生活中的力","奇妙的空氣","廚房裡的科學"]}}},"4年級":{"國語":{"上":{"u":"課","n":["水陸小高手","放學後","我的籃球夢","永遠的馬偕","假如給我三天光明","攀登生命的高峰","美味的一堂課","建築界的長頸鹿","請到我的家鄉來","奇幻旋律","兔子先生等等我","老鞋匠和小精靈"]}},"數學":{"上":{"u":"單元","n":["一億以內的數","整數的乘法","角度","整數的除法","公里","三角形","小數","整數四則計算","分數","統計圖"]},"下":{"u":"單元","n":["多位數的乘與除","四邊形","概數","數量規律","小數乘法","周長與面積","等值分數","簡化計算","時間的計算","立方公分"]}},"社會":{"上":{"u":"單元","n":["家鄉的自然環境","家鄉的傳統住屋與器物","家鄉的傳統信仰與老街","家鄉的作息、節慶與節日"]}},"自然":{"上":{"u":"單元","n":["地表的靜與動","水生生物與環境","有趣的聲光現象","好玩的電路"]}}},"5年級":{"國語":{"上":{"u":"課","n":["蚊帳大使","從空中看臺灣","攀岩高手","恆久的美","它抓得住你——商標的故事","故事「動」起來","為生命找出口","最勇敢的女孩","在挫折中成長","山中寄情","與達駭黑熊走入山林","荒島上的國王"]}},"數學":{"上":{"u":"單元","n":["多位小數與加減","因數與公因數","倍數與公倍數","擴分、約分與通分","多邊形與扇形","異分母分數的加減","線對稱圖形","整數四則運算","面積","柱體、錐體和球"]},"下":{"u":"單元","n":["體積","分數的計算","容積","小數的乘法","十進位結構","整數、小數除以整數","表面積","比率與百分率","時間的乘除","生活中的大單位"]}},"社會":{"上":{"u":"單元","n":["臺灣我的家","臺灣的自然環境與生活","尋根探源話臺灣","大航海時代的臺灣"]}},"自然":{"上":{"u":"單元","n":["動物世界","探索聲光世界","神祕的天空","燃燒與生鏽"]}}},"6年級":{"國語":{"上":{"u":"課","n":["跑道","朱子治家格言選","談遇見更好的自己","臺灣美食詩選","最好的味覺禮物","珍珠奶茶","大小剛好的鞋子","狐假虎威","空城計","耶誕節","下午茶風波","橘子"]}},"數學":{"上":{"u":"單元","n":["最大公因數與最小公倍數","分數除法","數量關係","小數除法","比與比值","圓周長與扇形周長","圓面積與扇形面積","認識速率","放大圖、縮圖與比例尺"]},"下":{"u":"單元","n":["小數與分數的計算","速率的應用","柱體體積與表面積","基準量與比較量","怎樣解題","圓形圖"]}},"社會":{"上":{"u":"單元","n":["民主政治的發展","社會變遷下的個人發展與族群文化","戰後經濟發展、轉型與生活","臺灣的城鄉與區域發展"]}},"自然":{"上":{"u":"單元","n":["探索天氣的變化","水溶液","動物大解密","電磁作用"]}}}},"南一":{"1年級":{"國語":{"上":{"u":"課","n":["小船","印手印","吹泡泡","你好","外星人","小金魚","紅紅的春"]}},"數學":{"上":{"u":"單元","n":["數到 10","比長短","分與合","順序和多少","數到 30","加一加","認識形狀","減一減與加減應用","讀鐘錶"]},"下":{"u":"單元","n":["數到 100","18 以內的加法","長度","18 以內的減法","圖形和形體","幾月幾日","錢幣","二位數的加減","做紀錄"]}}},"2年級":{"國語":{"上":{"u":"課","n":["打招呼","爬梯子","勇氣樹","一天的時間","小書蟲","從自己開始","等兔子來撞樹","角和腳","赤腳國王","去農場玩","幸福湯圓","到野外上課"]}},"數學":{"上":{"u":"單元","n":["數到 300","二位數的加減","幾公分","加減的關係與應用","容量","兩步驟的加減","2、5、4、8 的乘法","幾時幾分","3、6、7、9 的乘法","平面圖形"]},"下":{"u":"單元","n":["數到 1000","加加減減","幾公尺","年月日","0、1、10 的乘法","重量","兩步驟的計算","分東西","單位分數","面的大小與立體"]}}},"3年級":{"國語":{"上":{"u":"課","n":["你好，新朋友","我們的約定","下課十分鐘","一顆黑點","火大了","我該怎麼辦?","最年輕的奶奶","魔「髮」哥哥","穿白袍的醫生伯伯","唉呀!誤會大了","石虎的告白","昆蟲的保命妙招"]}},"數學":{"上":{"u":"單元","n":["數到 10000","四位數的加減","乘法","幾毫米","角、正方形和長方形","除法","公升和毫升","分數","圓"]},"下":{"u":"單元","n":["除法","找規律","時間","兩步驟的計算","面積","公斤和公克","分數的加減","乘除的應用","小數","報讀表格"]}}},"4年級":{"國語":{"上":{"u":"課","n":["窗口邊的臺灣欒樹","奶奶的排骨粥","充滿希望的五味屋","玉山之歌","高舉臺灣之光","臺灣的驕傲","到此「藝」遊","四季的頭髮","阿白觀察記","老鼠嫁女兒","豆粥婆婆","戴斗笠的地藏"]}},"數學":{"上":{"u":"單元","n":["一億以內的數","乘法","角度","除法","三角形","分數","數量關係","整數四則","小數","長度"]},"下":{"u":"單元","n":["多位數的乘與除","四邊形","分數的加減和整數倍","概數","統計圖表","小數乘以整數","周長與面積","等值分數","時間的加減","立方公分"]}}},"5年級":{"國語":{"上":{"u":"課","n":["幸福筆記本","做人做事做長久","孔雀錯了","特別的海","漫遊花東","護送螃蟹過馬路","高第的魔法建築","嘗嘗我的家鄉味","小小力量將世界照亮","男生說，女生說","耶誕禮物","漫遊詩情"]}},"數學":{"上":{"u":"單元","n":["長條圖和折線圖","因數和倍數","多邊形","擴分、約分和通分","線對稱圖形","異分母分數的加減","整數四則計算","平行四邊形、三角形和梯形的面積","時間的乘除","正方體和長方體"]},"下":{"u":"單元","n":["分數的計算","數的十進位結構","小數的乘法","扇形","體積","整數、小數除以整數","生活中的大單位","比率和百分率","容積和容量","柱體、錐體和球體"]}}},"6年級":{"國語":{"上":{"u":"課","n":["在天晴了的時候","珍珠鳥","客至","贏得喝采的輸家","哇！原來如此","登月先鋒","明智的抉擇","飢渴好「火」伴","火燒連環船","戲術","紀念照","少年筆耕"]}},"數學":{"上":{"u":"單元","n":["質因數分解和短除法","分數的除法","小數的除法","圓周長和圓面積","比和比值","扇形的弧長和面積","速率","數量關係"]},"下":{"u":"單元","n":["四則混合運算","圓形圖","基準量和比較量","放大圖、縮圖和比例尺","怎樣解題","柱體的體積和表面積"]}}}},"翰林":{"1年級":{"國語":{"上":{"u":"課","n":["一起走","大風吹","火車過山洞","請問","七彩滑梯","秋千","回音"]}},"數學":{"上":{"u":"單元","n":["10 以內的數","比長短","順序與多少","分與合","認識形狀","10 以內的加法","10 以內的減法","30 以內的數","時間"]},"下":{"u":"單元","n":["20 以內的加法","長度","20 以內的減法","100 以內的數","形狀與形體","數數看有多少元","幾月幾日星期幾","兩位數的加減法","分類整理"]}}},"2年級":{"國語":{"上":{"u":"課","n":["我的心情","彩色的天空","國王做新衣","水草下的呱呱","沙灘上的畫","草叢裡的星星","不一樣的美食","美食分享日","好味道","加加減減","奇怪的門","詠鵝"]}},"數學":{"上":{"u":"單元","n":["200 以內的數","二位數的加減法","認識公分","加減應用","容量","加減兩步驟","乘法 (一)","時間","乘法 (二)","面的大小比較"]},"下":{"u":"單元","n":["1000 以內的數","重量","加加減減","平面圖形與立體形體","乘法","公尺與公分","乘與加兩步驟","年、月、日","分裝與平分","認識分數"]}}},"3年級":{"國語":{"上":{"u":"課","n":["時間是什麼","妙用便利貼","提早五分鐘","水滾了","為梨花撐傘用","小鉛筆大學問","風的味道","寄居蟹找新家","阿塱壹古道","秋千上的婚禮","一路平安","不一樣的團圓"]}},"數學":{"上":{"u":"單元","n":["10000 以內的數","10000 以內的加減","毫米與數線","乘法","角與形狀","除法","公斤與公克","分數","列表與規律"]},"下":{"u":"單元","n":["除法","公升與毫升","分數與加法","圓","兩步驟應用問題","一位小數","時間","乘與除","面積"]}}},"4年級":{"國語":{"上":{"u":"課","n":["美麗島","請到我的家鄉來","鏡頭下的家鄉","飛行夢","月光下","又遠又近的月亮","松鼠先生的麵包","平凡的大俠","王子折箭","海中的熱帶雨林","美食島","寧靜的意樂會"]}},"數學":{"上":{"u":"單元","n":["一億以內的數","乘法","角度","假分數與帶分數","公里","除法","三角形與全等","兩步驟問題與併式","二位小數","統計圖表"]},"下":{"u":"單元","n":["概數","四則運算","垂直、平行與四邊形","分數（一）","形體的大小","小數乘法","周長與面積","分數（二）","時間的計算","規律"]}}},"5年級":{"國語":{"上":{"u":"課","n":["你我之間","風起，大家都在","廉頗與藺相如","來場快樂的桌遊","超級英雄","世足賽的贏家","美景閒情—詩兩首","葫蘆瓜","窗邊的鳴聲","敏銳觀察","你一定會聽見的","藍色連身裙"]}},"數學":{"上":{"u":"單元","n":["折線圖","倍數與因數","平面圖形","公倍數與公因數","立體形體","四則運算","擴、約分與加減","面積","乘以幾分之一","扇形"]},"下":{"u":"單元","n":["數的十進位結構","分數的計算","長方體與正方體的體積","小數","生活中的大單位","時間的乘除","容積","比率與百分率","表面積","線對稱圖形"]}}},"6年級":{"國語":{"上":{"u":"課","n":["遇見自己","為什麼大家不理我？","孔子說的話","向大自然學習","樹的聯想","善用自嘲，展現幽默","跟著公共藝術去旅行","街頭藝術家","戲臺上的她與他","過故人莊","來一碗溫暖的羹湯","存根"]}},"數學":{"上":{"u":"單元","n":["最大公因數與最小公倍數","分數除法","小數除法","比與比值","兩量關係","圓周長與扇形周長","放大、縮小與比例尺","怎樣解題"]},"下":{"u":"單元","n":["分數與小數的四則運算","圓面積與扇形面積","速率","統計圖表","怎樣解題","角柱與圓柱"]}}}}};
+function textbookPublishers(){ return Object.keys(TEXTBOOKS); }
+function textbookSubjects(pub, grade){
+  const g=(TEXTBOOKS[pub]||{})[grade]||{}; return Object.keys(g);
+}
+function textbookLessons(pub, grade, subject, sem){
+  const s=(((TEXTBOOKS[pub]||{})[grade]||{})[subject]||{})[sem];
+  return s || null;
+}
+
+/* ---------- 讀書計劃 ----------
+   跟「功課清單」的分工：功課清單＝學校出的作業（每天重設、家長簽名 +30）；
+   這裡＝家長排的自修／測驗卷／評量複習進度（不重設、有到期日、孩子自己勾、+10）。
+   三層結構：科目（可自訂）→ 教材（自修/測驗卷/評量…）→ 課次（含課名）。
+   全部綁 childId，因為兄弟姊妹的學校進度不同。 */
+const STUDY_ITEM_SUN = 10;        /* 當天前 STUDY_FULL_COUNT 筆的全額 */
+const STUDY_FULL_COUNT = 6;       /* 前 6 筆全額，之後遞減 */
+const STUDY_ITEM_SUN_LOW = 3;     /* 第 7 筆起 */
+/* 考前衝刺期排程會把大量課次擠在同幾天（實測考前3天可達 17 筆/日），
+   若每筆都給全額會撞上 SUN_DAILY_CAP、反而在最需要鼓勵時中斷回饋，
+   也會稀釋獎勵梯度。改成沿用練習場那套遞減邏輯。 */
+function studyDoneToday(c){
+  if(c.studyDoneDate!==dateKey()){ c.studyDoneDate=dateKey(); c.studyDoneCount=0; }
+  return c.studyDoneCount||0;
+}
+function studySunFor(n){ return n < STUDY_FULL_COUNT ? STUDY_ITEM_SUN : STUDY_ITEM_SUN_LOW; }
+/* 下一筆完成可以拿多少（給畫面提示用） */
+function studyNextSun(){ return studySunFor(studyDoneToday(C())); }
+function studyPlan(){
+  let sp=state.studyPlan;
+  if(!sp || typeof sp!=='object'){ sp=state.studyPlan={}; }
+  if(!Array.isArray(sp.subjects)) sp.subjects=[];
+  if(!Array.isArray(sp.items)) sp.items=[];
+  if(!Array.isArray(sp.exams)) sp.exams=[];
+  return sp;
+}
+function studySubjectsOf(childId){ return studyPlan().subjects.filter(s=>s.childId===childId); }
+function studySubjectById(id){ return studyPlan().subjects.find(s=>s.id===id)||null; }
+function studyItems(){ return studyPlan().items; }
+function studyItemsOf(childId){ return studyItems().filter(it=>it.childId===childId); }
+function studyItemsOfSubject(subjectId){ return studyItems().filter(it=>it.subjectId===subjectId); }
+/* 某科底下有哪些教材（依建立順序） */
+function studyMaterialsOf(subjectId){
+  const seen=[];
+  studyItemsOfSubject(subjectId).forEach(it=>{ if(!seen.includes(it.material)) seen.push(it.material); });
+  return seen;
+}
+function studyItemsOfMaterial(subjectId, material){
+  const list=studyItemsOfSubject(subjectId).filter(it=>it.material===material);
+  ensureSeq(list);
+  return list.sort((a,b)=> a.seq-b.seq);
+}
+/* seq＝這本教材裡的排列順序（跟課號分開，才能自由插隊與上下移動）。
+   舊資料沒有 seq 時，依原本的 (課號, part) 順序補上。 */
+function ensureSeq(list){
+  if(list.every(i=>typeof i.seq==='number')) return;
+  list.slice().sort((a,b)=> a.lesson-b.lesson || (a.part||1)-(b.part||1))
+      .forEach((it,i)=>{ if(typeof it.seq!=='number') it.seq=(i+1)*10; });
+}
+/* 插入一列。kind='part' → 同一課的第二張（顯示 第3課(2)）
+                kind='extra' → 獨立項目（只顯示名稱，例如「複習考」） */
+function insertStudyRow(afterItemId, name, kind){
+  const it=studyItems().find(x=>x.id===afterItemId); if(!it) return null;
+  const list=studyItemsOfMaterial(it.subjectId, it.material);
+  const idx=list.findIndex(x=>x.id===afterItemId);
+  const nextSeq = idx+1<list.length ? list[idx+1].seq : it.seq+20;
+  const seq=(it.seq+nextSeq)/2;                       // 插在兩者中間
+  const isExtra = kind==='extra';
+  const sibs=list.filter(x=>x.lesson===it.lesson && !x.extra);
+  const row={ id:'sp_'+Date.now().toString(36)+'_i'+Math.floor(Math.random()*1000),
+    childId:it.childId, subjectId:it.subjectId, material:it.material,
+    lesson:it.lesson, part:isExtra?1:Math.max(...sibs.map(x=>x.part||1))+1,
+    extra:isExtra, seq,
+    lessonName:(name||'').trim()||(isExtra?'複習考':''), due:'', done:false, doneAt:null };
+  studyPlan().items.push(row); save(); return row;
+}
+/* 上下移動一列：跟相鄰的那一列交換 seq */
+function moveStudyRow(id, dir){
+  const it=studyItems().find(x=>x.id===id); if(!it) return false;
+  const list=studyItemsOfMaterial(it.subjectId, it.material);
+  const i=list.findIndex(x=>x.id===id);
+  const j=i+(dir<0?-1:1);
+  if(j<0 || j>=list.length) return false;
+  const a=list[i].seq; list[i].seq=list[j].seq; list[j].seq=a;
+  save(); return true;
+}
+/* 這一課有幾張（>1 才需要顯示 (2)(3)） */
+function studySiblingCount(it){
+  /* 只算同課次的「張數」，獨立項目（複習考等）不列入，否則會害正常課次被標成 (1) */
+  return studyItemsOfMaterial(it.subjectId, it.material)
+    .filter(x=>x.lesson===it.lesson && !x.extra).length;
+}
+function addStudySubject(childId, name, icon){
+  const sub={id:'sub_'+Date.now().toString(36)+Math.floor(Math.random()*100), childId, name:name.trim(), icon:icon||'📚'};
+  studyPlan().subjects.push(sub); save(); return sub;
+}
+function deleteStudySubject(subjectId){
+  const sp=studyPlan();
+  sp.items = sp.items.filter(i=>i.subjectId!==subjectId);
+  sp.subjects = sp.subjects.filter(s=>s.id!==subjectId);
+  sp.exams.forEach(e=>{ e.scopes=(e.scopes||[]).filter(s=>s.subjectId!==subjectId); });
+  save();
+}
+/* 批次建立課次：lessonNames 是一行一課的字串陣列，沒填名字就只留課號。
+   新建的課次 due 先留空（尚未排程），等設定考試或手動排程才填日期。 */
+function addStudyLessons(childId, subjectId, material, lessonNames, startNo){
+  const base=Math.max(1, parseInt(startNo)||1);
+  const exist=new Set(studyItemsOfMaterial(subjectId, material).map(i=>i.lesson));
+  const made=[];
+  lessonNames.forEach((nm,idx)=>{
+    const lesson=base+idx;
+    if(exist.has(lesson)) return;
+    made.push({
+      id:'sp_'+Date.now().toString(36)+'_'+idx+Math.floor(Math.random()*100),
+      childId, subjectId, material, lesson, part:1, extra:false, seq:(base+idx)*10,
+      lessonName:(nm||'').trim(),
+      due:'', done:false, doneAt:null
+    });
+  });
+  studyPlan().items.push(...made); save();
+  return made;
+}
+function studyItemLabel(it){
+  const sub=studySubjectById(it.subjectId);
+  const base=(sub?sub.name:'')+' '+it.material+' ';
+  if(it.extra) return base+(it.lessonName||'複習考');
+  const nm=it.lessonName? ' '+it.lessonName : '';
+  const p=(it.part||1)>1 ? ' ('+it.part+')' : '';
+  return base+'第'+it.lesson+'課'+p+nm;
+}
+/* 某天是否為假日（排程用，可查任意日期，不只今天） */
+function isHolidayOn(key){
+  const md=key.slice(5);
+  if(TAIWAN_HOLIDAYS_2026[md]) return TAIWAN_HOLIDAYS_2026[md];
+  if((state.manualHolidays||[]).includes(key)) return '手動放假';
+  return null;
+}
+function dateKeyOf(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseKey(key){ const [y,m,d]=key.split('-').map(Number); return new Date(y, m-1, d); }
+function addDaysKey(key, n){ const d=parseKey(key); d.setDate(d.getDate()+n); return dateKeyOf(d); }
+function daysBetween(aKey, bKey){ return Math.round((parseKey(bKey)-parseKey(aKey))/86400000); }
+/* 排程核心：把一批項目平均鋪在 startKey~endKey，跳過假日，頭尾貼齊。
+   可用天數不足時會同一天排多筆（回傳仍照順序），呼叫端負責提醒家長。 */
+function spreadDates(count, startKey, endKey, skipHolidays){
+  if(count<=0) return [];
+  const span=Math.max(0, daysBetween(startKey, endKey));
+  const usable=[];
+  for(let i=0;i<=span;i++){
+    const k=addDaysKey(startKey,i);
+    if(skipHolidays && isHolidayOn(k)) continue;
+    usable.push(k);
+  }
+  if(!usable.length) usable.push(startKey);
+  const out=[];
+  for(let n=0;n<count;n++){
+    /* floor(n*天數/課數)：課多天少時會平均分桶（15課3天=5/5/5），
+       課少天多時則平均拉開，不會擠在中間 */
+    const pos = Math.floor(n*usable.length/count);
+    out.push(usable[Math.min(pos, usable.length-1)]);
+  }
+  return out;
+}
+/* 依考試往回推：把範圍內未完成的課次鋪在「今天 ~ 考試前一天」 */
+function scheduleForExam(exam, skipHolidays=true){
+  const targets=[];
+  (exam.scopes||[]).forEach(sc=>{
+    studyItemsOfMaterial(sc.subjectId, sc.material).forEach(it=>{ if(!it.done) targets.push(it); });
+  });
+  if(!targets.length) return {count:0, perDay:0, tight:false};
+  const today=dateKey();
+  const lastDay=addDaysKey(exam.date, -1);
+  const startKey = lastDay < today ? exam.date : today;
+  const endKey = lastDay < today ? exam.date : lastDay;
+  const dates=spreadDates(targets.length, startKey, endKey, skipHolidays);
+  targets.forEach((it,i)=>{ it.due=dates[i]; });
+  save();
+  const uniqueDays=new Set(dates).size;
+  return {count:targets.length, perDay: uniqueDays? Math.ceil(targets.length/uniqueDays):targets.length, tight: targets.length>uniqueDays};
+}
+function examCountdown(exam){ return daysBetween(dateKey(), exam.date); }
+function examsOf(childId){ return studyPlan().exams.filter(e=>e.childId===childId).sort((a,b)=>a.date<b.date?-1:1); }
+/* 今日該做的複習：到期日 <= 今天且未完成（用 <= 才抓得到逾期未補的） */
+function studyDueToday(childId){
+  const t=dateKey();
+  return studyItemsOf(childId).filter(it=>!it.done && it.due && it.due<=t)
+    .sort((a,b)=> a.due===b.due ? a.lesson-b.lesson : (a.due<b.due?-1:1));
+}
+function studyOverdue(childId){ const t=dateKey(); return studyItemsOf(childId).filter(it=>!it.done && it.due && it.due<t); }
+function studyUnscheduled(childId){ return studyItemsOf(childId).filter(it=>!it.due); }
+function toggleStudyItem(id){
+  const it=studyItems().find(x=>x.id===id); if(!it) return;
+  const c=C();
+  if(it.done){
+    /* 退回時要退「當初實際給的金額」，不能一律當成全額 */
+    const back = (typeof it.sunGot==='number') ? it.sunGot : STUDY_ITEM_SUN;
+    it.done=false; it.doneAt=null; it.sunGot=0;
+    c.studyDoneCount = Math.max(0, studyDoneToday(c)-1);
+    addSun(-back); toast('↩ 取消完成 -'+back+' 陽光');
+  } else {
+    const n=studyDoneToday(c);
+    const gain=studySunFor(n);
+    it.done=true; it.doneAt=Date.now(); it.sunGot=gain;
+    c.studyDoneCount=n+1;
+    addSun(gain); goodSound(); pushZombie(0.06);
+    toast('📚 完成「'+studyItemLabel(it)+'」+'+gain+' 陽光！'
+      + (gain<STUDY_ITEM_SUN ? '（今天已完成 '+(n+1)+' 項，之後每項 '+STUDY_ITEM_SUN_LOW+' 陽光）' : ''));
+  }
+  save();
+}
 /* ---------- 功課清單 ---------- */
 function allHW(){ return state.homeworkList; }
 function hwItem(id){ return allHW().find(x=>x.id===id); }
@@ -3424,7 +3744,7 @@ function hideEyeLock(){ const ov=$('#eyeLockOverlay'); if(ov) ov.className=''; }
 /* ---------- 渲染 ---------- */
 const app = $('#app');
 function tabToGroup(tab){
-  if(tab==='home'||tab==='practice'||tab==='collection') return tab;
+  if(tab==='home'||tab==='practice'||tab==='collection'||tab==='plan') return tab;
   if(tab==='shop'||tab==='parent'||tab==='custom') return 'collection';
   return 'practice';
 }
@@ -3448,6 +3768,7 @@ function showTab(tab, hwId){
   if(tab==='home') renderHome();
   else if(tab==='practice') renderPracticeHub();
   else if(tab==='collection') renderCollection();
+  else if(tab==='plan') renderStudyPlan();
   else if(tab==='readtest') renderReadTest();
   else if(tab==='math') renderMath();
   else if(tab==='social') renderReadTab('social', subjectIcon('social')+' '+subjectName('social'), READING[readLevelKey()].social);
@@ -3599,6 +3920,723 @@ function renderPracticeHub(){
   const ph=$('#phHome'); if(ph) ph.onclick=()=>showTab('home');
 }
 
+/* 首頁「今日複習」：學校功課之外、今天到期（含逾期未補）的複習項目 */
+function studyTodayHTML(c){
+  const due=studyDueToday(c.id);
+  if(!due.length) return '';
+  const today=dateKey();
+  const od=due.filter(i=>i.due<today).length;
+  return `<div class="today-study">
+    <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin:12px 0 5px;">
+      <span>📚 今日讀書計劃</span>
+      <span style="color:${od?'#c0392b':'var(--muted)'};">${od?od+' 項逾期 · ':''}${due.length} 項</span>
+    </div>
+    ${due.slice(0,5).map(it=>`
+      <label class="plan-row${it.due<today?' overdue':''}">
+        <input type="checkbox" data-hsid="${it.id}">
+        <span class="pr-main"><span class="pr-label">${studyItemLabel(it)}</span>
+          <span class="pr-due">${it.due<today?'⚠️ 逾期 ':''}${it.due.slice(5).replace('-','/')} · 完成 +${studyNextSun()} ☀️</span></span>
+      </label>`).join('')}
+    ${due.length>5?`<div class="hint" style="margin:4px 0 0;">還有 ${due.length-5} 項，到「📅 讀書計劃」看全部</div>`:''}
+  </div>`;
+}
+
+/* ---------- 讀書計劃工作台 ----------
+   三層導覽：科目 → 教材 → 課次；另有「本週」視圖。
+   考試設定也在這裡（不放家長後台，因為設定考試→排進度→看進度是同一件事）。 */
+let planView='subject';      // 'subject' | 'week'
+let planSubjectId=null;      // 選到的科目
+let planMaterial=null;       // 選到的教材（null = 停在教材清單那層）
+let planWeekOffset=0;
+function renderStudyPlan(){
+  const c=C();
+  const subs=studySubjectsOf(c.id);
+  if(planSubjectId && !subs.some(s=>s.id===planSubjectId)){ planSubjectId=null; planMaterial=null; }
+  const mine=studyItemsOf(c.id);
+  const doneCount=mine.filter(i=>i.done).length;
+  const overdue=studyOverdue(c.id).length;
+  const unsched=studyUnscheduled(c.id).length;
+  app.innerHTML=`
+  <div class="panel">
+    <h2 class="title-sticker">📅 ${c.name||'我'}的讀書計劃</h2>
+    <p class="hint">學校功課以外的自修／測驗卷／評量進度。設定考試日期與範圍，系統會自動幫你往回推該哪天讀哪一課。做完一項 +${STUDY_ITEM_SUN} 陽光（每天前 ${STUDY_FULL_COUNT} 項全額，之後每項 ${STUDY_ITEM_SUN_LOW} 陽光）。</p>
+    <div id="examZone"></div>
+    <div class="plan-toolbar">
+      <div class="plan-tabs">
+        <button class="plan-tab${planView==='subject'?' on':''}" data-pv="subject">📚 科目</button>
+        <button class="plan-tab${planView==='week'?' on':''}" data-pv="week">🗓 本週</button>
+      </div>
+      <div class="plan-stats">
+        <span class="stat">✅ ${doneCount}/${mine.length}</span>
+        ${overdue?`<span class="stat" style="color:#c0392b;">⚠️ ${overdue} 逾期</span>`:''}
+        ${unsched?`<span class="stat" style="color:#916615;">🕗 ${unsched} 未排</span>`:''}
+      </div>
+    </div>
+    <div id="planBody"></div>
+  </div>`;
+  paintExamZone();
+  $$('.plan-tab').forEach(b=> b.onclick=()=>{ planView=b.dataset.pv; renderStudyPlan(); });
+  if(planView==='week') paintPlanWeek(); else paintPlanSubject();
+}
+/* 考試區：列出考試與倒數，可新增／重排／刪除 */
+function paintExamZone(){
+  const c=C(); const box=$('#examZone'); if(!box) return;
+  const list=examsOf(c.id);
+  box.innerHTML=`<div class="exam-zone">
+    <div class="module-heading"><div><p class="hint" style="margin:0;">EXAM COUNTDOWN</p><h2 style="font-size:16px;margin:2px 0 0;">🎯 考試</h2></div>
+      <button class="reset-btn" id="examAdd">＋ 新增考試</button></div>
+    ${list.length? list.map(e=>{
+      const d=examCountdown(e);
+      const cnt=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material).length,0);
+      const left=(e.scopes||[]).reduce((n,s)=>n+studyItemsOfMaterial(s.subjectId,s.material).filter(i=>!i.done).length,0);
+      return `<div class="exam-card${d<0?' past':''}">
+        <div class="ex-main">
+          <div class="ex-name">${e.name}</div>
+          <div class="ex-meta">${e.date.replace(/-/g,'/')} · 範圍 ${(e.scopes||[]).length} 項 · 共 ${cnt} 課，還剩 ${left} 課沒讀</div>
+        </div>
+        <div class="ex-count ${d<=3?'urgent':''}">${d<0?'已結束':d===0?'就是今天':'還有 '+d+' 天'}</div>
+        <div class="ex-btns">
+          <button class="reset-btn" data-exre="${e.id}">🔄 重排</button>
+          <button class="reset-btn" data-exdel="${e.id}">🗑</button>
+        </div>
+      </div>`;
+    }).join('') : '<p class="hint" style="margin:8px 0 0;">還沒設定考試。設定後系統會自動把範圍內的課次往回推、排進每一天。</p>'}
+  </div>`;
+  $('#examAdd').onclick=()=>openExamModal(null);
+  box.querySelectorAll('[data-exre]').forEach(b=> b.onclick=()=>{
+    const e=studyPlan().exams.find(x=>x.id===b.dataset.exre); if(!e) return;
+    const r=scheduleForExam(e);
+    if(!r.count){ toast('這個考試範圍裡沒有還沒讀完的課次'); return; }
+    goodSound(); toast('📅 已重排 '+r.count+' 課'+(r.tight?'（時間很緊，有些天要讀多課）':''));
+    renderStudyPlan();
+  });
+  box.querySelectorAll('[data-exdel]').forEach(b=> b.onclick=()=>{
+    const e=studyPlan().exams.find(x=>x.id===b.dataset.exdel); if(!e) return;
+    askConfirm('刪除考試「'+e.name+'」？<br><span class="hint">已排好的課次日期會保留，不會被清掉。</span>', ()=>{
+      studyPlan().exams=studyPlan().exams.filter(x=>x.id!==e.id); save();
+      toast('🗑 已刪除考試「'+e.name+'」'); renderStudyPlan();
+    });
+  });
+}
+/* 層級一：科目清單 */
+function paintPlanSubject(){
+  const c=C(); const box=$('#planBody'); if(!box) return;
+  const subs=studySubjectsOf(c.id);
+  if(planSubjectId){ paintPlanMaterials(); return; }
+  box.innerHTML=`
+    <div class="plan-sublist">
+      ${subs.map(s=>{
+        const items=studyItemsOfSubject(s.id);
+        const done=items.filter(i=>i.done).length;
+        const od=items.filter(i=>!i.done && i.due && i.due<dateKey()).length;
+        const pct=items.length?Math.round(done/items.length*100):0;
+        const mats=studyMaterialsOf(s.id);
+        return `<button class="plan-sub" data-sub="${s.id}">
+          <span class="ps-ic">${s.icon||'📚'}</span>
+          <span class="ps-main"><span class="ps-nm">${s.name}</span>
+            <span class="ps-sub">${mats.length? mats.join('・') : '尚未新增教材'} · ${done}/${items.length} 完成${od?` · <b style="color:#c0392b;">${od} 逾期</b>`:''}</span>
+            <span class="ps-bar"><i style="width:${pct}%"></i></span></span>
+          <span class="ps-go">›</span></button>`;
+      }).join('')}
+      <button class="plan-add" id="subAdd">＋ 新增科目</button>
+    </div>
+    ${subs.length?'':'<p class="hint" style="margin-top:10px;">先新增科目（國語、數學…），再進去加教材（自修、測驗卷、評量）與課次。</p>'}`;
+  $$('.plan-sub').forEach(b=> b.onclick=()=>{ planSubjectId=b.dataset.sub; planMaterial=null; renderStudyPlan(); });
+  $('#subAdd').onclick=()=>openSubjectModal();
+}
+/* 層級二：某科的教材清單 */
+function paintPlanMaterials(){
+  const box=$('#planBody'); if(!box) return;
+  const sub=studySubjectById(planSubjectId); if(!sub){ planSubjectId=null; return paintPlanSubject(); }
+  if(planMaterial){ return paintPlanLessons(); }
+  const mats=studyMaterialsOf(sub.id);
+  box.innerHTML=`
+    <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ 所有科目</button>
+      <span class="crumb-now">${sub.icon||'📚'} ${sub.name}</span>
+      <button class="reset-btn" id="subDel" style="margin-left:auto;">🗑 刪除此科</button></div>
+    <div class="plan-sublist">
+      ${mats.map(m=>{
+        const items=studyItemsOfMaterial(sub.id,m);
+        const done=items.filter(i=>i.done).length;
+        const pct=items.length?Math.round(done/items.length*100):0;
+        return `<button class="plan-sub" data-mat="${encodeURIComponent(m)}">
+          <span class="ps-ic">📖</span>
+          <span class="ps-main"><span class="ps-nm">${m}</span>
+            <span class="ps-sub">共 ${items.length} 課 · ${done} 完成</span>
+            <span class="ps-bar"><i style="width:${pct}%"></i></span></span>
+          <span class="ps-go">›</span></button>`;
+      }).join('')}
+      <button class="plan-add" id="matAdd">＋ 新增教材與課次</button>
+    </div>
+    ${mats.length?'':'<p class="hint" style="margin-top:10px;">還沒有教材。點「新增教材與課次」，一次把整本的課名貼進來。</p>'}`;
+  $('#planBack').onclick=()=>{ planSubjectId=null; planMaterial=null; renderStudyPlan(); };
+  $('#subDel').onclick=()=>{
+    const n=studyItemsOfSubject(sub.id).length;
+    askConfirm('刪除「'+sub.name+'」以及底下 '+n+' 筆課次？<br><span class="hint">這個動作無法復原。</span>', ()=>{
+      deleteStudySubject(sub.id); planSubjectId=null; planMaterial=null;
+      toast('🗑 已刪除 '+sub.name); renderStudyPlan();
+    });
+  };
+  $$('.plan-sub').forEach(b=> b.onclick=()=>{ planMaterial=decodeURIComponent(b.dataset.mat); renderStudyPlan(); });
+  $('#matAdd').onclick=()=>openLessonModal(sub.id, null);
+}
+/* 層級三：某教材的課次清單 */
+function paintPlanLessons(){
+  const box=$('#planBody'); if(!box) return;
+  const sub=studySubjectById(planSubjectId);
+  const items=studyItemsOfMaterial(sub.id, planMaterial);
+  const today=dateKey();
+  const unitWord=/數學|社會|自然/.test(sub.name)?'單元':'課';
+  box.innerHTML=`
+    <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ ${sub.name}</button>
+      <span class="crumb-now">${sub.icon||'📚'} ${sub.name} · ${planMaterial}</span>
+      <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="reset-btn" id="matCopy" ${items.length?'':'disabled'}>📋 複製到其他教材</button>
+        <button class="reset-btn" id="matAdd2">＋ 加課次</button>
+        <button class="reset-btn" id="matDel">🗑</button>
+      </span></div>
+    <div class="plan-detail">
+      ${items.length? items.map((it,i)=>{
+        const od=!it.done && it.due && it.due<today, isToday=it.due===today;
+        const multi=!it.extra && studySiblingCount(it)>1;
+        return `<label class="plan-row${it.done?' done':''}${od?' overdue':''}${isToday?' today':''}${it.extra?' extra':''}">
+          <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
+          <span class="pr-main"><span class="pr-label">${it.extra? '📄 '+(it.lessonName||'複習考') : ('第'+it.lesson+unitWord+(multi?' ('+(it.part||1)+')':'')+(it.lessonName?' '+it.lessonName:''))}</span>
+            <span class="pr-due">${it.due? ((od?'⚠️ 逾期 · ':'')+(isToday?'📌 今天 · ':'')+it.due.slice(5).replace('-','/')) : '🕗 尚未排程（設定考試後自動排）'}</span></span>
+          <span class="row-btns">
+            <button class="row-word${itemWords(it).length?' has':''}" data-word="${it.id}" title="${itemWords(it).length?('這一課有 '+itemWords(it).length+' 個單字，點我考試'):'加入單字'}">📝${itemWords(it).length||''}</button>
+            <button class="row-mv" data-up="${it.id}" ${i===0?'disabled':''} title="往上移">↑</button>
+            <button class="row-mv" data-down="${it.id}" ${i===items.length-1?'disabled':''} title="往下移">↓</button>
+            <button class="row-ins" data-ins="${it.id}" title="在這一列下面插入">＋</button>
+            <button class="row-del" data-del="${it.id}" title="刪除這一列">✕</button>
+          </span>
+        </label>`;
+      }).join('') : '<p class="hint">這本教材還沒有課次。</p>'}
+    </div>`;
+  $('#planBack').onclick=()=>{ planMaterial=null; renderStudyPlan(); };
+  $('#matAdd2').onclick=()=>openLessonModal(sub.id, planMaterial);
+  const mc=$('#matCopy'); if(mc && !mc.disabled) mc.onclick=()=>openCopyModal(sub.id, planMaterial);
+  $('#matDel').onclick=()=>{
+    const m=planMaterial;
+    askConfirm('刪除「'+sub.name+' · '+m+'」底下的 '+items.length+' 課？<br><span class="hint">這個動作無法復原。</span>', ()=>{
+      const sp=studyPlan();
+      sp.items=sp.items.filter(i=>!(i.subjectId===sub.id && i.material===m));
+      sp.exams.forEach(e=>{ e.scopes=(e.scopes||[]).filter(s=>!(s.subjectId===sub.id && s.material===m)); });
+      save(); planMaterial=null; toast('🗑 已刪除「'+m+'」'); renderStudyPlan();
+    });
+  };
+  box.querySelectorAll('input[data-sid]').forEach(inp=>{
+    inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
+  });
+  box.querySelectorAll('[data-word]').forEach(b=>{
+    b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+      const it=studyItems().find(x=>x.id===b.dataset.word);
+      if(itemWords(it).length) openWordChoice(b.dataset.word); else openWordsModal(b.dataset.word);
+    };
+  });
+  box.querySelectorAll('[data-up],[data-down]').forEach(b=>{
+    b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+      const id=b.dataset.up||b.dataset.down;
+      if(moveStudyRow(id, b.dataset.up?-1:1)) renderStudyPlan();
+    };
+  });
+  box.querySelectorAll('[data-ins]').forEach(b=>{
+    b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation(); openInsertRowModal(b.dataset.ins, unitWord); };
+  });
+  box.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+      const sp=studyPlan(); sp.items=sp.items.filter(i=>i.id!==b.dataset.del); save(); renderStudyPlan(); };
+  });
+}
+/* 視圖二：本週（一天一列，看得出哪天塞太多） */
+function paintPlanWeek(){
+  const c=C(); const box=$('#planBody'); if(!box) return;
+  const today=dateKey();
+  const monday=addDaysKey(today, -todayWeekdayIndex() + planWeekOffset*7);
+  const days=['星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
+  let html=`<div class="plan-weeknav">
+    <button class="reset-btn" id="pwPrev">‹ 上一週</button>
+    <span style="font-weight:800;">${monday.slice(5).replace('-','/')} ~ ${addDaysKey(monday,6).slice(5).replace('-','/')}${planWeekOffset===0?'（本週）':''}</span>
+    <button class="reset-btn" id="pwNext">下一週 ›</button></div>`;
+  for(let i=0;i<7;i++){
+    const k=addDaysKey(monday,i);
+    const items=studyItemsOf(c.id).filter(x=>x.due===k).sort((a,b)=>a.lesson-b.lesson);
+    const hol=isHolidayOn(k);
+    const isToday=k===today;
+    html+=`<div class="plan-day${isToday?' today':''}${hol?' holiday':''}">
+      <div class="pd-head"><span class="pd-name">${days[i]}${isToday?'（今天）':''}</span>
+        <span class="pd-date">${k.slice(5).replace('-','/')}${hol?' · 🎉'+hol:''}</span>
+        <span class="pd-count">${items.length?items.length+' 項':'—'}</span></div>
+      ${items.length?('<div class="pd-items">'+items.map(it=>`
+        <label class="plan-row${it.done?' done':''}">
+          <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
+          <span class="pr-main"><span class="pr-label">${studyItemLabel(it)}</span></span>
+        </label>`).join('')+'</div>'):''}
+    </div>`;
+  }
+  box.innerHTML=html;
+  $('#pwPrev').onclick=()=>{ planWeekOffset--; renderStudyPlan(); };
+  $('#pwNext').onclick=()=>{ planWeekOffset++; renderStudyPlan(); };
+  box.querySelectorAll('input[data-sid]').forEach(inp=>{
+    inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
+  });
+}
+/* 遊戲內建確認視窗：取代原生 confirm()。
+   有些情境（嵌入式預覽面板、部分 webview）會直接擋掉原生 confirm 並回傳 false，
+   造成刪除按鈕按了沒反應，所以刪除類動作一律走這個。 */
+function askConfirm(msg, onYes, yesLabel){
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>請確認</h3>
+    <p style="line-height:1.8;margin:10px 0 0;">${msg}</p>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="next-btn" id="acYes" style="flex:1;">${yesLabel||'確定刪除'}</button>
+      <button class="reset-btn" id="acNo" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('#acNo').onclick=close;
+  ov.onclick=(e)=>{ if(e.target===ov) close(); };
+  ov.querySelector('#acYes').onclick=()=>{ close(); onYes&&onYes(); };
+}
+/* 一鍵複製：把某教材的整份課次（課號＋課名）複製到另一個教材。
+   只複製課次結構，不複製日期與完成狀態（新的教材要重新排程）。 */
+function copyMaterialLessons(subjectId, fromMaterial, toMaterial){
+  const src=studyItemsOfMaterial(subjectId, fromMaterial);
+  const exist=new Set(studyItemsOfMaterial(subjectId, toMaterial).map(i=>i.lesson));
+  const made=src.filter(i=>!exist.has(i.lesson)).map((i,idx)=>({
+    id:'sp_'+Date.now().toString(36)+'_c'+idx+Math.floor(Math.random()*100),
+    childId:i.childId, subjectId, material:toMaterial,
+    lesson:i.lesson, lessonName:i.lessonName,
+    due:'', done:false, doneAt:null
+  }));
+  studyPlan().items.push(...made); save();
+  return made;
+}
+/* 複製到其他教材的視窗 */
+function openCopyModal(subjectId, fromMaterial){
+  const sub=studySubjectById(subjectId); if(!sub) return;
+  const src=studyItemsOfMaterial(subjectId, fromMaterial);
+  const others=studyMaterialsOf(subjectId).filter(m=>m!==fromMaterial);
+  const presets=['自修','講義','測驗卷','評量','習作'].filter(m=>m!==fromMaterial);
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>📋 複製課次到其他教材</h3>
+    <p class="hint" style="margin:8px 0 0;">把「${sub.name} · ${fromMaterial}」的 ${src.length} 課（含課名）整份複製過去，日期與完成狀態不會跟著複製，複製完可以重新排程。</p>
+    <div class="mod-row" style="margin-top:12px;"><label>複製到哪個教材</label><br>
+      <input id="cpTo" class="in" style="width:100%;max-width:none;" placeholder="例如：測驗卷"></div>
+    <div class="mod-row"><label>快速選擇</label><br>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        ${[...new Set(presets.concat(others))].map(m=>`<button class="reset-btn" data-cp="${m}" style="padding:6px 12px;font-size:13px;">${m}${others.includes(m)?'（已有）':''}</button>`).join('')}
+      </div></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="next-btn" id="cpGo" style="flex:1;">📋 複製 ${src.length} 課</button>
+      <button class="reset-btn" id="cpCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-cp]').forEach(b=> b.onclick=()=>{ ov.querySelector('#cpTo').value=b.dataset.cp; });
+  ov.querySelector('#cpCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#cpGo').onclick=()=>{
+    const to=(ov.querySelector('#cpTo').value||'').trim();
+    if(!to){ badSound(); toast('請輸入或選擇要複製到哪個教材'); return; }
+    if(to===fromMaterial){ badSound(); toast('不能複製到同一個教材'); return; }
+    const made=copyMaterialLessons(subjectId, fromMaterial, to);
+    ov.remove();
+    if(!made.length){ badSound(); toast('「'+to+'」已經有這些課次了'); return; }
+    goodSound(); toast('📋 已複製 '+made.length+' 課到「'+to+'」');
+    planMaterial=to; renderStudyPlan();
+  };
+}
+/* ---------- 課次單字本（英文拼寫） ----------
+   單字掛在讀書計劃的課次上：it.words=[{en,zh}]。
+   家長一次貼一課的單字，孩子用打字拼寫測驗。 */
+function itemWords(it){ return Array.isArray(it && it.words) ? it.words : []; }
+/* 支援多種貼上格式。切分規則（依序）：
+   1) 有明確分隔符（逗號/等號/tab/ - ）就用它切
+   2) 否則從「第一個中文字」切開——英文片語本身含空白，不能用第一個空白切，
+      否則 "go to school 上學" 會被切成 en="go"
+   3) 整行都是英文就當成沒有中文釋義 */
+function parseWordLines(text){
+  const out=[];
+  (text||'').split('\n').forEach(line=>{
+    let t=line.trim(); if(!t) return;
+    let en='', zh='';
+    const sep=t.match(/^(.+?)\s*(?:[,，=＝\t]|\s+[-–—]\s+)\s*(.+)$/);
+    if(sep){ en=sep[1]; zh=sep[2]; }
+    else {
+      const cjk=t.search(/[\u3400-\u9fff\uf900-\ufaff\u3000-\u303f\uff01-\uff60]/);
+      if(cjk>0){ en=t.slice(0,cjk); zh=t.slice(cjk); }
+      else if(cjk===0){ return; }          /* 整行中文，沒有英文可考 */
+      else { en=t; zh=''; }
+    }
+    en=en.trim().replace(/\s+/g,' ');
+    zh=zh.trim();
+    if(!en || !/[A-Za-z]/.test(en)) return;
+    out.push({en, zh});
+  });
+  return out;
+}
+function setItemWords(itemId, words){
+  const it=studyItems().find(x=>x.id===itemId); if(!it) return 0;
+  it.words=words; save(); return words.length;
+}
+/* 家長：編輯某一課的單字 */
+function openWordsModal(itemId){
+  const it=studyItems().find(x=>x.id===itemId); if(!it) return;
+  const sub=studySubjectById(it.subjectId);
+  const cur=itemWords(it);
+  const title=it.extra ? (it.lessonName||'複習考') : ('第'+it.lesson+'課'+(it.lessonName?' '+it.lessonName:''));
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>📝 ${sub?sub.name:''} ${title} 的單字</h3>
+    <p class="hint" style="margin:8px 0 0;">一行一個單字，英文和中文用空白或逗號隔開。例如：<br>
+      <code>apple 蘋果</code>　<code>banana,香蕉</code>　<code>go to school 上學</code></p>
+    <div class="mod-row" style="margin-top:10px;">
+      <textarea id="wdText" class="in" style="width:100%;max-width:none;height:170px;font-size:15px;" placeholder="apple 蘋果&#10;banana 香蕉&#10;cat 貓">${cur.map(w=>w.en+' '+w.zh).join('\n')}</textarea>
+      <div class="hint" id="wdCount" style="margin:6px 0 0;"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="wdSave" style="flex:1;">💾 儲存</button>
+      <button class="reset-btn" id="wdCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const ta=ov.querySelector('#wdText'), cnt=ov.querySelector('#wdCount');
+  const upd=()=>{ const w=parseWordLines(ta.value);
+    cnt.innerHTML = w.length? ('辨識到 <b>'+w.length+'</b> 個單字'+(w.some(x=>!x.zh)?'（有幾個沒填中文，測驗時會用單字本身提示）':'')) : '還沒有可辨識的單字'; };
+  ta.addEventListener('input', upd); upd();
+  ov.querySelector('#wdCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#wdSave').onclick=()=>{
+    const w=parseWordLines(ta.value);
+    setItemWords(itemId, w); ov.remove(); goodSound();
+    toast('📝 已存 '+w.length+' 個單字'); renderStudyPlan();
+  };
+}
+/* 已經有單字時，先問要考試還是編輯 */
+function openWordChoice(itemId){
+  const it=studyItems().find(x=>x.id===itemId); if(!it) return;
+  const n=itemWords(it).length;
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>📝 這一課有 ${n} 個單字</h3>
+    <div style="display:grid;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="wcTest">✏️ 開始拼寫測驗</button>
+      <button class="reset-btn" id="wcEdit">📋 編輯單字</button>
+      <button class="reset-btn" id="wcCancel">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#wcCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#wcTest').onclick=()=>{ ov.remove(); renderWordTest(itemId); };
+  ov.querySelector('#wcEdit').onclick=()=>{ ov.remove(); openWordsModal(itemId); };
+}
+/* 孩子：拼寫測驗（看中文打英文） */
+function renderWordTest(itemId){
+  const it=studyItems().find(x=>x.id===itemId); if(!it) return;
+  const sub=studySubjectById(it.subjectId);
+  const all=itemWords(it);
+  if(!all.length){ toast('這一課還沒有單字'); return; }
+  const queue=all.slice().sort(()=>Math.random()-0.5);
+  let i=0, right=0, wrongList=[], answered=false;
+  const title=(sub?sub.name:'')+' '+(it.extra?(it.lessonName||''):('第'+it.lesson+'課'));
+  const paint=()=>{
+    if(i>=queue.length) return done();
+    const w=queue[i];
+    const hint=w.en.length>1 ? (w.en[0]+'＿'.repeat(Math.max(0,w.en.length-1))) : '＿';
+    app.innerHTML=`
+    <div class="panel">
+      <h2 class="title-sticker">📝 單字拼寫</h2>
+      <p class="hint">${title}　第 ${i+1} / ${queue.length} 題　✅ ${right}</p>
+      <div class="word-card">
+        <div class="wd-zh">${w.zh|| '（沒有中文提示）'}</div>
+        <div class="wd-hint" id="wdMask">${hint}</div>
+        <input id="wdIn" class="in wd-input" type="text" autocomplete="off" autocapitalize="off"
+               autocorrect="off" spellcheck="false" placeholder="輸入英文單字">
+        <div class="feedback" id="wdFb"></div>
+      </div>
+      <div style="text-align:center;margin-top:12px;">
+        <button class="next-btn" id="wdGo">✅ 檢查</button>
+        <button class="reset-btn" id="wdSkip">跳過</button>
+      </div>
+      <div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="wdQuit">⬅ 回讀書計劃</button></div>
+    </div>`;
+    const inp=$('#wdIn'); inp.focus();
+    answered=false;
+    const check=()=>{
+      if(answered) return;
+      const val=(inp.value||'').trim().toLowerCase().replace(/\s+/g,' ');
+      const ans=w.en.trim().toLowerCase();
+      const fb=$('#wdFb');
+      answered=true;
+      if(val===ans){
+        right++; fb.textContent='🎉 答對了！'; fb.className='feedback good';
+        inp.classList.add('ok');
+        const ps=practiceSun(3,'enword'); addSun(ps); goodSound(); onCorrect(ps);
+      } else {
+        wrongList.push(w);
+        fb.innerHTML='💡 正確拼法：<b>'+w.en+'</b>'; fb.className='feedback bad';
+        inp.classList.add('ng'); badSound();
+        /* logWrong 的第 5 個參數是「選項陣列」，而且它內部已經會呼叫 onWrong()，
+           不要再自己呼叫一次，也不要傳物件進去（會在 .slice() 拋錯） */
+        logWrong('enword', (w.zh||w.en)+' 的英文', val||'（空白）', w.en, [w.en]);
+      }
+      $('#wdGo').textContent='下一題 ▶';
+      $('#wdGo').onclick=()=>{ i++; paint(); };
+    };
+    $('#wdGo').onclick=check;
+    inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ answered? (i++,paint()) : check(); } });
+    $('#wdSkip').onclick=()=>{ if(!answered){ wrongList.push(w); } i++; paint(); };
+    $('#wdQuit').onclick=()=>{ showTab('plan'); };
+  };
+  const done=()=>{
+    const pct=Math.round(right/queue.length*100);
+    app.innerHTML=`
+    <div class="panel" style="text-align:center;">
+      <h2 class="title-sticker">${pct>=80?'🎉 太棒了！':pct>=60?'👍 不錯！':'💪 再練一次'}</h2>
+      <p style="font-size:20px;font-weight:800;margin:12px 0;">${queue.length} 題答對 ${right} 題（${pct}%）</p>
+      ${wrongList.length?`<div class="wd-review"><div style="font-weight:800;margin-bottom:6px;">要再記一下的單字</div>
+        ${wrongList.map(w=>`<div class="wd-row"><b>${w.en}</b><span>${w.zh||''}</span></div>`).join('')}</div>`:''}
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+        <button class="next-btn" id="wdAgain">🔁 再考一次</button>
+        <button class="reset-btn" id="wdBack">⬅ 回讀書計劃</button>
+      </div>
+    </div>`;
+    $('#wdAgain').onclick=()=>renderWordTest(itemId);
+    $('#wdBack').onclick=()=>showTab('plan');
+  };
+  paint();
+}
+/* 在某一列下面插入一列：可選「獨立項目」（複習考）或「同一課的第二張」 */
+function openInsertRowModal(afterItemId, unitWord){
+  const it=studyItems().find(x=>x.id===afterItemId); if(!it) return;
+  const w=unitWord||'課';
+  const anchor = it.extra ? (it.lessonName||'複習考') : ('第'+it.lesson+w+(it.lessonName?' '+it.lessonName:''));
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>＋ 插入一列</h3>
+    <p class="hint" style="margin:8px 0 0;">會插在「${anchor}」下面。</p>
+    <div class="mod-row" style="margin-top:12px;"><label>這一列是什麼？</label><br>
+      <div class="ins-kind">
+        <label class="ins-opt on"><input type="radio" name="insKind" value="extra" checked>
+          <span><b>獨立項目</b><small>穿插在課次之間，只顯示名稱，例如複習考、段考</small></span></label>
+        <label class="ins-opt"><input type="radio" name="insKind" value="part">
+          <span><b>同一${w}的第二張</b><small>一樣算第${it.lesson}${w}，顯示為 (2)、(3)</small></span></label>
+      </div></div>
+    <div class="mod-row"><label>名稱</label><br>
+      <input id="insNm" class="in" style="width:100%;max-width:none;" placeholder="例如：複習考" value="複習考">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;" id="insPre"></div></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="next-btn" id="insGo" style="flex:1;">＋ 插入</button>
+      <button class="reset-btn" id="insCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const PRE={extra:['複習考','段考','小考','補充卷'], part:['第二張','測驗卷B','第二回','複習卷']};
+  const kindOf=()=> ov.querySelector('input[name=insKind]:checked').value;
+  const paintPre=()=>{
+    const k=kindOf();
+    ov.querySelector('#insPre').innerHTML=PRE[k].map(t=>`<button class="reset-btn" data-pre2="${t}" type="button" style="padding:6px 10px;font-size:13px;">${t}</button>`).join('');
+    ov.querySelectorAll('[data-pre2]').forEach(b=> b.onclick=()=>{ ov.querySelector('#insNm').value=b.dataset.pre2; });
+    ov.querySelector('#insNm').value = PRE[k][0];
+  };
+  ov.querySelectorAll('input[name=insKind]').forEach(rd=> rd.onchange=()=>{
+    ov.querySelectorAll('.ins-opt').forEach(l=> l.classList.toggle('on', l.querySelector('input').checked));
+    paintPre();
+  });
+  paintPre();
+  ov.querySelector('#insCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#insGo').onclick=()=>{
+    const k=kindOf();
+    const row=insertStudyRow(afterItemId, ov.querySelector('#insNm').value, k);
+    ov.remove();
+    if(!row){ badSound(); return; }
+    goodSound();
+    toast(k==='extra' ? ('＋ 已插入「'+(row.lessonName)+'」') : ('＋ 已插入第'+row.lesson+w+' ('+row.part+')'));
+    renderStudyPlan();
+  };
+}
+/* 新增科目 */
+function openSubjectModal(){
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  const preset=['📘 國語','➕ 數學','🔤 英文','🔬 自然','🏘️ 社會','🎨 藝術','💪 健體','🌏 本土語','🧩 綜合'];
+  ov.innerHTML=`<div class="modal">
+    <h3>➕ 新增科目</h3>
+    <div class="mod-row"><label>科目名稱</label><br>
+      <input id="subNm" class="in" style="width:100%;max-width:none;" placeholder="例如：國語"></div>
+    <div class="mod-row"><label>圖示</label><br>
+      <input id="subIc" class="in" maxlength="4" value="📚" style="width:80px;"></div>
+    <div class="mod-row"><label>快速選擇</label><br>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        ${preset.map(p=>`<button class="reset-btn" data-pre="${p}" style="padding:6px 10px;font-size:13px;">${p}</button>`).join('')}
+      </div></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="subSave" style="flex:1;">➕ 新增</button>
+      <button class="reset-btn" id="subCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-pre]').forEach(b=> b.onclick=()=>{
+    const [ic,...nm]=b.dataset.pre.split(' ');
+    ov.querySelector('#subIc').value=ic; ov.querySelector('#subNm').value=nm.join(' ');
+  });
+  ov.querySelector('#subCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#subSave').onclick=()=>{
+    const nm=ov.querySelector('#subNm').value.trim();
+    if(!nm){ badSound(); toast('請輸入科目名稱'); return; }
+    addStudySubject(C().id, nm, ov.querySelector('#subIc').value.trim()||'📚');
+    ov.remove(); goodSound(); toast('📚 已新增科目「'+nm+'」'); renderStudyPlan();
+  };
+}
+/* 新增教材與課次（可一次貼一整份課名清單） */
+function openLessonModal(subjectId, fixedMaterial){
+  const sub=studySubjectById(subjectId); if(!sub) return;
+  const mats=studyMaterialsOf(subjectId);
+  const exist=fixedMaterial? studyItemsOfMaterial(subjectId, fixedMaterial):[];
+  const nextNo=exist.length? Math.max(...exist.map(i=>i.lesson))+1 : 1;
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>${fixedMaterial?'＋ 加課次到「'+fixedMaterial+'」':'＋ 新增教材與課次'}</h3>
+    ${fixedMaterial?'':`<div class="mod-row"><label>教材名稱</label><br>
+      <input id="matNm" class="in" style="width:100%;max-width:none;" placeholder="例如：自修 / 測驗卷 / 評量">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+        ${[...new Set(['自修','講義','測驗卷','評量','習作'].concat(mats))].map(m=>`<button class="reset-btn" data-mat-pre="${m}" type="button" style="padding:6px 10px;font-size:13px;">${m}${mats.includes(m)?'（已有）':''}</button>`).join('')}
+      </div></div>`}
+    <div class="mod-row"><label>從第幾課開始</label><br>
+      <input id="lsStart" class="in" type="number" min="1" value="${nextNo}" style="width:90px;"></div>
+    <div class="mod-row"><label>課名（一行一課）</label><br>
+      <textarea id="lsNames" class="in" style="width:100%;max-width:none;height:130px;" placeholder="秋天的樹林&#10;神奇的種子&#10;下雨的時候"></textarea>
+      <div class="hint" style="margin:4px 0 0;">課本目錄可以直接複製貼上，一行一課。</div></div>
+    <div class="mod-row"><label>或者不打課名，直接指定共幾課</label><br>
+      <input id="lsCount" class="in" type="number" min="1" max="99" placeholder="例如 10" style="width:110px;">
+      <span class="hint">（上面課名留空時才會用這個）</span></div>
+    <div class="tb-pick">
+      <div style="font-weight:800;font-size:14px;margin-bottom:6px;">📖 從課本直接帶入</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+        <select id="tbPub" class="in" style="max-width:104px;">${textbookPublishers().map(p=>`<option value="${p}">${p}</option>`).join('')}</select>
+        <select id="tbGrade" class="in" style="max-width:104px;">${[1,2,3,4,5,6].map(g=>`<option value="${g}年級">${g}年級</option>`).join('')}</select>
+        <select id="tbSubj" class="in" style="max-width:104px;"></select>
+        <select id="tbSem" class="in" style="max-width:100px;"><option value="上">上學期</option><option value="下">下學期</option></select>
+        <button class="reset-btn" id="tbFill" type="button">帶入課名</button>
+      </div>
+      <div id="tbHint" class="hint" style="margin:6px 0 0;"></div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="lsSave" style="flex:1;">➕ 新增</button>
+      <button class="reset-btn" id="lsCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-mat-pre]').forEach(b=> b.onclick=()=>{ ov.querySelector('#matNm').value=b.dataset.matPre; });
+  /* 課本帶入：選出版社→科目選單跟著變；帶入後填進課名欄，可再自行增減 */
+  const tbPub=ov.querySelector('#tbPub'), tbGrade=ov.querySelector('#tbGrade'),
+        tbSubj=ov.querySelector('#tbSubj'), tbSem=ov.querySelector('#tbSem'), tbHint=ov.querySelector('#tbHint');
+  const syncSubj=()=>{
+    const subs=textbookSubjects(tbPub.value, tbGrade.value);
+    tbSubj.innerHTML = subs.length? subs.map(s=>`<option value="${s}">${s}</option>`).join('')
+                                  : '<option value="">（無資料）</option>';
+    syncHint();
+  };
+  const syncHint=()=>{
+    const d=textbookLessons(tbPub.value, tbGrade.value, tbSubj.value, tbSem.value);
+    tbHint.innerHTML = d ? `${tbPub.value} ${tbGrade.value} ${tbSubj.value}${tbSem.value}：共 ${d.n.length} ${d.u}`
+      : '這個組合目前沒有資料（115下學期國語尚未公布；社會自然目前只有康軒）。';
+  };
+  [tbPub,tbGrade].forEach(el=> el.onchange=syncSubj);
+  [tbSubj,tbSem].forEach(el=> el.onchange=syncHint);
+  syncSubj();
+  ov.querySelector('#tbFill').onclick=()=>{
+    const d=textbookLessons(tbPub.value, tbGrade.value, tbSubj.value, tbSem.value);
+    if(!d){ badSound(); toast('這個組合目前沒有課本資料'); return; }
+    ov.querySelector('#lsNames').value = d.n.join('\n');
+    /* 只有這本教材還沒有任何課次時才從第 1 課開始；已有課次就沿用接續編號，
+       否則會跟既有課號撞號、被當成重複而整批略過 */
+    if(!exist.length) ov.querySelector('#lsStart').value = 1;
+    if(!fixedMaterial){
+      const mt=ov.querySelector('#matNm');
+      if(mt && !mt.value.trim()) mt.value = (d.u==='課' ? '課本' : '課本');
+    }
+    goodSound(); toast(`📖 已帶入 ${d.n.length} ${d.u}，可以再自己增減`);
+  };
+  ov.querySelector('#lsCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#lsSave').onclick=()=>{
+    const material = fixedMaterial || (ov.querySelector('#matNm').value||'').trim();
+    if(!material){ badSound(); toast('請輸入教材名稱'); return; }
+    const typed=(ov.querySelector('#lsNames').value||'').split('\n').map(s=>s.trim()).filter(s=>s!=='');
+    const cnt=parseInt(ov.querySelector('#lsCount').value)||0;
+    /* 有打課名就用課名；沒打就看「共幾課」，產生沒有課名的課次 */
+    const names = typed.length ? typed : (cnt>0 ? new Array(cnt).fill('') : []);
+    if(!names.length){ badSound(); toast('請貼上課名，或填「共幾課」'); return; }
+    const startNo=parseInt(ov.querySelector('#lsStart').value)||1;
+    const made=addStudyLessons(C().id, subjectId, material, names, startNo);
+    ov.remove();
+    const skipped=names.length-made.length;
+    if(!made.length){ badSound(); toast('第'+startNo+'課起的課號都已經存在了，請改「從第幾課開始」'); return; }
+    goodSound();
+    toast('📖 已新增 '+made.length+' 課到「'+material+'」'+(skipped?'（'+skipped+' 課因課號重複略過）':''));
+    planMaterial=material; renderStudyPlan();
+  };
+}
+/* 新增考試：日期 + 範圍（勾選科目底下的教材） */
+function openExamModal(){
+  const c=C();
+  const subs=studySubjectsOf(c.id);
+  if(!subs.length){ toast('請先新增科目與課次，才能設定考試範圍'); return; }
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  const scopeRows=subs.map(s=>{
+    const mats=studyMaterialsOf(s.id);
+    if(!mats.length) return '';
+    return `<div class="scope-sub"><div class="scope-nm">${s.icon||'📚'} ${s.name}</div>
+      ${mats.map(m=>{
+        const n=studyItemsOfMaterial(s.id,m).filter(i=>!i.done).length;
+        return `<label class="scope-row"><input type="checkbox" data-sc="${s.id}|${encodeURIComponent(m)}">
+          <span>${m}<small style="color:var(--muted);"> · 還剩 ${n} 課</small></span></label>`;
+      }).join('')}</div>`;
+  }).join('');
+  ov.innerHTML=`<div class="modal">
+    <h3>🎯 新增考試</h3>
+    <div class="mod-row"><label>考試名稱</label><br>
+      <input id="exNm" class="in" style="width:100%;max-width:none;" placeholder="例如：第一次段考" value="段考"></div>
+    <div class="mod-row"><label>考試日期</label><br>
+      <input id="exDate" class="in" type="date" value="${addDaysKey(dateKey(),21)}"></div>
+    <div class="mod-row"><label>考試範圍（勾選要讀完的教材）</label>
+      <div class="scope-box">${scopeRows||'<p class="hint">還沒有任何教材可以勾選。</p>'}</div></div>
+    <label style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;">
+      <input type="checkbox" id="exSkipHol" checked> 排程時跳過假日
+    </label>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="exSave" style="flex:1;">🎯 建立並自動排程</button>
+      <button class="reset-btn" id="exCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#exCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#exSave').onclick=()=>{
+    const name=(ov.querySelector('#exNm').value||'').trim()||'段考';
+    const date=ov.querySelector('#exDate').value;
+    if(!date){ badSound(); toast('請選擇考試日期'); return; }
+    const scopes=[...ov.querySelectorAll('[data-sc]:checked')].map(b=>{
+      const [subjectId, m]=b.dataset.sc.split('|');
+      return {subjectId, material:decodeURIComponent(m)};
+    });
+    if(!scopes.length){ badSound(); toast('請至少勾選一個考試範圍'); return; }
+    const exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes};
+    studyPlan().exams.push(exam);
+    const r=scheduleForExam(exam, ov.querySelector('#exSkipHol').checked);
+    ov.remove(); goodSound();
+    if(r.tight) toast('🎯 已排 '+r.count+' 課，但時間很緊：平均一天要讀 '+r.perDay+' 課');
+    else toast('🎯 已建立「'+name+'」並排好 '+r.count+' 課');
+    renderStudyPlan();
+  };
+}
 /* 收藏入口 */
 function renderCollection(){
   const c=C();
@@ -3774,6 +4812,7 @@ function renderHome(){
   homeFocus=null;
   const hwPct = visibleHW().length ? Math.round(finished/visibleHW().length*100) : 100;
   const hasUnfinished = !!firstUnfinishedHW();
+  const studyDueCount = studyDueToday(c.id).length;
   app.innerHTML = `
   <div class="panel">
     <h2 class="title-sticker">🌻 ${name} 的小花園</h2>
@@ -3802,7 +4841,8 @@ function renderHome(){
         <div style="height:12px;background:#ece0c4;border-radius:8px;overflow:hidden;">
           <div style="height:100%;width:${hwPct}%;background:linear-gradient(90deg,#7dc855,#4ea63b);transition:width .5s;"></div>
         </div>
-        <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':'🎉 功課寫完了，自由練習 ▶'}</button>
+        <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':(studyDueCount?'📚 功課寫完了，換讀書計劃 ▶':'🎉 今天都完成了，自由練習 ▶')}</button>
+        ${studyTodayHTML(c)}
       </div>
       <div class="home-module">
         <div class="module-heading"><div><p class="hint" style="margin:0;">TODAY'S FOCUS</p></div></div>
@@ -3890,7 +4930,13 @@ function renderHome(){
   }
   renderRoutineBonus($('#routineBonus'));
   updateClock();
-  const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{ if(hasUnfinished) renderTodayTasks(); else showTab('practice'); };
+  /* 優先序：學校功課 → 讀書計劃 → 練習場（加分） */
+  const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{
+    if(hasUnfinished) renderTodayTasks();
+    else if(studyDueCount) showTab('plan');
+    else showTab('practice');
+  };
+  $$('input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderHome(); }; });
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
   const eb=$('#energyBtn'); if(eb){ eb.onclick=useEnergy; tickEnergy(); }
   const tb=$('#ttsBtn'); if(tb) tb.onclick=()=>{ state.tts=!state.tts; save(); renderHome(); };
@@ -3921,10 +4967,10 @@ function renderHome(){
   };
   const nd=$('#newDay');
   if(nd) nd.onclick=()=>{
-    if(confirm('開始新的一天？今日功課會重設為未完成。')){
+    askConfirm('開始新的一天？<br><span class="hint">今日功課會重設為未完成。</span>', ()=>{
       allHW().forEach(it=>c.homework[it.id]=false); c.homeworkDate=dateKey();
       c.zombiePush=0; c.zombieDrift=0; c.plantHP=100; c.combo=0; c.routine={}; c.routineDate=dateKey(); save(); renderHome();
-    }
+    }, '🔄 開始新的一天');
   };
 }
 
@@ -5752,6 +6798,10 @@ function renderParent(){
     <p class="hint">改名、換練習種類、排序、新增或刪除。完成任何一項都需家長簽名 +30 陽光。至少保留一項。</p>
     ${hwMgmt}
 
+    <h2 style="margin-top:18px;font-size:17px;">📅 讀書計劃</h2>
+    <p class="hint">科目、教材、課次與考試排程都在「📅 讀書計劃」分頁裡設定（不放在這裡，才不用兩個地方來回跑）。目前 <b>${c.name||'孩子'}</b> 有 ${studySubjectsOf(c.id).length} 科、${studyItemsOf(c.id).length} 課、${examsOf(c.id).length} 個考試。</p>
+    <div style="margin-top:8px;"><button class="reset-btn" id="goPlanTab">📅 開啟讀書計劃</button></div>
+
     <h2 style="margin-top:18px;font-size:17px;">📚 自訂題庫管理</h2>
     <p class="hint">貼上自己的題目（格式見下方），新增後會自動加入功課清單，孩子就能練習。</p>
     ${bankMgmt}
@@ -5843,6 +6893,7 @@ function renderParent(){
     };
     const e=$('#edt'+r.id); if(e) e.onclick=()=>{ editingRewardId=r.id; const n=$('#rName'),cc2=$('#rCost'); if(n) n.value=r.name; if(cc2) cc2.value=r.cost; renderParent(); };
   });
+  const gp=$('#goPlanTab'); if(gp) gp.onclick=()=>showTab('plan');
   const addPreset=$('#addPreset'); if(addPreset) addPreset.onclick=()=>{
     const have=new Set(state.rewards.map(r=>r.name));
     let added=0;
@@ -5869,8 +6920,9 @@ function renderParent(){
     save(); $$('.sunCount').forEach(e=>e.textContent=c.sun); renderParent();
   };
   const crl=$('#clearRedemLog'); if(crl) crl.onclick=()=>{
-    if(!confirm('確定要永久清空兌換紀錄嗎？此動作無法復原。')) return;
-    state.redemptions=[]; save(); renderParent();
+    askConfirm('確定要永久清空兌換紀錄嗎？<br><span class="hint">此動作無法復原。</span>', ()=>{
+      state.redemptions=[]; save(); toast('🗑 已清空兌換紀錄'); renderParent();
+    });
   };
 
   /* handlers：功課簽名 */
@@ -5946,10 +6998,20 @@ function renderParent(){
   state.children.forEach(ch=>{
     const sw=$('#sw'+ch.id); if(sw && ch.id!==state.activeChildId) sw.onclick=()=>{ state.activeChildId=ch.id; dailyResetIfNeeded(); save(); renderParent(); };
     const dc=$('#delch'+ch.id); if(dc && state.children.length>1) dc.onclick=()=>{
-      if(!confirm('刪除「'+(ch.name||'孩子')+'」的檔案？此動作無法復原。')) return;
-      state.children=state.children.filter(x=>x.id!==ch.id);
-      if(state.activeChildId===ch.id) state.activeChildId=state.children[0].id;
-      save(); renderParent();
+      const planCnt=studyItemsOf(ch.id).length;
+      askConfirm('刪除「'+(ch.name||'孩子')+'」的檔案？'
+        +(planCnt? '<br><span class="hint">連同讀書計劃的 '+planCnt+' 個課次一起刪除。</span>':'')
+        +'<br><span class="hint">此動作無法復原。</span>', ()=>{
+        state.children=state.children.filter(x=>x.id!==ch.id);
+        /* 讀書計劃放在 state 層、用 childId 關聯，刪孩子時要一起清掉，
+           否則會留下永遠讀不到的孤兒資料，存檔只會愈長愈大 */
+        const sp=studyPlan();
+        sp.items=sp.items.filter(i=>i.childId!==ch.id);
+        sp.subjects=sp.subjects.filter(x=>x.childId!==ch.id);
+        sp.exams=sp.exams.filter(x=>x.childId!==ch.id);
+        if(state.activeChildId===ch.id){ state.activeChildId=state.children[0].id; planSubjectId=null; planMaterial=null; }
+        save(); toast('🗑 已刪除「'+(ch.name||'孩子')+'」'); renderParent();
+      });
     };
     const ai=$('#age'+ch.id); if(ai) ai.onchange=()=>{ const v=Number(ai.value)||7; ch.age=Math.min(15,Math.max(3,v)); ch.levelOverride=''; save(); renderParent(); toast('🎚 '+ch.name+' 年齡設為 '+ch.age+' 歲（'+DIFF_MAP[childLevel(ch)].name+'）'); };
   });
