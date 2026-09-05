@@ -533,6 +533,8 @@
   .plan-crumb .crumb-now{font-weight:800; color:var(--ink);}
   .row-del{border:none; background:none; color:var(--muted); font-size:15px; cursor:pointer; padding:2px 6px; border-radius:8px; flex:0 0 auto;}
   .row-del:hover{background:#fdecea; color:#c0392b;}
+  .row-ins{border:none; background:none; color:var(--leaf-dark); font-size:16px; font-weight:900; cursor:pointer; padding:2px 6px; border-radius:8px; flex:0 0 auto;}
+  .row-ins:hover{background:#e5f1df;}
   .exam-zone{border:1px solid var(--line); border-radius:var(--radius); background:rgba(255,253,247,.95); padding:14px; margin:10px 0;}
   .exam-card{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 12px; border-radius:12px; background:#f8faf6; margin-top:8px;}
   .exam-card.past{opacity:.55;}
@@ -1632,7 +1634,22 @@ function studyMaterialsOf(subjectId){
   return seen;
 }
 function studyItemsOfMaterial(subjectId, material){
-  return studyItemsOfSubject(subjectId).filter(it=>it.material===material).sort((a,b)=>a.lesson-b.lesson);
+  return studyItemsOfSubject(subjectId).filter(it=>it.material===material)
+    .sort((a,b)=> a.lesson-b.lesson || (a.part||1)-(b.part||1));
+}
+/* 同一課次插入第二、三張（例如一個單元兩張測驗卷）：沿用同一個 lesson，用 part 區分 */
+function insertStudyRow(afterItemId, name){
+  const it=studyItems().find(x=>x.id===afterItemId); if(!it) return null;
+  const sibs=studyItemsOfMaterial(it.subjectId, it.material).filter(x=>x.lesson===it.lesson);
+  const part=Math.max(...sibs.map(x=>x.part||1))+1;
+  const row={ id:'sp_'+Date.now().toString(36)+'_p'+part+Math.floor(Math.random()*100),
+    childId:it.childId, subjectId:it.subjectId, material:it.material,
+    lesson:it.lesson, part, lessonName:(name||'').trim(), due:'', done:false, doneAt:null };
+  studyPlan().items.push(row); save(); return row;
+}
+/* 這一課有幾張（>1 才需要顯示 (2)(3)） */
+function studySiblingCount(it){
+  return studyItemsOfMaterial(it.subjectId, it.material).filter(x=>x.lesson===it.lesson).length;
 }
 function addStudySubject(childId, name, icon){
   const sub={id:'sub_'+Date.now().toString(36)+Math.floor(Math.random()*100), childId, name:name.trim(), icon:icon||'📚'};
@@ -1656,7 +1673,7 @@ function addStudyLessons(childId, subjectId, material, lessonNames, startNo){
     if(exist.has(lesson)) return;
     made.push({
       id:'sp_'+Date.now().toString(36)+'_'+idx+Math.floor(Math.random()*100),
-      childId, subjectId, material, lesson,
+      childId, subjectId, material, lesson, part:1,
       lessonName:(nm||'').trim(),
       due:'', done:false, doneAt:null
     });
@@ -1667,7 +1684,8 @@ function addStudyLessons(childId, subjectId, material, lessonNames, startNo){
 function studyItemLabel(it){
   const sub=studySubjectById(it.subjectId);
   const nm=it.lessonName? ' '+it.lessonName : '';
-  return (sub?sub.name:'')+' '+it.material+' 第'+it.lesson+'課'+nm;
+  const p=(it.part||1)>1 ? ' ('+it.part+')' : '';
+  return (sub?sub.name:'')+' '+it.material+' 第'+it.lesson+'課'+p+nm;
 }
 /* 某天是否為假日（排程用，可查任意日期，不只今天） */
 function isHolidayOn(key){
@@ -3990,6 +4008,7 @@ function paintPlanLessons(){
   const sub=studySubjectById(planSubjectId);
   const items=studyItemsOfMaterial(sub.id, planMaterial);
   const today=dateKey();
+  const unitWord=/數學|社會|自然/.test(sub.name)?'單元':'課';
   box.innerHTML=`
     <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ ${sub.name}</button>
       <span class="crumb-now">${sub.icon||'📚'} ${sub.name} · ${planMaterial}</span>
@@ -4001,11 +4020,13 @@ function paintPlanLessons(){
     <div class="plan-detail">
       ${items.length? items.map(it=>{
         const od=!it.done && it.due && it.due<today, isToday=it.due===today;
+        const multi=studySiblingCount(it)>1;
         return `<label class="plan-row${it.done?' done':''}${od?' overdue':''}${isToday?' today':''}">
           <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
-          <span class="pr-main"><span class="pr-label">第${it.lesson}課${it.lessonName?' '+it.lessonName:''}</span>
+          <span class="pr-main"><span class="pr-label">第${it.lesson}${unitWord}${multi?' ('+(it.part||1)+')':''}${it.lessonName?' '+it.lessonName:''}</span>
             <span class="pr-due">${it.due? ((od?'⚠️ 逾期 · ':'')+(isToday?'📌 今天 · ':'')+it.due.slice(5).replace('-','/')) : '🕗 尚未排程（設定考試後自動排）'}</span></span>
-          <button class="row-del" data-del="${it.id}" title="刪除這一課">✕</button>
+          <button class="row-ins" data-ins="${it.id}" title="在下面插入一列（同一${unitWord}的第二張）">＋</button>
+          <button class="row-del" data-del="${it.id}" title="刪除這一列">✕</button>
         </label>`;
       }).join('') : '<p class="hint">這本教材還沒有課次。</p>'}
     </div>`;
@@ -4023,6 +4044,9 @@ function paintPlanLessons(){
   };
   box.querySelectorAll('input[data-sid]').forEach(inp=>{
     inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
+  });
+  box.querySelectorAll('[data-ins]').forEach(b=>{
+    b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation(); openInsertRowModal(b.dataset.ins, unitWord); };
   });
   box.querySelectorAll('[data-del]').forEach(b=>{
     b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
@@ -4130,6 +4154,37 @@ function openCopyModal(subjectId, fromMaterial){
     if(!made.length){ badSound(); toast('「'+to+'」已經有這些課次了'); return; }
     goodSound(); toast('📋 已複製 '+made.length+' 課到「'+to+'」');
     planMaterial=to; renderStudyPlan();
+  };
+}
+/* 在某一列下面插入一列（同一課次的第二、三張，例如一個單元兩張測驗卷） */
+function openInsertRowModal(afterItemId, unitWord){
+  const it=studyItems().find(x=>x.id===afterItemId); if(!it) return;
+  const w=unitWord||'課';
+  const next=studyItemsOfMaterial(it.subjectId,it.material).filter(x=>x.lesson===it.lesson).length+1;
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>＋ 插入一列</h3>
+    <p class="hint" style="margin:8px 0 0;">會插在「第${it.lesson}${w}${it.lessonName?' '+it.lessonName:''}」下面，一樣算第${it.lesson}${w}（顯示為 (${next})），後面的編號不會被往後推。</p>
+    <div class="mod-row" style="margin-top:12px;"><label>這一列的名稱</label><br>
+      <input id="insNm" class="in" style="width:100%;max-width:none;" placeholder="例如：測驗卷B、第二回、複習卷">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+        ${['第二張','測驗卷B','第二回','複習卷'].map(t=>`<button class="reset-btn" data-pre2="${t}" style="padding:6px 10px;font-size:13px;">${t}</button>`).join('')}
+      </div></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="next-btn" id="insGo" style="flex:1;">＋ 插入</button>
+      <button class="reset-btn" id="insCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-pre2]').forEach(b=> b.onclick=()=>{ ov.querySelector('#insNm').value=b.dataset.pre2; });
+  ov.querySelector('#insCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#insGo').onclick=()=>{
+    const row=insertStudyRow(afterItemId, ov.querySelector('#insNm').value);
+    ov.remove();
+    if(!row){ badSound(); return; }
+    goodSound(); toast('＋ 已插入第'+row.lesson+w+' ('+row.part+')');
+    renderStudyPlan();
   };
 }
 /* 新增科目 */
