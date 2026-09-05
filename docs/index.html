@@ -1855,6 +1855,30 @@ function scheduleForExam(exam, skipHolidays=true){
       everyDays: c>1 ? Math.round(usable.length/c) : usable.length
     });
   });
+  /* 反混疊：上面用固定間隔取「可用日」的索引，而每週的可用天數也是固定的，
+     兩者共振時整批課次會落在同一個星期幾（實測 8 項全擠在週一、週二，
+     週三四六日完全空白）。這裡在理想位置附近 ±2 格內找一個「最近幾項還沒用過
+     的星期幾」，破壞共振但幾乎不影響間隔平均度。 */
+  scopes.forEach(grp=>{
+    const recent=[];
+    let prevIdx=-1;
+    grp.items.forEach(it=>{
+      const ideal=usable.indexOf(it.due);
+      if(ideal<0) return;
+      let pick=ideal;
+      for(const off of [0,1,-1,2,-2]){
+        const i=ideal+off;
+        if(i<0 || i>=usable.length || i<=prevIdx) continue;
+        if(!recent.includes(weekdayOf(usable[i]))){ pick=i; break; }
+      }
+      if(pick<=prevIdx) pick=Math.min(prevIdx+1, usable.length-1);
+      it.due=usable[pick];
+      recent.push(weekdayOf(usable[pick]));
+      if(recent.length>2) recent.shift();
+      prevIdx=pick;
+    });
+  });
+
   /* 套用教材先後：同一科裡，後段教材的每一課要排在主教材對應課次之後 */
   const bySubject={};
   scopes.forEach(g=>{ (bySubject[g.sc.subjectId]=bySubject[g.sc.subjectId]||[]).push(g); });
