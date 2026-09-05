@@ -1784,6 +1784,24 @@ function parseKey(key){ const [y,m,d]=key.split('-').map(Number); return new Dat
 function addDaysKey(key, n){ const d=parseKey(key); d.setDate(d.getDate()+n); return dateKeyOf(d); }
 function daysBetween(aKey, bKey){ return Math.round((parseKey(bKey)-parseKey(aKey))/86400000); }
 /* 依考試往回推：把範圍內未完成的課次鋪在「今天 ~ 考試前一天」 */
+/* 教材先後：自修/課本要先寫完，才輪到測驗卷/評量。
+   用名稱優先序自動判定，家長不用另外設定；沒對到的（自訂名稱）排最後。 */
+const MATERIAL_ORDER=['自修','課本','講義','習作','測驗卷','考卷','評量'];
+function materialRank(m){
+  const i=MATERIAL_ORDER.findIndex(x=>String(m||'').includes(x));
+  return i<0 ? MATERIAL_ORDER.length : i;
+}
+/* 找出這一課的前置日期：主教材同課次的日期；課次超出主教材範圍時，
+   就掛在主教材最後一課之後（例如自修只有 3 課、評量有 8 張） */
+function prereqDueFor(item, baseItems){
+  if(!baseItems.length) return null;
+  const same=baseItems.filter(b=>b.lesson<=item.lesson);
+  const pool=same.length?same:baseItems;
+  let latest=null;
+  pool.forEach(b=>{ if(b.due && (!latest || b.due>latest)) latest=b.due; });
+  return latest;
+}
+
 /* 依考試往回推。
    關鍵：不是把各科串成一長串依序鋪（那會變成先唸完國語才輪到數學），
    而是「每一科各自平均分散在整個備考期間」，這樣每天自然會有不同科目交錯，
@@ -1835,6 +1853,34 @@ function scheduleForExam(exam, skipHolidays=true){
       name:(sub?sub.name:'')+' · '+grp.sc.material,
       count:c,
       everyDays: c>1 ? Math.round(usable.length/c) : usable.length
+    });
+  });
+  /* 套用教材先後：同一科裡，後段教材的每一課要排在主教材對應課次之後 */
+  const bySubject={};
+  scopes.forEach(g=>{ (bySubject[g.sc.subjectId]=bySubject[g.sc.subjectId]||[]).push(g); });
+  Object.values(bySubject).forEach(groups=>{
+    if(groups.length<2) return;
+    groups.sort((a,b)=> materialRank(a.sc.material)-materialRank(b.sc.material));
+    const base=groups[0].items;
+    groups.slice(1).forEach(g=>{
+      /* 用一個只往前走的指標重新指派，確保三件事同時成立：
+         1) 不早於自己原本平均分散的位置
+         2) 不早於前置課次（自修同課）的隔一個可用日
+         3) 不跟同教材前一項擠在同一天——否則被推移的項目會全部疊在
+            「自修最後一課的隔天」那一格 */
+      let ptr=0;
+      g.items.forEach(it=>{
+        let idx=usable.indexOf(it.due);
+        if(idx<0) idx=0;
+        const need=prereqDueFor(it, base);
+        if(need){
+          const ni=usable.findIndex(d=>d>need);
+          idx = ni>=0 ? Math.max(idx, ni) : usable.length-1;
+        }
+        idx=Math.min(Math.max(idx, ptr), usable.length-1);
+        it.due=usable[idx];
+        ptr=idx+1;
+      });
     });
   });
   save();
