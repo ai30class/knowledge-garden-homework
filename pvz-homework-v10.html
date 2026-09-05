@@ -3926,7 +3926,14 @@ function showEyeLock(msLeft){
   if(!ov){ ov=document.createElement('div'); ov.id='eyeLockOverlay';
     ov.innerHTML='<div class="el-emoji">👀🌿</div><div class="el-big">眼睛休息時間</div><div class="el-sub">你已經專心練習夠久了，現在要讓眼睛休息 '+state.restMin+' 分鐘。<br>這段時間不能繼續玩，去看看遠方、眨眨眼吧！</div><div class="el-count" id="eyeCount">00:00</div><div class="el-sub" style="margin-top:8px;">倒數結束後會自動解鎖</div><div class="el-parent"><button class="reset-btn" id="eyeParentUnlock">🔐 家長解鎖（需密碼）</button></div>';
     document.body.appendChild(ov);
-    const pb=$('#eyeParentUnlock'); if(pb) pb.onclick=()=>{ const pin=prompt('請輸入家長密碼：'); if(pin===state.parentPIN){ ov.className=''; const cc=C(); cc.eyeRestUntil=0; save(); toast('🔓 已家長解鎖'); } else if(pin!==null){ toast('密碼錯誤'); } };
+    const pb=$('#eyeParentUnlock'); if(pb) pb.onclick=()=>{
+      askInput({ title:'🔓 家長解除護眼鎖定', okLabel:'解除',
+        fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
+      }, v=>{
+        if(v.pin!==state.parentPIN) return '密碼不對';
+        ov.className=''; const cc=C(); cc.eyeRestUntil=0; save(); toast('🔓 已家長解鎖');
+      });
+    };
   }
   ov.className='show';
   const s=Math.max(0,Math.ceil(msLeft/1000)); const mm=String(Math.floor(s/60)).padStart(2,'0'); const ss=String(s%60).padStart(2,'0');
@@ -4414,6 +4421,47 @@ function askConfirm(msg, onYes, yesLabel){
   ov.querySelector('#acNo').onclick=close;
   ov.onclick=(e)=>{ if(e.target===ov) close(); };
   ov.querySelector('#acYes').onclick=()=>{ close(); onYes&&onYes(); };
+}
+/* 遊戲內建輸入視窗：取代原生 prompt()。
+   prompt() 在嵌入式預覽面板／部分 webview 會直接拋出「not supported」，
+   整個 handler 當場中斷，按下去完全沒反應（修改密碼就是這樣壞掉的）。
+   fields: [{id,label,type,placeholder,value,maxlength}]
+   onOk(values) 回傳字串則視為錯誤訊息、不關閉視窗。 */
+function askInput(opts, onOk){
+  const fields=opts.fields||[];
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>${opts.title||'請輸入'}</h3>
+    ${opts.hint?`<p class="hint" style="margin:8px 0 0;">${opts.hint}</p>`:''}
+    ${fields.map(f=>`<div class="mod-row"><label>${f.label}</label><br>
+      <input id="ai_${f.id}" class="in" type="${f.type||'text'}"
+        ${f.maxlength?`maxlength="${f.maxlength}"`:''}
+        ${f.inputmode?`inputmode="${f.inputmode}"`:''}
+        placeholder="${f.placeholder||''}" value="${(f.value||'').replace(/"/g,'&quot;')}"
+        style="width:100%;max-width:none;"></div>`).join('')}
+    <div class="feedback" id="aiErr" style="margin-top:4px;"></div>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="aiOk" style="flex:1;">${opts.okLabel||'確定'}</button>
+      <button class="reset-btn" id="aiNo" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const first=ov.querySelector('input'); if(first) setTimeout(()=>first.focus(),50);
+  const close=()=>ov.remove();
+  ov.querySelector('#aiNo').onclick=close;
+  ov.onclick=(e)=>{ if(e.target===ov) close(); };
+  const submit=()=>{
+    const vals={};
+    fields.forEach(f=>{ vals[f.id]=(ov.querySelector('#ai_'+f.id).value||'').trim(); });
+    const err=onOk(vals);
+    if(typeof err==='string' && err){
+      const box=ov.querySelector('#aiErr'); box.textContent=err; box.className='feedback bad'; badSound();
+      return;
+    }
+    close();
+  };
+  ov.querySelector('#aiOk').onclick=submit;
+  ov.querySelectorAll('input').forEach(inp=> inp.addEventListener('keydown',e=>{ if(e.key==='Enter') submit(); }));
 }
 /* 一鍵複製：把某教材的整份課次（課號＋課名）複製到另一個教材。
    只複製課次結構，不複製日期與完成狀態（新的教材要重新排程）。 */
@@ -7257,22 +7305,25 @@ function renderParent(){
   const bf=$('#bankFile');
   if(bf) bf.onchange=(e)=>{
     const f=e.target.files[0]; if(!f) return;
-    const nm=prompt('請輸入這份題庫的名稱：', f.name.replace(/\.[^.]+$/,''));
-    if(nm===null) return;
-    const name=nm.trim()||f.name;
-    const rd=new FileReader();
-    rd.onload=()=>{
-      const text=String(rd.result).replace(/^﻿/,''); // 去 BOM
-      const questions=parseQuestions(text);
-      if(!questions.length){ toast('沒有解析到題目，請檢查格式（建議另存 CSV UTF-8）'); return; }
-      const qBefore=questions.length, questions2=dedupQuestions(questions), qRemoved=qBefore-questions2.length;
-      const bid='b'+Date.now();
-      state.customBanks.push({id:bid, name, questions:questions2});
-      const hid='hc'+Date.now();
-      state.homeworkList.push({id:hid, name:'題庫：'+name, type:'custom', bankId:bid});
-      c.homework[hid]=false; save(); toast('📚 已上傳題庫：'+name+'（'+questions2.length+' 題'+(qRemoved? '，已移除 '+qRemoved+' 題重複': '')+'）'); renderParent();
-    };
-    rd.readAsText(f, 'utf-8');
+    askInput({ title:'📚 上傳題庫', okLabel:'上傳',
+      hint:'檔案：'+f.name,
+      fields:[{id:'name', label:'這份題庫的名稱', value:f.name.replace(/\.[^.]+$/,''), placeholder:'例如：康軒國語第一課'}]
+    }, v=>{
+      const name=v.name || f.name;
+      const rd=new FileReader();
+      rd.onload=()=>{
+        const text=String(rd.result).replace(/^﻿/,''); // 去 BOM
+        const questions=parseQuestions(text);
+        if(!questions.length){ toast('沒有解析到題目，請檢查格式（建議另存 CSV UTF-8）'); return; }
+        const qBefore=questions.length, questions2=dedupQuestions(questions), qRemoved=qBefore-questions2.length;
+        const bid='b'+Date.now();
+        state.customBanks.push({id:bid, name, questions:questions2});
+        const hid='hc'+Date.now();
+        state.homeworkList.push({id:hid, name:'題庫：'+name, type:'custom', bankId:bid});
+        c.homework[hid]=false; save(); toast('📚 已上傳題庫：'+name+'（'+questions2.length+' 題'+(qRemoved? '，已移除 '+qRemoved+' 題重複': '')+'）'); renderParent();
+      };
+      rd.readAsText(f, 'utf-8');
+    });
     e.target.value='';
   };
 
@@ -7304,9 +7355,18 @@ function renderParent(){
 
   /* handlers：密碼 / 鎖定 / 通知 */
   $('#chgPin').onclick=()=>{
-    const old=prompt('請輸入目前密碼：'); if(old!==state.parentPIN){ toast('目前密碼錯誤'); return; }
-    const np=prompt('請輸入新密碼（數字，最多 6 位）：'); if(!np||!/^\d{1,6}$/.test(np)){ toast('密碼格式不正確'); return; }
-    state.parentPIN=np; save(); toast('🔐 密碼已修改');
+    askInput({ title:'🔐 修改家長密碼', okLabel:'💾 修改',
+      hint:'密碼是數字，最多 6 位。忘記的話可以用家長後台的備份檔還原。',
+      fields:[
+        {id:'old', label:'目前密碼', type:'password', inputmode:'numeric', maxlength:6, placeholder:'預設 1234'},
+        {id:'nw',  label:'新密碼',   type:'password', inputmode:'numeric', maxlength:6, placeholder:'數字，最多 6 位'},
+        {id:'nw2', label:'再輸入一次新密碼', type:'password', inputmode:'numeric', maxlength:6}
+      ]}, v=>{
+      if(v.old!==state.parentPIN) return '目前密碼不對';
+      if(!/^\d{1,6}$/.test(v.nw)) return '新密碼只能是數字，最多 6 位';
+      if(v.nw!==v.nw2) return '兩次輸入的新密碼不一樣';
+      state.parentPIN=v.nw; save(); goodSound(); toast('🔐 密碼已修改為 '+v.nw);
+    });
   };
   $('#toggleLock').onclick=()=>{ state.sleepLock=!state.sleepLock; save(); renderParent(); };
   $('#toggleEye').onclick=()=>{ state.eyeRestOn=!state.eyeRestOn; save(); renderParent(); };
