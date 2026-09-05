@@ -1,5 +1,5 @@
 /* 知識小花園 PWA Service Worker — 離線快取 */
-const CACHE_VER = 'garden-v1';
+const CACHE_VER = 'garden-v2';
 const CORE = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
