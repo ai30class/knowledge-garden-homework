@@ -3897,8 +3897,10 @@ function paintExamZone(){
   });
   box.querySelectorAll('[data-exdel]').forEach(b=> b.onclick=()=>{
     const e=studyPlan().exams.find(x=>x.id===b.dataset.exdel); if(!e) return;
-    if(!confirm('刪除考試「'+e.name+'」？（已排好的課次日期會保留，不會被清掉）')) return;
-    studyPlan().exams=studyPlan().exams.filter(x=>x.id!==e.id); save(); renderStudyPlan();
+    askConfirm('刪除考試「'+e.name+'」？<br><span class="hint">已排好的課次日期會保留，不會被清掉。</span>', ()=>{
+      studyPlan().exams=studyPlan().exams.filter(x=>x.id!==e.id); save();
+      toast('🗑 已刪除考試「'+e.name+'」'); renderStudyPlan();
+    });
   });
 }
 /* 層級一：科目清單 */
@@ -3955,8 +3957,10 @@ function paintPlanMaterials(){
   $('#planBack').onclick=()=>{ planSubjectId=null; planMaterial=null; renderStudyPlan(); };
   $('#subDel').onclick=()=>{
     const n=studyItemsOfSubject(sub.id).length;
-    if(!confirm('刪除「'+sub.name+'」以及底下 '+n+' 筆課次？')) return;
-    deleteStudySubject(sub.id); planSubjectId=null; planMaterial=null; toast('🗑 已刪除 '+sub.name); renderStudyPlan();
+    askConfirm('刪除「'+sub.name+'」以及底下 '+n+' 筆課次？<br><span class="hint">這個動作無法復原。</span>', ()=>{
+      deleteStudySubject(sub.id); planSubjectId=null; planMaterial=null;
+      toast('🗑 已刪除 '+sub.name); renderStudyPlan();
+    });
   };
   $$('.plan-sub').forEach(b=> b.onclick=()=>{ planMaterial=decodeURIComponent(b.dataset.mat); renderStudyPlan(); });
   $('#matAdd').onclick=()=>openLessonModal(sub.id, null);
@@ -3970,7 +3974,11 @@ function paintPlanLessons(){
   box.innerHTML=`
     <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ ${sub.name}</button>
       <span class="crumb-now">${sub.icon||'📚'} ${sub.name} · ${planMaterial}</span>
-      <button class="reset-btn" id="matAdd2" style="margin-left:auto;">＋ 加課次</button></div>
+      <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
+        <button class="reset-btn" id="matCopy" ${items.length?'':'disabled'}>📋 複製到其他教材</button>
+        <button class="reset-btn" id="matAdd2">＋ 加課次</button>
+        <button class="reset-btn" id="matDel">🗑</button>
+      </span></div>
     <div class="plan-detail">
       ${items.length? items.map(it=>{
         const od=!it.done && it.due && it.due<today, isToday=it.due===today;
@@ -3984,6 +3992,16 @@ function paintPlanLessons(){
     </div>`;
   $('#planBack').onclick=()=>{ planMaterial=null; renderStudyPlan(); };
   $('#matAdd2').onclick=()=>openLessonModal(sub.id, planMaterial);
+  const mc=$('#matCopy'); if(mc && !mc.disabled) mc.onclick=()=>openCopyModal(sub.id, planMaterial);
+  $('#matDel').onclick=()=>{
+    const m=planMaterial;
+    askConfirm('刪除「'+sub.name+' · '+m+'」底下的 '+items.length+' 課？<br><span class="hint">這個動作無法復原。</span>', ()=>{
+      const sp=studyPlan();
+      sp.items=sp.items.filter(i=>!(i.subjectId===sub.id && i.material===m));
+      sp.exams.forEach(e=>{ e.scopes=(e.scopes||[]).filter(s=>!(s.subjectId===sub.id && s.material===m)); });
+      save(); planMaterial=null; toast('🗑 已刪除「'+m+'」'); renderStudyPlan();
+    });
+  };
   box.querySelectorAll('input[data-sid]').forEach(inp=>{
     inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
   });
@@ -4024,6 +4042,76 @@ function paintPlanWeek(){
   box.querySelectorAll('input[data-sid]').forEach(inp=>{
     inp.onchange=()=>{ toggleStudyItem(inp.dataset.sid); renderStudyPlan(); };
   });
+}
+/* 遊戲內建確認視窗：取代原生 confirm()。
+   有些情境（嵌入式預覽面板、部分 webview）會直接擋掉原生 confirm 並回傳 false，
+   造成刪除按鈕按了沒反應，所以刪除類動作一律走這個。 */
+function askConfirm(msg, onYes, yesLabel){
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>請確認</h3>
+    <p style="line-height:1.8;margin:10px 0 0;">${msg}</p>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="next-btn" id="acYes" style="flex:1;">${yesLabel||'確定刪除'}</button>
+      <button class="reset-btn" id="acNo" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('#acNo').onclick=close;
+  ov.onclick=(e)=>{ if(e.target===ov) close(); };
+  ov.querySelector('#acYes').onclick=()=>{ close(); onYes&&onYes(); };
+}
+/* 一鍵複製：把某教材的整份課次（課號＋課名）複製到另一個教材。
+   只複製課次結構，不複製日期與完成狀態（新的教材要重新排程）。 */
+function copyMaterialLessons(subjectId, fromMaterial, toMaterial){
+  const src=studyItemsOfMaterial(subjectId, fromMaterial);
+  const exist=new Set(studyItemsOfMaterial(subjectId, toMaterial).map(i=>i.lesson));
+  const made=src.filter(i=>!exist.has(i.lesson)).map((i,idx)=>({
+    id:'sp_'+Date.now().toString(36)+'_c'+idx+Math.floor(Math.random()*100),
+    childId:i.childId, subjectId, material:toMaterial,
+    lesson:i.lesson, lessonName:i.lessonName,
+    due:'', done:false, doneAt:null
+  }));
+  studyPlan().items.push(...made); save();
+  return made;
+}
+/* 複製到其他教材的視窗 */
+function openCopyModal(subjectId, fromMaterial){
+  const sub=studySubjectById(subjectId); if(!sub) return;
+  const src=studyItemsOfMaterial(subjectId, fromMaterial);
+  const others=studyMaterialsOf(subjectId).filter(m=>m!==fromMaterial);
+  const presets=['自修','講義','測驗卷','評量','習作'].filter(m=>m!==fromMaterial);
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>📋 複製課次到其他教材</h3>
+    <p class="hint" style="margin:8px 0 0;">把「${sub.name} · ${fromMaterial}」的 ${src.length} 課（含課名）整份複製過去，日期與完成狀態不會跟著複製，複製完可以重新排程。</p>
+    <div class="mod-row" style="margin-top:12px;"><label>複製到哪個教材</label><br>
+      <input id="cpTo" class="in" style="width:100%;max-width:none;" placeholder="例如：測驗卷" list="cpList">
+      <datalist id="cpList">${[...new Set(presets.concat(others))].map(m=>`<option value="${m}">`).join('')}</datalist></div>
+    <div class="mod-row"><label>快速選擇</label><br>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+        ${[...new Set(presets.concat(others))].map(m=>`<button class="reset-btn" data-cp="${m}" style="padding:6px 12px;font-size:13px;">${m}${others.includes(m)?'（已有）':''}</button>`).join('')}
+      </div></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button class="next-btn" id="cpGo" style="flex:1;">📋 複製 ${src.length} 課</button>
+      <button class="reset-btn" id="cpCancel" style="flex:1;">取消</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  ov.querySelectorAll('[data-cp]').forEach(b=> b.onclick=()=>{ ov.querySelector('#cpTo').value=b.dataset.cp; });
+  ov.querySelector('#cpCancel').onclick=()=>ov.remove();
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+  ov.querySelector('#cpGo').onclick=()=>{
+    const to=(ov.querySelector('#cpTo').value||'').trim();
+    if(!to){ badSound(); toast('請輸入或選擇要複製到哪個教材'); return; }
+    if(to===fromMaterial){ badSound(); toast('不能複製到同一個教材'); return; }
+    const made=copyMaterialLessons(subjectId, fromMaterial, to);
+    ov.remove();
+    if(!made.length){ badSound(); toast('「'+to+'」已經有這些課次了'); return; }
+    goodSound(); toast('📋 已複製 '+made.length+' 課到「'+to+'」');
+    planMaterial=to; renderStudyPlan();
+  };
 }
 /* 新增科目 */
 function openSubjectModal(){
