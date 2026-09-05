@@ -4130,8 +4130,7 @@ function openCopyModal(subjectId, fromMaterial){
     <h3>📋 複製課次到其他教材</h3>
     <p class="hint" style="margin:8px 0 0;">把「${sub.name} · ${fromMaterial}」的 ${src.length} 課（含課名）整份複製過去，日期與完成狀態不會跟著複製，複製完可以重新排程。</p>
     <div class="mod-row" style="margin-top:12px;"><label>複製到哪個教材</label><br>
-      <input id="cpTo" class="in" style="width:100%;max-width:none;" placeholder="例如：測驗卷" list="cpList">
-      <datalist id="cpList">${[...new Set(presets.concat(others))].map(m=>`<option value="${m}">`).join('')}</datalist></div>
+      <input id="cpTo" class="in" style="width:100%;max-width:none;" placeholder="例如：測驗卷"></div>
     <div class="mod-row"><label>快速選擇</label><br>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
         ${[...new Set(presets.concat(others))].map(m=>`<button class="reset-btn" data-cp="${m}" style="padding:6px 12px;font-size:13px;">${m}${others.includes(m)?'（已有）':''}</button>`).join('')}
@@ -4230,8 +4229,10 @@ function openLessonModal(subjectId, fixedMaterial){
   ov.innerHTML=`<div class="modal">
     <h3>${fixedMaterial?'＋ 加課次到「'+fixedMaterial+'」':'＋ 新增教材與課次'}</h3>
     ${fixedMaterial?'':`<div class="mod-row"><label>教材名稱</label><br>
-      <input id="matNm" class="in" style="width:100%;max-width:none;" placeholder="例如：自修 / 測驗卷 / 評量" list="matList">
-      <datalist id="matList">${['自修','測驗卷','評量','講義','習作'].concat(mats).map(m=>`<option value="${m}">`).join('')}</datalist></div>`}
+      <input id="matNm" class="in" style="width:100%;max-width:none;" placeholder="例如：自修 / 測驗卷 / 評量">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
+        ${[...new Set(['自修','講義','測驗卷','評量','習作'].concat(mats))].map(m=>`<button class="reset-btn" data-mat-pre="${m}" type="button" style="padding:6px 10px;font-size:13px;">${m}${mats.includes(m)?'（已有）':''}</button>`).join('')}
+      </div></div>`}
     <div class="mod-row"><label>從第幾課開始</label><br>
       <input id="lsStart" class="in" type="number" min="1" value="${nextNo}" style="width:90px;"></div>
     <div class="mod-row"><label>課名（一行一課）</label><br>
@@ -4257,6 +4258,7 @@ function openLessonModal(subjectId, fixedMaterial){
     </div>
   </div>`;
   document.body.appendChild(ov);
+  ov.querySelectorAll('[data-mat-pre]').forEach(b=> b.onclick=()=>{ ov.querySelector('#matNm').value=b.dataset.matPre; });
   /* 課本帶入：選出版社→科目選單跟著變；帶入後填進課名欄，可再自行增減 */
   const tbPub=ov.querySelector('#tbPub'), tbGrade=ov.querySelector('#tbGrade'),
         tbSubj=ov.querySelector('#tbSubj'), tbSem=ov.querySelector('#tbSem'), tbHint=ov.querySelector('#tbHint');
@@ -4278,7 +4280,9 @@ function openLessonModal(subjectId, fixedMaterial){
     const d=textbookLessons(tbPub.value, tbGrade.value, tbSubj.value, tbSem.value);
     if(!d){ badSound(); toast('這個組合目前沒有課本資料'); return; }
     ov.querySelector('#lsNames').value = d.n.join('\n');
-    ov.querySelector('#lsStart').value = 1;
+    /* 只有這本教材還沒有任何課次時才從第 1 課開始；已有課次就沿用接續編號，
+       否則會跟既有課號撞號、被當成重複而整批略過 */
+    if(!exist.length) ov.querySelector('#lsStart').value = 1;
     if(!fixedMaterial){
       const mt=ov.querySelector('#matNm');
       if(mt && !mt.value.trim()) mt.value = (d.u==='課' ? '課本' : '課本');
@@ -4295,10 +4299,13 @@ function openLessonModal(subjectId, fixedMaterial){
     /* 有打課名就用課名；沒打就看「共幾課」，產生沒有課名的課次 */
     const names = typed.length ? typed : (cnt>0 ? new Array(cnt).fill('') : []);
     if(!names.length){ badSound(); toast('請貼上課名，或填「共幾課」'); return; }
-    const made=addStudyLessons(C().id, subjectId, material, names, ov.querySelector('#lsStart').value);
+    const startNo=parseInt(ov.querySelector('#lsStart').value)||1;
+    const made=addStudyLessons(C().id, subjectId, material, names, startNo);
     ov.remove();
-    if(!made.length){ badSound(); toast('這些課次已經存在了'); return; }
-    goodSound(); toast('📖 已新增 '+made.length+' 課到「'+material+'」');
+    const skipped=names.length-made.length;
+    if(!made.length){ badSound(); toast('第'+startNo+'課起的課號都已經存在了，請改「從第幾課開始」'); return; }
+    goodSound();
+    toast('📖 已新增 '+made.length+' 課到「'+material+'」'+(skipped?'（'+skipped+' 課因課號重複略過）':''));
     planMaterial=material; renderStudyPlan();
   };
 }
