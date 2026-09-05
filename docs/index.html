@@ -1709,14 +1709,46 @@ function insertStudyRow(afterItemId, name, kind){
   const idx=list.findIndex(x=>x.id===afterItemId);
   const nextSeq = idx+1<list.length ? list[idx+1].seq : it.seq+20;
   const seq=(it.seq+nextSeq)/2;                       // 插在兩者中間
-  const isExtra = kind==='extra';
-  const sibs=list.filter(x=>x.lesson===it.lesson && !x.extra);
+  /* 在獨立項目（複習考）上按「第二張」，要做成「複習考 (2)」而不是
+     它前面那一課的第二張——獨立項目內部仍帶著前一課的 lesson 編號，
+     直接照編號做會變成「第3課 (2)」 */
+  const fromExtraSecond = (kind==='part' && it.extra);
+  const isExtra = (kind==='extra') || fromExtraSecond;
+  const nm = fromExtraSecond ? (it.lessonName||'複習考')
+                             : ((name||'').trim() || (isExtra?'複習考':''));
+  let part;
+  if(isExtra){
+    /* 同一課次底下、同名的獨立項目算同一組，第二張才標 (2) */
+    const sibs=list.filter(x=>x.extra && x.lesson===it.lesson && (x.lessonName||'')===nm);
+    part = sibs.length ? Math.max(...sibs.map(x=>x.part||1))+1 : 1;
+  } else {
+    const sibs=list.filter(x=>!x.extra && x.lesson===it.lesson);
+    part = sibs.length ? Math.max(...sibs.map(x=>x.part||1))+1 : 1;
+  }
   const row={ id:'sp_'+Date.now().toString(36)+'_i'+Math.floor(Math.random()*1000),
     childId:it.childId, subjectId:it.subjectId, material:it.material,
-    lesson:it.lesson, part:isExtra?1:Math.max(...sibs.map(x=>x.part||1))+1,
-    extra:isExtra, seq,
-    lessonName:(name||'').trim()||(isExtra?'複習考':''), due:'', done:false, doneAt:null };
-  studyPlan().items.push(row); save(); return row;
+    lesson:it.lesson, part, extra:isExtra, seq,
+    lessonName:nm, due:'', done:false, doneAt:null };
+  studyPlan().items.push(row);
+  renumberParts(it.subjectId, it.material);
+  save(); return row;
+}
+/* 插入或搬移之後，同一組的 (1)(2)(3) 要跟著實際顯示順序重新編號，
+   否則在中間插一張會變成 (1)(3)(2)。
+   分組：一般課次＝同課次；獨立項目＝同課次且同名稱。 */
+function renumberParts(subjectId, material){
+  const list=studyItemsOfMaterial(subjectId, material);
+  const groups={};
+  list.forEach(it=>{
+    const key=(it.extra?'E|'+(it.lessonName||''):'L')+'|'+it.lesson;
+    (groups[key]=groups[key]||[]).push(it);
+  });
+  Object.values(groups).forEach(g=>{ g.forEach((it,i)=>{ it.part=i+1; }); });
+}
+/* 同名獨立項目有幾張（>1 才需要顯示 (2)(3)） */
+function extraSiblingCount(it){
+  return studyItemsOfMaterial(it.subjectId, it.material)
+    .filter(x=>x.extra && x.lesson===it.lesson && (x.lessonName||'')===(it.lessonName||'')).length;
 }
 /* 上下移動一列：跟相鄰的那一列交換 seq */
 function moveStudyRow(id, dir){
@@ -1726,6 +1758,7 @@ function moveStudyRow(id, dir){
   const j=i+(dir<0?-1:1);
   if(j<0 || j>=list.length) return false;
   const a=list[i].seq; list[i].seq=list[j].seq; list[j].seq=a;
+  renumberParts(it.subjectId, it.material);
   save(); return true;
 }
 /* 這一課有幾張（>1 才需要顯示 (2)(3)） */
@@ -1767,7 +1800,7 @@ function addStudyLessons(childId, subjectId, material, lessonNames, startNo){
 function studyItemLabel(it){
   const sub=studySubjectById(it.subjectId);
   const base=(sub?sub.name:'')+' '+it.material+' ';
-  if(it.extra) return base+(it.lessonName||'複習考');
+  if(it.extra) return base+(it.lessonName||'複習考')+(extraSiblingCount(it)>1?' ('+(it.part||1)+')':'');
   const nm=it.lessonName? ' '+it.lessonName : '';
   const p=(it.part||1)>1 ? ' ('+it.part+')' : '';
   return base+'第'+it.lesson+'課'+p+nm;
@@ -4283,7 +4316,7 @@ function paintPlanLessons(){
         const multi=!it.extra && studySiblingCount(it)>1;
         return `<label class="plan-row${it.done?' done':''}${od?' overdue':''}${isToday?' today':''}${it.extra?' extra':''}">
           <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
-          <span class="pr-main"><span class="pr-label">${it.extra? '📄 '+(it.lessonName||'複習考') : ('第'+it.lesson+unitWord+(multi?' ('+(it.part||1)+')':'')+(it.lessonName?' '+it.lessonName:''))}</span>
+          <span class="pr-main"><span class="pr-label">${it.extra? ('📄 '+(it.lessonName||'複習考')+(extraSiblingCount(it)>1?' ('+(it.part||1)+')':'')) : ('第'+it.lesson+unitWord+(multi?' ('+(it.part||1)+')':'')+(it.lessonName?' '+it.lessonName:''))}</span>
             <span class="pr-due">${it.due? ((od?'⚠️ 逾期 · ':'')+(isToday?'📌 今天 · ':'')+it.due.slice(5).replace('-','/')) : '🕗 尚未排程（設定考試後自動排）'}</span></span>
           <span class="row-btns">
             ${showWordsFor(it)?`<button class="row-word${itemWords(it).length?' has':''}" data-word="${it.id}" title="${itemWords(it).length?('這一課有 '+itemWords(it).length+' 個單字，點我考試'):'加入單字'}">📝${itemWords(it).length||''}</button>`:''}
@@ -4611,7 +4644,9 @@ function openInsertRowModal(afterItemId, unitWord){
         <label class="ins-opt on"><input type="radio" name="insKind" value="extra" checked>
           <span><b>獨立項目</b><small>穿插在課次之間，只顯示名稱，例如複習考、段考</small></span></label>
         <label class="ins-opt"><input type="radio" name="insKind" value="part">
-          <span><b>同一${w}的第二張</b><small>一樣算第${it.lesson}${w}，顯示為 (2)、(3)</small></span></label>
+          <span><b>${it.extra? '「'+(it.lessonName||'複習考')+'」的第二張' : '同一'+w+'的第二張'}</b>
+            <small>${it.extra? '同樣是「'+(it.lessonName||'複習考')+'」，顯示為 (2)、(3)'
+                             : '一樣算第'+it.lesson+w+'，顯示為 (2)、(3)'}</small></span></label>
       </div></div>
     <div class="mod-row"><label>名稱</label><br>
       <input id="insNm" class="in" style="width:100%;max-width:none;" placeholder="例如：複習考" value="複習考">
@@ -4622,13 +4657,18 @@ function openInsertRowModal(afterItemId, unitWord){
     </div>
   </div>`;
   document.body.appendChild(ov);
-  const PRE={extra:['複習考','段考','小考','補充卷'], part:['第二張','測驗卷B','第二回','複習卷']};
+  const PRE={extra:['複習考','段考','小考','補充卷'],
+             part: it.extra ? [] : ['第二張','測驗卷B','第二回','複習卷']};
   const kindOf=()=> ov.querySelector('input[name=insKind]:checked').value;
   const paintPre=()=>{
     const k=kindOf();
+    const nmRow=ov.querySelector('#insNm').closest('.mod-row');
+    /* 獨立項目的第二張沿用原名，不用再填 */
+    if(k==='part' && it.extra){ nmRow.style.display='none'; return; }
+    nmRow.style.display='';
     ov.querySelector('#insPre').innerHTML=PRE[k].map(t=>`<button class="reset-btn" data-pre2="${t}" type="button" style="padding:6px 10px;font-size:13px;">${t}</button>`).join('');
     ov.querySelectorAll('[data-pre2]').forEach(b=> b.onclick=()=>{ ov.querySelector('#insNm').value=b.dataset.pre2; });
-    ov.querySelector('#insNm').value = PRE[k][0];
+    if(PRE[k].length) ov.querySelector('#insNm').value = PRE[k][0];
   };
   ov.querySelectorAll('input[name=insKind]').forEach(rd=> rd.onchange=()=>{
     ov.querySelectorAll('.ins-opt').forEach(l=> l.classList.toggle('on', l.querySelector('input').checked));
@@ -4643,7 +4683,8 @@ function openInsertRowModal(afterItemId, unitWord){
     ov.remove();
     if(!row){ badSound(); return; }
     goodSound();
-    toast(k==='extra' ? ('＋ 已插入「'+(row.lessonName)+'」') : ('＋ 已插入第'+row.lesson+w+' ('+row.part+')'));
+    toast(row.extra ? ('＋ 已插入「'+row.lessonName+'」'+((row.part||1)>1?' ('+row.part+')':''))
+                    : ('＋ 已插入第'+row.lesson+w+' ('+row.part+')'));
     renderStudyPlan();
   };
 }
