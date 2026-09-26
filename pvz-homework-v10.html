@@ -1585,9 +1585,9 @@ function addSun(n, silent){
   if(c.sun<0) c.sun=0;
   save(); $$('.sunCount').forEach(e=>e.textContent=c.sun);
 }
-function toast(msg){
+function toast(msg, ms){
   const t=$('#toast'); t.textContent=msg; t.classList.add('show');
-  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'),2000);
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'), ms||2000);
 }
 function record(module, correct){
   const c=C();
@@ -4575,6 +4575,44 @@ function askConfirm(msg, onYes, yesLabel){
   ov.onclick=(e)=>{ if(e.target===ov) close(); };
   ov.querySelector('#acYes').onclick=()=>{ close(); onYes&&onYes(); };
 }
+/* 拍照出題：遊戲本身不串任何 AI 服務（靜態網頁放金鑰會被任何人拿走），
+   改成給家長一段固定指令，搭配自己平常用的 AI 把照片轉成題庫格式再貼回來。 */
+const PHOTO_BANK_PROMPT=`請把照片裡的題目整理成練習題，規則：
+1. 每行一題，格式：題目 | 正確答案 | 錯誤選項1 | 錯誤選項2 | 錯誤選項3
+2. 原本不是選擇題的（填空、問答），請改寫成選擇題，並補 3 個看起來合理但錯誤的選項
+3. 錯誤選項要跟正確答案同類型、長度差不多，不要一看就知道是錯的
+4. 看不清楚或不確定答案的題目直接跳過，不要猜
+5. 只輸出題目本身，不要編號、不要標題、不要任何說明
+6. 題目和選項裡都不要出現「|」這個符號`;
+function showPhotoBankGuide(){
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal">
+    <h3>📷 拍照出題</h3>
+    <ol style="line-height:1.9;margin:10px 0 0;padding-left:20px;font-size:14px;">
+      <li>把考卷、講義或評量拍照</li>
+      <li>按下面「複製指令」，打開你平常用的 AI（ChatGPT、Gemini 都可以），<b>貼上指令＋附上照片</b>送出</li>
+      <li>把 AI 回給你的整段文字，貼到後台「題目」輸入框，填好題庫名稱後按「新增題庫」</li>
+    </ol>
+    <textarea id="pbPrompt" class="in" readonly style="width:100%;max-width:none;height:170px;margin-top:10px;font-size:13px;line-height:1.6;">${PHOTO_BANK_PROMPT}</textarea>
+    <p class="hint" style="margin:6px 0 0;">貼回來之前請大致看一下答案對不對，AI 偶爾會看錯字或算錯。</p>
+    <div style="display:flex;gap:10px;margin-top:14px;">
+      <button class="next-btn" id="pbCopy" style="flex:1;">📋 複製指令</button>
+      <button class="reset-btn" id="pbClose" style="flex:1;">關閉</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('#pbClose').onclick=close;
+  ov.onclick=(e)=>{ if(e.target===ov) close(); };
+  ov.querySelector('#pbCopy').onclick=async()=>{
+    const ta=ov.querySelector('#pbPrompt');
+    let ok=false;
+    try{ await navigator.clipboard.writeText(PHOTO_BANK_PROMPT); ok=true; }catch(e){}
+    if(!ok){ try{ ta.focus(); ta.select(); ok=document.execCommand('copy'); }catch(e){} }
+    if(ok){ goodSound(); toast('📋 已複製，貼到 AI 對話框、附上照片就可以了'); }
+    else { ta.focus(); ta.select(); toast('這個畫面不能自動複製，文字已選取，請長按或按 Ctrl/⌘+C 複製'); }
+  };
+}
 /* 遊戲內建輸入視窗：取代原生 prompt()。
    prompt() 在嵌入式預覽面板／部分 webview 會直接拋出「not supported」，
    整個 handler 當場中斷，按下去完全沒反應（修改密碼就是這樣壞掉的）。
@@ -5911,22 +5949,66 @@ function splitCsvLine(line, delim){
   return line.split(delim).map(s=>s.trim());
 }
 function parseQuestions(text){
-  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  /* 貼上來的內容常是 AI 產的：會有「1. 」「- 」這類開頭、全形「｜」、``` 程式碼框，
+     第一行也可能是「以下是題目：」這種說明句。分隔符改成看「最多行用哪一種」決定，
+     不再只看第一行，避免被開頭那句說明帶偏。 */
+  const lines=text.replace(/｜/g,'|').split(/\r?\n/)
+    .map(l=>l.trim())
+    .filter(l=>l && !/^```/.test(l))
+    .map(l=>l.replace(/^(?:[-*•]\s+|\(?\d{1,3}[.、)）]\s*)/,''));
   if(!lines.length) return [];
-  const first=lines[0];
+  const hits=d=>lines.filter(l=>l.indexOf(d)>=0).length;
   let delim='|';
-  if(first.indexOf('\t')>=0) delim='\t';
-  else if(first.indexOf('|')>=0) delim='|';
-  else if(first.indexOf(',')>=0) delim=',';
+  const best=['\t','|',','].map(d=>[d,hits(d)]).sort((a,b)=>b[1]-a[1])[0];
+  if(best[1]>0) delim=best[0];
   const qs=[];
   lines.forEach(line=>{
     const parts=splitCsvLine(line, delim);
     if(parts.length<2) return;
     const q=parts[0], a=parts[1];
+    if(!q || !a) return;
     const opts=parts.slice(2).filter(Boolean);
     qs.push({q,a,opts});
   });
   return qs;
+}
+
+/* 錯誤選項不夠時自動補：從同一份題庫其他題的答案挑「同類型、長度相近」的，
+   數字答案還可以用相鄰數字補。原本只有提示寫「會自動補」，程式其實沒補，
+   沒寫選項的題目畫面上只剩正確答案一顆按鈕，閉著眼睛都能答對。 */
+const CUSTOM_WANT_WRONG=3;
+function customWrongOptions(item, bank){
+  const correct=String(item.a).trim();
+  const own=[...new Set((item.opts||[]).map(x=>String(x).trim()).filter(x=>x && x!==correct))];
+  if(own.length>=2) return own;
+  const isNum=v=>/^[-+]?\d+(?:\.\d+)?$/.test(v);
+  const cand=[...new Set(bank.questions.map(q=>String(q.a).trim()))]
+    .filter(a=>a && a!==correct && !own.includes(a))
+    .map(a=>({a, k:Math.abs(a.length-correct.length)+Math.random()*2}))
+    .sort((x,y)=>x.k-y.k);
+  /* 數字題混進文字選項（或反過來）孩子一眼就看穿，所以同類型的先用完、
+     數字題再用相鄰數字補，不同類型的只在最後真的沒東西時才用 */
+  const same=cand.filter(x=>isNum(x.a)===isNum(correct)).map(x=>x.a);
+  const other=cand.filter(x=>isNum(x.a)!==isNum(correct)).map(x=>x.a);
+  const out=own.concat(same).slice(0, CUSTOM_WANT_WRONG);
+  if(out.length<CUSTOM_WANT_WRONG && /^[-+]?\d+$/.test(correct)){
+    const n=Number(correct);
+    for(const d of [1,-1,2,10,-2,-10]){
+      if(out.length>=CUSTOM_WANT_WRONG) break;
+      const v=String(n+d); if(v!==correct && !out.includes(v)) out.push(v);
+    }
+  }
+  if(!out.length) return other.slice(0, CUSTOM_WANT_WRONG);
+  return out;
+}
+/* 匯入後的提醒：多少題是自動補選項、有沒有題目根本補不出錯誤選項 */
+function customBankNote(questions){
+  const bank={questions};
+  const auto=questions.filter(q=>(q.opts||[]).filter(o=>String(o).trim()!==String(q.a).trim()).length<2).length;
+  const stuck=questions.filter(q=>!customWrongOptions(q,bank).length).length;
+  if(stuck) return '⚠️ 有 '+stuck+' 題補不出錯誤選項（同份題庫的答案都一樣），練習時會只剩一個按鈕，請幫這幾題手動寫選項';
+  if(auto) return auto+' 題沒寫錯誤選項，練習時會從同份題庫其他答案自動補';
+  return '';
 }
 
 /* 题库去重：按题面（忽略大小写/前后空白）去重，保留首次出现，顺序不变 */
@@ -6967,8 +7049,8 @@ function customRound(bank){
   const qs=bank.questions; if(!qs.length){ $('#customBox').innerHTML='<p>這份題庫還沒有題目，請家長到後台新增。</p>'; return; }
   const idx = (bank._idx=(bank._idx||0));
   const item=qs[idx%qs.length];
-  const q=item.q; const correct=item.a; const opts=(item.opts&&item.opts.length?item.opts.slice():[correct]).slice();
-  if(!opts.includes(correct)) opts.push(correct);
+  const q=item.q; const correct=String(item.a).trim();
+  const opts=customWrongOptions(item, bank).concat([correct]);
   for(let i=opts.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [opts[i],opts[j]]=[opts[j],opts[i]]; }
   const box=document.createElement('div');
   box.innerHTML=`<div class="q-row"><span class="q-text">${q}</span></div><div class="choices" id="cust"></div><div class="feedback" id="custF"></div><button class="next-btn" id="custN">下一題 ▶</button>`;
@@ -7214,10 +7296,11 @@ function renderParent(){
       <input id="bankName" class="in" placeholder="題庫名稱（如：康軒國語第一課）" style="max-width:240px;display:block;margin-bottom:6px;">
       <textarea id="bankText" class="in" style="width:100%;height:110px;max-width:100%;" placeholder="每行一題，格式：題目 | 正確答案 | 選項1 | 選項2 | 選項3
 例：臺灣的首都是哪裡？ | 臺北 | 臺中 | 高雄
-（至少要有題目和正確答案；選項可以不寫，會自動補）"></textarea>
+（錯誤選項可以不寫，會從同一份題庫其他題的答案挑來補，所以同一份題庫放同類型的題目效果最好）"></textarea>
       <div style="margin-top:6px;"><button class="next-btn" id="addBank">➕ 新增題庫（自動加入功課）</button></div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
         <input type="file" id="bankFile" accept=".csv,.txt,.tsv" style="display:none;">
+        <button class="reset-btn" id="photoBank">📷 拍照出題</button>
         <button class="reset-btn" id="upBank">📎 上傳 CSV / 文字檔</button>
         <span class="hint" style="margin:0;">Excel 請先「另存新檔 → CSV (UTF-8)」再上傳</span>
       </div>
@@ -7513,8 +7596,10 @@ function renderParent(){
     state.customBanks.push({id:bid, name:nm, questions:questions2});
     const hid='hc'+Date.now();
     state.homeworkList.push({id:hid, name:'題庫：'+nm, type:'custom', bankId:bid});
-    c.homework[hid]=false; save(); toast('📚 題庫已新增（'+questions2.length+' 題'+(qRemoved? '，已移除 '+qRemoved+' 題重複': '')+'）'); renderParent();
+    const note=customBankNote(questions2);
+    c.homework[hid]=false; save(); toast('📚 題庫已新增（'+questions2.length+' 題'+(qRemoved? '，已移除 '+qRemoved+' 題重複': '')+'）'+(note?'。'+note:''), note.startsWith('⚠️')?6000:3500); renderParent();
   };
+  const pb=$('#photoBank'); if(pb) pb.onclick=showPhotoBankGuide;
   const ub=$('#upBank'); if(ub) ub.onclick=()=>$('#bankFile').click();
   const bf=$('#bankFile');
   if(bf) bf.onchange=(e)=>{
@@ -7534,7 +7619,8 @@ function renderParent(){
         state.customBanks.push({id:bid, name, questions:questions2});
         const hid='hc'+Date.now();
         state.homeworkList.push({id:hid, name:'題庫：'+name, type:'custom', bankId:bid});
-        c.homework[hid]=false; save(); toast('📚 已上傳題庫：'+name+'（'+questions2.length+' 題'+(qRemoved? '，已移除 '+qRemoved+' 題重複': '')+'）'); renderParent();
+        const note=customBankNote(questions2);
+        c.homework[hid]=false; save(); toast('📚 已上傳題庫：'+name+'（'+questions2.length+' 題'+(qRemoved? '，已移除 '+qRemoved+' 題重複': '')+'）'+(note?'。'+note:''), note.startsWith('⚠️')?6000:3500); renderParent();
       };
       rd.readAsText(f, 'utf-8');
     });
