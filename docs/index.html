@@ -581,6 +581,12 @@
   .day-chip span{display:grid; place-items:center; width:40px; height:40px; border:1px solid var(--line);
     border-radius:12px; background:#fff; font-weight:800; color:var(--muted); transition:background .15s,color .15s;}
   .day-chip.on span{background:var(--leaf); border-color:var(--leaf); color:#fff;}
+  .mode-pick{display:flex; gap:6px; flex-wrap:wrap; margin:6px 0 0;}
+  .mode-chip{position:relative; cursor:pointer;}
+  .mode-chip input{position:absolute; opacity:0; width:0; height:0;}
+  .mode-chip span{display:block; padding:8px 14px; border:1px solid var(--line); border-radius:12px;
+    background:#fff; font-weight:800; color:var(--muted); font-size:14px; transition:background .15s,color .15s;}
+  .mode-chip.on span{background:var(--leaf); border-color:var(--leaf); color:#fff;}
   .overdue-banner{display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer;
     border:2px solid #f0b8ae; background:#fdecea; border-radius:14px; padding:11px 14px; margin:10px 0;}
   .overdue-banner b{color:#b03a2b; font-size:15px;}
@@ -1857,6 +1863,94 @@ function prereqDueFor(item, baseItems){
   return latest;
 }
 
+/* 整體平衡：各教材各自平均分散後，幾本教材剛好撞在同一天就會堆起來
+   （實測 9 本教材時平均有 3 個可寫日全空、同一天最多 4~5 項，
+   撞在週末時看起來就像「測驗卷全部堆在假日」）。
+   這裡反覆把「最擠那天」的一項搬到「搬過去後仍然比較鬆」的日子，直到搬不動為止。
+   搬動時守住三條規則，跟排程其他步驟一致：
+   1) 同一本教材的順序不變，且不跟前後項擠同一天
+   2) 後段教材（測驗卷/評量）仍排在自修同課之後
+   3) 自修往後搬時，不能越過依賴它的測驗卷/評量
+   mode='weekend' 時週六日的份量以平日兩倍計，平日就會比較輕。
+   範圍外、還沒做的課次也算進當天份量，但不搬動。 */
+const SCHED_MODES={ even:'平均分配', weekend:'優先假日' };
+function examMode(exam){ return exam && exam.mode==='weekend' ? 'weekend' : 'even'; }
+function levelScheduleLoad(scopes, usable, exam){
+  if(usable.length<2) return;
+  const mode=examMode(exam);
+  const weight=k=>{ const w=weekdayOf(k); return (mode==='weekend' && (w===5||w===6)) ? 2 : 1; };
+  const idxOf={}; usable.forEach((k,i)=>{ idxOf[k]=i; });
+  const moving=[]; scopes.forEach(g=>g.items.forEach(it=>moving.push(it)));
+  if(!moving.length) return;
+  const movingSet=new Set(moving);
+  const load=usable.map(()=>0);
+  const cid=exam.childId || (moving[0] && moving[0].childId);
+  studyItemsOf(cid).forEach(it=>{
+    if(!it.done && !movingSet.has(it) && idxOf[it.due]!=null) load[idxOf[it.due]]++;
+  });
+  moving.forEach(it=>{ if(idxOf[it.due]!=null) load[idxOf[it.due]]++; });
+
+  const prev=new Map(), next=new Map();
+  scopes.forEach(g=>g.items.forEach((it,i)=>{
+    if(i>0) prev.set(it, g.items[i-1]);
+    if(i<g.items.length-1) next.set(it, g.items[i+1]);
+  }));
+  const baseOf=new Map(), depsOf=new Map();
+  const bySub={};
+  scopes.forEach(g=>{ (bySub[g.sc.subjectId]=bySub[g.sc.subjectId]||[]).push(g); });
+  Object.values(bySub).forEach(groups=>{
+    if(groups.length<2) return;
+    groups.sort((a,b)=> materialRank(a.sc.material)-materialRank(b.sc.material));
+    const base=groups[0].items;
+    const deps=[];
+    groups.slice(1).forEach(g=>g.items.forEach(it=>{ baseOf.set(it, base); deps.push(it); }));
+    base.forEach(b=>depsOf.set(b, deps));
+  });
+  const poolOf=(it, base)=>{ const same=base.filter(b=>b.lesson<=it.lesson); return same.length?same:base; };
+
+  const canMove=(it, k)=>{
+    const p=prev.get(it), n=next.get(it);
+    if(p && !(p.due < k)) return false;
+    if(n && !(k < n.due)) return false;
+    const base=baseOf.get(it);
+    if(base){
+      const need=prereqDueFor(it, base);
+      if(need && !(k > need)) return false;
+    }
+    const deps=depsOf.get(it);
+    if(deps){
+      const base2=baseOf.get(deps[0]);
+      for(const d of deps){ if(poolOf(d, base2).includes(it) && !(d.due > k)) return false; }
+    }
+    return true;
+  };
+
+  const score=i=>load[i]/weight(usable[i]);
+  const cap=moving.length*usable.length;
+  for(let iter=0; iter<cap; iter++){
+    const order=usable.map((_,i)=>i).sort((a,b)=>score(b)-score(a));
+    let best=null;
+    for(const src of order){
+      const cur=score(src);
+      for(const it of moving){
+        if(idxOf[it.due]!==src) continue;
+        for(let dst=0; dst<usable.length; dst++){
+          if(dst===src) continue;
+          const after=(load[dst]+1)/weight(usable[dst]);
+          if(!(after < cur)) continue;
+          if(!canMove(it, usable[dst])) continue;
+          const dist=Math.abs(dst-src);
+          if(!best || after<best.after || (after===best.after && dist<best.dist)) best={it, src, dst, after, dist};
+        }
+      }
+      if(best) break;
+    }
+    if(!best) break;
+    best.it.due=usable[best.dst];
+    load[best.src]--; load[best.dst]++;
+  }
+}
+
 /* 依考試往回推。
    關鍵：不是把各科串成一長串依序鋪（那會變成先唸完國語才輪到數學），
    而是「每一科各自平均分散在整個備考期間」，這樣每天自然會有不同科目交錯，
@@ -1981,6 +2075,7 @@ function scheduleForExam(exam, skipHolidays=true){
       });
     });
   });
+  levelScheduleLoad(scopes, usable, exam);
   save();
 
   const byDay={};
@@ -4269,7 +4364,7 @@ function paintExamZone(){
           <div class="ex-meta">${e.date.replace(/-/g,'/')} · 範圍 ${(e.scopes||[]).length} 項 · 共 ${cnt} 課，還剩 ${left} 課沒讀</div>
         </div>
         <div class="ex-count ${d<=3?'urgent':''}">${d<0?'已結束':d===0?'就是今天':'還有 '+d+' 天'}</div>
-        ${pace.length?`<div class="ex-pace"><span class="ex-days">🗓 ${examDaysLabel(e)}</span>${pace.map(x=>`<span>${x.name}：每 ${x.everyDays} ${everyUnit} 1 ${x.unit}</span>`).join('')}</div>`:''}
+        ${pace.length?`<div class="ex-pace"><span class="ex-days">🗓 ${examDaysLabel(e)} · ${SCHED_MODES[examMode(e)]}</span>${pace.map(x=>`<span>${x.name}：每 ${x.everyDays} ${everyUnit} 1 ${x.unit}</span>`).join('')}</div>`:''}
         ${od?`<div class="ex-late">⚠️ 有 ${od} 項已經過了預定日期，全部堆在今天。按「重新安排進度」可以把還沒做的重新平均分配到考試前。</div>`:''}
         <div class="ex-btns">
           <button class="${od?'next-btn':'reset-btn'}" data-exre="${e.id}" style="${od?'padding:8px 12px;font-size:14px;':''}">🔄 重新安排進度</button>
@@ -4954,6 +5049,11 @@ function openExamModal(examId){
         ${WEEKDAY_NAMES.map((n,i)=>{const on=examDays(editing||{}).includes(i);return `<label class="day-chip${on?' on':''}"><input type="checkbox" value="${i}" ${on?'checked':''}><span>${n}</span></label>`;}).join('')}
       </div>
       <div class="hint" id="exDaysHint" style="margin:6px 0 0;"></div></div>
+    <div class="mod-row"><label>每天的份量怎麼分？</label>
+      <div class="mode-pick" id="exMode">
+        ${Object.entries(SCHED_MODES).map(([v,n])=>{const on=examMode(editing)===v;return `<label class="mode-chip${on?' on':''}"><input type="radio" name="exMode" value="${v}" ${on?'checked':''}><span>${n}</span></label>`;}).join('')}
+      </div>
+      <div class="hint" style="margin:6px 0 0;"><b>平均分配</b>：每個可寫的日子份量差不多。<b>優先假日</b>：週六日大約排平日的兩倍，平日比較輕鬆（上面要有勾週六或週日才有差別）。</div></div>
     <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:14px;">
       <input type="checkbox" id="exSkipHol" checked style="margin-top:3px;">
       <span>排程時跳過<b>國定假日</b>
@@ -4985,6 +5085,8 @@ function openExamModal(examId){
     syncDays();
   });
   syncDays();
+  const modeBoxes=[...ov.querySelectorAll('#exMode input')];
+  modeBoxes.forEach(b=> b.onchange=()=> modeBoxes.forEach(x=>x.closest('.mode-chip').classList.toggle('on', x.checked)));
   ov.querySelector('#exCancel').onclick=()=>ov.remove();
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
   ov.querySelector('#exSave').onclick=()=>{
@@ -4999,8 +5101,9 @@ function openExamModal(examId){
     const days=pickedDays();
     if(!days.length){ badSound(); toast('請至少選一天可以寫的日子'); return; }
     let exam;
-    if(editing){ exam=editing; exam.name=name; exam.date=date; exam.scopes=scopes; exam.days=days; }
-    else { exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes, days};
+    const mode=(modeBoxes.find(b=>b.checked)||{}).value==='weekend' ? 'weekend' : 'even';
+    if(editing){ exam=editing; exam.name=name; exam.date=date; exam.scopes=scopes; exam.days=days; exam.mode=mode; }
+    else { exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes, days, mode};
            studyPlan().exams.push(exam); }
     const r=scheduleForExam(exam, ov.querySelector('#exSkipHol').checked);
     ov.remove(); goodSound();
