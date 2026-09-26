@@ -4054,7 +4054,8 @@ function tickEnergy(){
 /* ---------- 睡覺後鎖定練習 ---------- */
 function practiceLocked(){
   if(!state.sleepLock) return false;
-  if(state.sleepOverrideTonight) return false;
+  /* 存的是解除當天的日期。原本存 true 且沒有任何地方重設，解除一次就永久失效 */
+  if(state.sleepOverrideTonight===dateKey()) return false;
   const {endMin}=zombieBounds();
   const nowMin=new Date().getHours()*60+new Date().getMinutes();
   return nowMin>endMin && unfinishedCount()>0;
@@ -4383,7 +4384,7 @@ function paintExamZone(){
   $('#examAdd').onclick=()=>openExamModal(null);
   box.querySelectorAll('[data-exre]').forEach(b=> b.onclick=()=>{
     const e=studyPlan().exams.find(x=>x.id===b.dataset.exre); if(!e) return;
-    const r=scheduleForExam(e);
+    const r=scheduleForExam(e, e.skipHolidays!==false);
     if(!r.count){ toast('這個考試範圍裡沒有還沒讀完的課次'); return; }
     goodSound();
     toast('📅 已把還沒做的 '+r.count+' 項從今天重新分配到考試前'
@@ -5099,7 +5100,7 @@ function openExamModal(examId){
       </div>
       <div class="hint" style="margin:6px 0 0;"><b>平均分配</b>：每個可寫的日子份量差不多。<b>優先假日</b>：週六日大約排平日的兩倍，平日比較輕鬆（上面要有勾週六或週日才有差別）。</div></div>
     <label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;font-size:14px;">
-      <input type="checkbox" id="exSkipHol" checked style="margin-top:3px;">
+      <input type="checkbox" id="exSkipHol" ${(editing ? editing.skipHolidays!==false : true)?'checked':''} style="margin-top:3px;">
       <span>排程時跳過<b>國定假日</b>
         <small style="display:block;color:var(--muted);font-size:12px;line-height:1.6;margin-top:2px;">
           指中秋、國慶這類放假日，以及家長後台手動標記的「今天放假」。<b>不含週六日</b>——週末要不要寫，請用上面的星期設定。</small></span>
@@ -5146,10 +5147,11 @@ function openExamModal(examId){
     if(!days.length){ badSound(); toast('請至少選一天可以寫的日子'); return; }
     let exam;
     const mode=(modeBoxes.find(b=>b.checked)||{}).value==='weekend' ? 'weekend' : 'even';
-    if(editing){ exam=editing; exam.name=name; exam.date=date; exam.scopes=scopes; exam.days=days; exam.mode=mode; }
-    else { exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes, days, mode};
+    const skipHolidays=ov.querySelector('#exSkipHol').checked;
+    if(editing){ exam=editing; exam.name=name; exam.date=date; exam.scopes=scopes; exam.days=days; exam.mode=mode; exam.skipHolidays=skipHolidays; }
+    else { exam={id:'ex_'+Date.now().toString(36), childId:c.id, name, date, scopes, days, mode, skipHolidays};
            studyPlan().exams.push(exam); }
-    const r=scheduleForExam(exam, ov.querySelector('#exSkipHol').checked);
+    const r=scheduleForExam(exam, skipHolidays);
     ov.remove(); goodSound();
     if(r.tight) toast('🎯 已排 '+r.count+' 項，但時間很緊：最多一天要做 '+r.perDay+' 項');
     else {
@@ -5536,7 +5538,7 @@ function renderLock(tab){
       fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
     }, v=>{
       if(v.pin!==state.parentPIN) return '密碼不對';
-      state.sleepOverrideTonight=true; save(); toast('🔓 已家長解鎖，今天不再鎖定'); showTab(tab);
+      state.sleepOverrideTonight=dateKey(); save(); toast('🔓 已家長解鎖，今天不再鎖定'); showTab(tab);
     });
   };
 }
