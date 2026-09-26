@@ -917,7 +917,7 @@ function defaultChild(name){
     id:'c'+Date.now()+Math.floor(Math.random()*1000),
     name:name||'', sun:0, known:{}, garden:{}, deck:[],
     answers:{right:0,wrong:0}, byModule:{}, timeByDate:{},
-    homework:{}, homeworkDate:dateKey(),
+    homework:{}, homeworkDate:dateKey(), homeworkList:defaultHomeworkList(),
     zombiePush:0, zombieDrift:0, plantHP:100, combo:0,
     routine:{}, routineDate:dateKey(),
     sched:{}, bonusSun:0,
@@ -933,6 +933,7 @@ function makeChildFromOld(s){
   c.sun=s.sun||0; c.known=s.known||{}; c.garden=s.garden||{}; c.deck=Array.isArray(s.deck)?s.deck:Object.keys(c.garden).filter(k=>c.garden[k]).slice(0,5);
   c.answers=s.answers||{right:0,wrong:0}; c.byModule=s.byModule||{}; c.timeByDate=s.timeByDate||{};
   c.homework=s.homework||{}; c.homeworkDate=s.homeworkDate||dateKey();
+  c.homeworkList=JSON.parse(JSON.stringify(Array.isArray(s.homeworkList)?s.homeworkList:defaultHomeworkList()));
   c.zombiePush=s.zombiePush||0; c.zombieDrift=s.zombieDrift||0; c.plantHP=(s.plantHP===undefined?100:s.plantHP); c.combo=s.combo||0;
   c.routine=s.routine||{}; c.routineDate=s.routineDate||dateKey();
   c.sched=s.sched||{}; c.bonusSun=s.bonusSun||0;
@@ -1503,7 +1504,12 @@ function load(seed){
         const old={...s}; delete old.children;
         s.children=[makeChildFromOld(old)]; s.activeChildId=s.children[0].id;
       }
-      s.children.forEach(ch=>{ if(ch.zombieDrift===undefined) ch.zombieDrift=0; if(!ch.routine) ch.routine={}; if(ch.routineDate===undefined) ch.routineDate=dateKey(); if(ch.sched===undefined) ch.sched={}; if(ch.bonusSun===undefined) ch.bonusSun=0; if(ch.age===undefined) ch.age=7; if(ch.levelOverride===undefined) ch.levelOverride=''; ch.levelOverride=normLevel(ch.levelOverride); if(ch.accWin===undefined) ch.accWin=[]; if(!ch.quizLog) ch.quizLog={}; if(ch.quizStreak===undefined) ch.quizStreak=0; if(ch.wrongQuestions===undefined) ch.wrongQuestions=[]; if(ch.routineBonusDate===undefined) ch.routineBonusDate='';
+      s.children.forEach(ch=>{
+        /* 2026-09-26 功課清單改為每個孩子各自一份；舊存檔把全域清單複製給每個孩子，state.homeworkList 留著給舊版本讀 */
+        if(!Array.isArray(ch.homeworkList)) ch.homeworkList=JSON.parse(JSON.stringify(Array.isArray(s.homeworkList)&&s.homeworkList.length?s.homeworkList:defaultHomeworkList()));
+        if(!ch.homework) ch.homework={};
+        ch.homeworkList.forEach(it=>{ if(ch.homework[it.id]===undefined) ch.homework[it.id]=false; });
+        if(ch.zombieDrift===undefined) ch.zombieDrift=0; if(!ch.routine) ch.routine={}; if(ch.routineDate===undefined) ch.routineDate=dateKey(); if(ch.sched===undefined) ch.sched={}; if(ch.bonusSun===undefined) ch.bonusSun=0; if(ch.age===undefined) ch.age=7; if(ch.levelOverride===undefined) ch.levelOverride=''; ch.levelOverride=normLevel(ch.levelOverride); if(ch.accWin===undefined) ch.accWin=[]; if(!ch.quizLog) ch.quizLog={}; if(ch.quizStreak===undefined) ch.quizStreak=0; if(ch.wrongQuestions===undefined) ch.wrongQuestions=[]; if(ch.routineBonusDate===undefined) ch.routineBonusDate='';
       if(ch.eyeRestUntil===undefined) ch.eyeRestUntil=0;
       if(ch.studyDoneDate===undefined) ch.studyDoneDate='';
       if(ch.studyDoneCount===undefined) ch.studyDoneCount=0;
@@ -2150,7 +2156,8 @@ function toggleStudyItem(id){
   save();
 }
 /* ---------- 功課清單 ---------- */
-function allHW(){ return state.homeworkList; }
+function allHW(){ const c=C(); return (c && Array.isArray(c.homeworkList)) ? c.homeworkList : state.homeworkList; }
+function hwListOf(ch){ return Array.isArray(ch.homeworkList) ? ch.homeworkList : state.homeworkList; }
 function hwItem(id){ return allHW().find(x=>x.id===id); }
 function tabForType(t){ return HW_TYPES[t] ? HW_TYPES[t].tab : 'home'; }
 function firstHWIdForTab(tab){
@@ -5253,10 +5260,12 @@ function renderHome(){
   const banner = hol ? `<div class="holiday-banner"><span class="holiday-mark">休</span><div><strong>🎉 今天是「${hol}」</strong><span>學校功課可以休息，自由練習照樣能賺陽光！</span></div></div>` : '';
   const profileOpts = state.children.map(ch=>`<option value="${ch.id}" ${ch.id===state.activeChildId?'selected':''}>${ch.name||'孩子'}</option>`).join('');
   const leaderboard = state.children.slice().sort((a,b)=>b.sun-a.sun).map((ch,i)=>{
-    const done=visibleHW().filter(it=>ch.homework[it.id]===true).length;
+    /* 每個孩子各自的功課清單（2026-09-26 起），不能拿目前孩子的清單去算別人 */
+    const list=hwListOf(ch).filter(it=> state.activeSubjects[it.type]===true );
+    const done=list.filter(it=>ch.homework[it.id]===true).length;
     return `<div class="leader"><span style="font-size:22px;">${i===0?'🥇':i===1?'🥈':'🥉'}</span>
       <span style="flex:1;font-weight:800;">${ch.name||'孩子'}</span>
-      <span>☀️ ${ch.sun}</span><span>✅ ${done}/${visibleHW().length}</span></div>`;
+      <span>☀️ ${ch.sun}</span><span>✅ ${done}/${list.length}</span></div>`;
   }).join('');
   const HM = state.homeModules;
   const secZombie = HM.zombie ? `
@@ -7279,7 +7288,7 @@ function renderParent(){
 
   /* 功課清單自訂 */
   let hwMgmt='<div style="margin-top:8px;">';
-  state.homeworkList.forEach((it,idx)=>{
+  allHW().forEach((it,idx)=>{
     const opts=Object.keys(HW_TYPES).map(t=>`<option value="${t}" ${t===it.type?'selected':''}>${HW_TYPES[t].label}</option>`).join('');
     hwMgmt+=`<div class="reward" style="align-items:center;">
       <div style="flex:1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -7288,7 +7297,7 @@ function renderParent(){
       </div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;">
         <button class="reset-btn" id="up${it.id}" ${idx===0?'disabled':''}>⬆</button>
-        <button class="reset-btn" id="dn${it.id}" ${idx===state.homeworkList.length-1?'disabled':''}>⬇</button>
+        <button class="reset-btn" id="dn${it.id}" ${idx===allHW().length-1?'disabled':''}>⬇</button>
         <button class="reset-btn" id="delhw${it.id}">🗑 刪除</button>
       </div>
     </div>`;
@@ -7327,7 +7336,7 @@ function renderParent(){
   let childMgmt='<div style="margin-top:8px;">';
   state.children.forEach(ch=>{
     const isActive=ch.id===state.activeChildId;
-    childMgmt+=`<div class="reward"><div><div class="nm">👦 ${ch.name||'孩子'}</div><div class="cost">☀️ ${ch.sun} 陽光 · ✅ ${allHW().filter(it=>ch.homework[it.id]===true).length}/${allHW().length}</div><div class="cost">🎚 年齡 <input id="age${ch.id}" type="number" min="3" max="15" value="${ch.age||7}" style="width:56px;padding:2px 4px;border-radius:6px;border:1px solid #cfe3b0;"> 歲 → ${DIFF_MAP[childLevel(ch)].name}</div></div>
+    childMgmt+=`<div class="reward"><div><div class="nm">👦 ${ch.name||'孩子'}</div><div class="cost">☀️ ${ch.sun} 陽光 · ✅ ${hwListOf(ch).filter(it=>ch.homework[it.id]===true).length}/${hwListOf(ch).length}</div><div class="cost">🎚 年齡 <input id="age${ch.id}" type="number" min="3" max="15" value="${ch.age||7}" style="width:56px;padding:2px 4px;border-radius:6px;border:1px solid #cfe3b0;"> 歲 → ${DIFF_MAP[childLevel(ch)].name}</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="next-btn" id="sw${ch.id}" style="padding:8px 12px;font-size:14px;${isActive?'opacity:.6;':''}" ${isActive?'disabled':''}>${isActive?'✔ 使用中':'切換'}</button>
         <button class="reset-btn" id="delch${ch.id}" ${state.children.length<=1?'disabled':''}>🗑 刪除</button>
@@ -7576,14 +7585,14 @@ function renderParent(){
   });
 
   /* handlers：功課清單 */
-  state.homeworkList.forEach((it,idx)=>{
+  allHW().forEach((it,idx)=>{
     const n=$('#hwN'+it.id); if(n) n.onchange=()=>{ it.name=n.value.trim()||it.name; save(); renderParent(); };
     const t=$('#hwT'+it.id); if(t) t.onchange=()=>{ it.type=t.value; save(); renderParent(); };
-    const up=$('#up'+it.id); if(up && idx>0) up.onclick=()=>{ const a=state.homeworkList; [a[idx-1],a[idx]]=[a[idx],a[idx-1]]; save(); renderParent(); };
-    const dn=$('#dn'+it.id); if(dn && idx<state.homeworkList.length-1) dn.onclick=()=>{ const a=state.homeworkList; [a[idx+1],a[idx]]=[a[idx],a[idx+1]]; save(); renderParent(); };
+    const up=$('#up'+it.id); if(up && idx>0) up.onclick=()=>{ const a=allHW(); [a[idx-1],a[idx]]=[a[idx],a[idx-1]]; save(); renderParent(); };
+    const dn=$('#dn'+it.id); if(dn && idx<allHW().length-1) dn.onclick=()=>{ const a=allHW(); [a[idx+1],a[idx]]=[a[idx],a[idx+1]]; save(); renderParent(); };
     const del=$('#delhw'+it.id); if(del) del.onclick=()=>{
-      if(state.homeworkList.length<=1){ toast('至少要保留一項功課喔！'); return; }
-      delete c.homework[it.id]; state.homeworkList=state.homeworkList.filter(x=>x.id!==it.id);
+      if(allHW().length<=1){ toast('至少要保留一項功課喔！'); return; }
+      delete c.homework[it.id]; c.homeworkList=allHW().filter(x=>x.id!==it.id);
       if(currentHWId===it.id) currentHWId=null; save(); renderParent();
     };
   });
@@ -7591,7 +7600,7 @@ function renderParent(){
     const nm=$('#newHwName').value.trim(); const ty=$('#newHwType').value;
     if(!nm){ toast('請填寫功課名稱'); return; }
     const id='h'+Date.now();
-    state.homeworkList.push({id,name:nm,type:ty}); c.homework[id]=false; save(); renderParent();
+    allHW().push({id,name:nm,type:ty}); c.homework[id]=false; save(); renderParent();
   };
   if(editingRewardId){ const er=state.rewards.find(x=>x.id===editingRewardId); if(er){ const n=$('#rName'),cc2=$('#rCost'); if(n) n.value=er.name; if(cc2) cc2.value=er.cost; } }
 
@@ -7599,6 +7608,7 @@ function renderParent(){
   state.customBanks.forEach(b=>{
     const d=$('#delbank'+b.id); if(d) d.onclick=()=>{
       state.customBanks=state.customBanks.filter(x=>x.id!==b.id);
+      state.children.forEach(ch=>{ if(Array.isArray(ch.homeworkList)) ch.homeworkList=ch.homeworkList.filter(x=>!(x.type==='custom'&&x.bankId===b.id)); });
       state.homeworkList=state.homeworkList.filter(x=>!(x.type==='custom'&&x.bankId===b.id));
       save(); renderParent();
     };
@@ -7612,7 +7622,7 @@ function renderParent(){
     const bid='b'+Date.now();
     state.customBanks.push({id:bid, name:nm, questions:questions2});
     const hid='hc'+Date.now();
-    state.homeworkList.push({id:hid, name:'題庫：'+nm, type:'custom', bankId:bid});
+    allHW().push({id:hid, name:'題庫：'+nm, type:'custom', bankId:bid});
     const note=customBankNote(questions2);
     c.homework[hid]=false; save(); toast('📚 題庫已新增（'+questions2.length+' 題'+(qRemoved? '，已移除 '+qRemoved+' 題重複': '')+'）'+(note?'。'+note:''), note.startsWith('⚠️')?6000:3500); renderParent();
   };
@@ -7635,7 +7645,7 @@ function renderParent(){
         const bid='b'+Date.now();
         state.customBanks.push({id:bid, name, questions:questions2});
         const hid='hc'+Date.now();
-        state.homeworkList.push({id:hid, name:'題庫：'+name, type:'custom', bankId:bid});
+        allHW().push({id:hid, name:'題庫：'+name, type:'custom', bankId:bid});
         const note=customBankNote(questions2);
         c.homework[hid]=false; save(); toast('📚 已上傳題庫：'+name+'（'+questions2.length+' 題'+(qRemoved? '，已移除 '+qRemoved+' 題重複': '')+'）'+(note?'。'+note:''), note.startsWith('⚠️')?6000:3500); renderParent();
       };
