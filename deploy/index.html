@@ -1328,6 +1328,8 @@ function openDiffModal(){
 }
 let manualAutoShown=false; // 整個頁面生命週期內，說明書只自動彈一次（避免 hydrate 多次 renderHome 重複彈）
 /* 使用說明書 modal（新手引導 + 隨時查閱） */
+/* 說明書版本：內容有大改時 +1，老使用者會收到一次提醒 */
+const MANUAL_VER=2;
 function openManual(){
   if(document.querySelector('.modal-ov.manual-ov')) return; // 避免重複彈出
   const ov=document.createElement('div'); ov.className='modal-ov manual-ov';
@@ -5250,7 +5252,12 @@ function renderOnboarding(){
 /* 小花園首頁 */
 function renderHome(){
   ensureSchedule();
-  if(!manualAutoShown && !state.seenManual && !state.seenTour){ manualAutoShown=true; state.seenManual=true; save(); setTimeout(()=>{ if(typeof openManual==='function') openManual(); },1000); }
+  if(!manualAutoShown && !state.seenManual && !state.seenTour){ manualAutoShown=true; state.seenManual=true; state.manualSeenVer=MANUAL_VER; save(); setTimeout(()=>{ if(typeof openManual==='function') openManual(); },1000); }
+  /* 說明書有大改版時提醒老使用者一次（首裝那次不提醒，因為剛看過） */
+  else if(!manualAutoShown && state.seenManual && (state.manualSeenVer||1) < MANUAL_VER){
+    manualAutoShown=true; state.manualSeenVer=MANUAL_VER; save();
+    setTimeout(()=>toast('📖 說明書更新了：新增讀書計劃、扣分項等內容，點首頁「❓ 怎麼玩」看看', 5000), 1200);
+  }
   const c=C();
   const finished = visibleHW().filter(it=>c.homework[it.id]===true).length;
   const unfinished = visibleHW().length - finished;
