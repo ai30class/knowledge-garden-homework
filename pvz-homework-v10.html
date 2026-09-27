@@ -641,26 +641,240 @@
   .kind-routine{background:#e3f2fd;color:#1565c0;}
   .kind-hw{background:#fff3e0;color:#e65100;}
   .kind-custom{background:#f3e5f5;color:#7b1fa2;}
+
+  /* ===== 2026-09-28 UI 改版「花園守護基地」：設計規格見 Obsidian《知識小花園作業守護台》§UI 改版 ===== */
+  :root{
+    --bg:#fffdf7; --surface:#ffffff; --ink:#253a36; --muted:#5f6f69;
+    --green:#2f6f4e; --green-pressed:#20533a; --green-soft:#eaf3eb;
+    --peach:#e98568; --peach-soft:#ffe6de; --honey:#f2b83f; --honey-soft:#fff3ca;
+    --line:#c7d5cd; --disabled-bg:#d8dfd8; --disabled-text:#65716b; --danger:#b94f3b;
+  }
+  body{ background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif; }
+  body::before{ display:none; }
+  .ico{ display:inline-block; width:24px; height:24px; vertical-align:middle; flex:none; }
+  .ico svg, [data-icon] > svg{ display:block; width:100%; height:100%; }
+
+  header.basebar{
+    height:56px; padding:0 8px 0 16px; padding-top:env(safe-area-inset-top);
+    box-sizing:content-box; display:flex; align-items:center; gap:8px; flex-wrap:nowrap;
+    background:var(--surface); box-shadow:none; border-bottom:1px solid var(--line);
+  }
+  .bb-brand{ display:flex; align-items:center; gap:8px; font-size:18px; font-weight:700; color:var(--ink); min-width:0; }
+  .bb-logo{ width:28px; height:28px; color:var(--green); flex:none; }
+  .bb-name{ white-space:nowrap; }
+  header.basebar .sun-box{
+    margin-left:auto; min-height:40px; padding:4px 14px 4px 6px; gap:6px;
+    background:var(--honey-soft); border:1.5px solid var(--honey); border-radius:999px; box-shadow:none;
+    color:var(--ink); font-size:17px; font-weight:700; font-variant-numeric:tabular-nums;
+  }
+  .sun-token{ width:30px; height:30px; flex:none; }
+  .bb-gear{ width:44px; height:44px; border:none; background:none; border-radius:14px; color:var(--ink); padding:10px; cursor:pointer; flex:none; }
+  .bb-gear:active{ background:var(--green-soft); }
+
+  nav.tabs{
+    position:fixed; left:0; right:0; bottom:0; top:auto; z-index:30;
+    display:grid; grid-template-columns:repeat(4,1fr); gap:0; min-height:64px;
+    padding:4px max(8px, calc(50% - 320px)) calc(4px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--line); border-radius:0;
+    backdrop-filter:none; box-shadow:0 -2px 12px rgba(37,58,54,.08);
+  }
+  nav.tabs .tab-btn{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    min-height:56px; padding:4px 2px; position:relative;
+    background:none; border:none; border-radius:14px; box-shadow:none; transform:none;
+    color:var(--muted); font-size:13px; font-weight:500;
+  }
+  nav.tabs .tab-btn:hover, nav.tabs .tab-btn:active{ transform:none; box-shadow:none; }
+  nav.tabs .tab-btn:active{ background:var(--green-soft); }
+  nav.tabs .tab-btn .ti{ width:24px; height:24px; }
+  nav.tabs .tab-btn.active{ background:none; color:var(--green); font-weight:700; box-shadow:none; }
+  nav.tabs .tab-btn.active::after{ content:""; position:absolute; bottom:3px; width:22px; height:3px; border-radius:999px; background:var(--green); }
+  main{ padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
+
+  /* ---- 按鈕 ---- */
+  .btn-primary, .btn-secondary, .btn-danger{
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    min-height:52px; padding:0 18px; border-radius:14px; font:inherit; font-size:16px; font-weight:700; cursor:pointer;
+  }
+  .btn-primary{ background:var(--green); color:#fff; border:none; box-shadow:0 3px 0 var(--green-pressed); }
+  .btn-primary:active{ background:var(--green-pressed); transform:translateY(1px); box-shadow:none; }
+  .btn-secondary{ min-height:44px; background:var(--surface); color:var(--green); border:1.5px solid var(--green); }
+  .btn-secondary:active{ background:var(--green-soft); color:var(--green-pressed); border-color:var(--green-pressed); }
+  .btn-danger{ min-height:44px; background:#fff; color:var(--danger); border:1.5px solid var(--danger); }
+  .btn-primary:disabled, .btn-secondary:disabled{ background:var(--disabled-bg); color:var(--disabled-text); border-color:transparent; box-shadow:none; transform:none; cursor:default; }
+
+  /* ---- 首頁 ---- */
+  .home2{ display:flex; flex-direction:column; gap:16px; }
+  .home2 .greet h1{ font-size:24px; font-weight:700; margin:0; color:var(--ink); line-height:1.3; }
+  .home2 .greet p{ font-size:15px; color:var(--muted); margin:4px 0 0; }
+  .card2{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px; }
+  .quest{ background:var(--green-soft); border:none; border-radius:20px; }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+  .card-head h2{ all:unset; font-size:18px; font-weight:700; color:var(--ink); display:flex; align-items:center; gap:8px; }
+  .pill{ display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--surface); color:var(--ink); white-space:nowrap; }
+  .pill .ico{ width:16px; height:16px; }
+  .qbar{ height:12px; border-radius:999px; background:#fff; overflow:hidden; border:1px solid var(--line); }
+  .qbar > i{ display:block; height:100%; background:var(--honey); border-radius:999px; transition:width .5s; }
+  .hw-chips{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; padding:0; list-style:none; }
+  .hw-chip{ display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:4px 12px 4px 8px; border-radius:999px;
+    background:var(--surface); border:1.5px solid var(--line); font-size:15px; color:var(--ink); cursor:pointer; font:inherit; }
+  .hw-chip .ico{ width:20px; height:20px; }
+  .hw-chip.done{ border-color:var(--green); color:var(--green); cursor:default; }
+  .hw-chip.pending{ border-color:var(--honey); background:var(--honey-soft); }
+  .hw-chip small{ font-size:13px; color:var(--muted); }
+  .next-step{ font-size:15px; color:var(--ink); margin:0 0 12px; display:flex; gap:6px; align-items:flex-start; }
+  .next-step b{ font-weight:700; }
+  .quest-foot{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .alert2{ display:flex; gap:12px; align-items:flex-start; background:var(--peach-soft); border-radius:16px; padding:12px 16px; color:var(--ink); font-size:15px; border:none; text-align:left; font:inherit; width:100%; }
+  .alert2 b{ display:block; font-weight:700; }
+  .alert2 .ico{ color:var(--danger); margin-top:2px; }
+  .alert2.holiday{ background:var(--green-soft); }
+  .alert2.holiday .ico{ color:var(--green); }
+  button.alert2{ cursor:pointer; }
+  .battle2 .battle-card, .battle2 > .home-sec{ margin:0; }
+  .battle2{ border-radius:20px; }
+  .battle2 .mon-avatar{ width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--peach-soft); }
+  .battle2 .reward-line{ display:flex; align-items:center; gap:8px; background:var(--honey-soft); border-radius:14px; padding:8px 12px; font-size:15px; margin-top:12px; }
+  .battle2 .reward-line .ico{ width:24px; height:24px; }
+  .battle2 details{ margin-top:12px; font-size:15px; }
+  .battle2 summary{ cursor:pointer; color:var(--green); font-weight:600; min-height:44px; display:flex; align-items:center; }
+  .quick2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .quick2 button{ display:flex; align-items:center; gap:10px; min-height:56px; padding:12px; border-radius:16px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:inherit; font-size:16px; font-weight:600; cursor:pointer; text-align:left; }
+  .quick2 button .ico{ color:var(--green); }
+  .quick2 button:active{ background:var(--green-soft); }
+  /* 首頁其餘區塊（作息、行程、花園…）先沿用原本內容，只把框線與英文小標收斂 */
+  .home2 .home-sec, .home2 .home-module{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:none; }
+  .home2 .module-heading .hint{ display:none; }
+  .home2 .panel-plain{ background:none; border:none; box-shadow:none; padding:0; overflow:visible; }
+
+  /* ---- 設定選單（底部抽屜） ---- */
+  .sheet-ov{ position:fixed; inset:0; z-index:1000; background:rgba(37,58,54,.45); display:flex; align-items:flex-end; justify-content:center; }
+  .sheet{ width:100%; max-width:560px; max-height:86vh; overflow:auto; background:var(--surface); border-radius:20px 20px 0 0;
+    padding:8px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .sheet .grip{ width:40px; height:4px; border-radius:999px; background:var(--line); margin:4px auto 8px; }
+  .sheet h3{ font-size:18px; font-weight:700; margin:4px 0 8px; color:var(--ink); }
+  .sheet .grp{ font-size:13px; color:var(--muted); margin:16px 0 4px; }
+  .srow{ display:flex; align-items:center; gap:12px; width:100%; min-height:52px; padding:0 8px; border:none; background:none;
+    border-bottom:1px solid var(--line); font:inherit; font-size:16px; color:var(--ink); text-align:left; cursor:pointer; }
+  .srow:active{ background:var(--green-soft); }
+  .srow .ico{ color:var(--green); }
+  .srow .sval{ margin-left:auto; font-size:13px; color:var(--muted); }
+  .srow .chev{ width:20px; height:20px; color:var(--muted); margin-left:auto; }
+  .srow .sval ~ .chev{ margin-left:4px; }
+  .srow.cur{ font-weight:700; }
+  .srow.parent .ico{ color:var(--ink); }
 </style>
 </head>
 <body>
-<header>
-  <span style="font-size:30px">🌻</span>
-  <h1>知識小花園 · 作業守護台<br><span class="sub">邊玩邊學 · 守護你的知識花園</span></h1>
-  <div class="byline" id="homeByline"></div>
-  <div class="sun-box"><span class="sun-emoji">☀️</span><span id="sunCount" class="sunCount">0</span> 陽光</div>
+<!-- 2026-09-28 UI 改版「花園守護基地」：頂列只留品牌、陽光、設定；分頁改成固定底部導覽 -->
+<header class="basebar">
+  <div class="bb-brand"><span class="bb-logo" data-icon="flower"></span><span class="bb-name">知識小花園</span></div>
+  <div class="byline" id="homeByline" hidden></div>
+  <div class="sun-box" aria-label="目前陽光"><span class="sun-token" data-icon="sun"></span><span id="sunCount" class="sunCount">0</span></div>
+  <button class="bb-gear" id="settingsBtn" type="button" aria-label="設定" data-icon="gear"></button>
 </header>
 
-<nav class="tabs" id="tabs">
-  <button class="tab-btn active" data-tab="home">🌻 小花園</button>
-  <button class="tab-btn" data-tab="plan">📅 讀書計劃</button>
-  <button class="tab-btn" data-tab="practice">🎮 練習場</button>
-  <button class="tab-btn" data-tab="collection">🏆 收藏</button>
+<nav class="tabs" id="tabs" aria-label="主選單">
+  <button class="tab-btn active" data-tab="home"><span class="ti" data-icon="flower"></span><span class="tl">小花園</span></button>
+  <button class="tab-btn" data-tab="plan"><span class="ti" data-icon="calendar"></span><span class="tl">讀書計劃</span></button>
+  <button class="tab-btn" data-tab="practice"><span class="ti" data-icon="pencil"></span><span class="tl">練習場</span></button>
+  <button class="tab-btn" data-tab="collection"><span class="ti" data-icon="trophy"></span><span class="tl">收藏</span></button>
 </nav>
 
 <main id="app"></main>
 <div class="toast" id="toast"></div>
 
+<script>
+/* ---------- 2026-09-28 UI 改版：功能圖示（24px、2px 線寬、圓角線條，顏色跟著文字）＋陽光代幣 ----------
+   功能性的地方（底部導覽、設定、狀態）不用 emoji，不同手機才會長得一樣。內容裡的 emoji 暫時保留。 */
+const _L=p=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';
+const ICONS={
+  flower:_L('<path d="M12 21v-8"/><path d="M12 13c-3.3 0-5-2.4-5-6l2.5 1.6L12 5l2.5 3.6L17 7c0 3.6-1.7 6-5 6z"/><path d="M12 17.5c-1.6-1.7-3.6-2.2-5.5-1.8M12 19c1.5-1.5 3.3-1.9 5-1.5"/>'),
+  calendar:_L('<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/>'),
+  pencil:_L('<path d="M4 20l1-4.2L15.6 5.2a2.1 2.1 0 0 1 3 0l.2.2a2.1 2.1 0 0 1 0 3L8.2 19 4 20z"/><path d="M13.8 7l3.2 3.2"/>'),
+  trophy:_L('<path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 6H5.5a1.5 1.5 0 0 0 0 3.2c.5 1.8 1.5 2.8 2.9 3M16 6h2.5a1.5 1.5 0 0 1 0 3.2c-.5 1.8-1.5 2.8-2.9 3"/><path d="M12 13v4M8.5 20h7M9.5 17h5"/>'),
+  gear:_L('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
+  checkCircle:_L('<circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.8 2.8L16.2 9.5"/>'),
+  clock:_L('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  circle:_L('<circle cx="12" cy="12" r="9"/>'),
+  key:_L('<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/>'),
+  user:_L('<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-3.6 3.5-5.8 7-5.8s6.3 2.2 7 5.8"/>'),
+  users:_L('<circle cx="9" cy="8" r="3.5"/><path d="M3 20c.6-3.4 3-5.5 6-5.5s5.4 2.1 6 5.5"/><path d="M16 4.6a3.2 3.2 0 0 1 0 6.3M18 14.8c1.8.7 3 2.5 3.4 5.2"/>'),
+  layout:_L('<rect x="3.5" y="4" width="17" height="16" rx="3"/><path d="M3.5 10h17M10 10v10"/>'),
+  help:_L('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/>'),
+  info:_L('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>'),
+  sliders:_L('<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'),
+  music:_L('<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'),
+  speaker:_L('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
+  refresh:_L('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+  chevron:_L('<path d="M9 6l6 6-6 6"/>'),
+  book:_L('<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5z"/>'),
+  sprout:_L('<path d="M12 20v-8"/><path d="M12 12c0-4 2.5-6.5 7-6.5 0 4-2.5 6.5-7 6.5zM12 14c0-3.2-2-5.2-6-5.2 0 3.2 2 5.2 6 5.2z"/><path d="M8 20h8"/>'),
+  alert:_L('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>'),
+  flag:_L('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
+  shield:_L('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>'),
+  flame:_L('<path d="M12 21c-3.6 0-6-2.5-6-5.8 0-3.4 2.6-5 3.4-8.2 2 1.3 2.7 3 2.7 4.6 1-.7 1.7-1.9 1.9-3.4 2 1.7 4 4.2 4 7 0 3.3-2.4 5.8-6 5.8z"/>'),
+  sun:'<svg viewBox="0 0 32 32" aria-hidden="true"><g stroke="#c98a16" stroke-width="2.2" stroke-linecap="round"><path d="M16 2.5v3.2M16 26.3v3.2M2.5 16h3.2M26.3 16h3.2M6.4 6.4l2.3 2.3M23.3 23.3l2.3 2.3M6.4 25.6l2.3-2.3M23.3 8.7l2.3-2.3"/></g><circle cx="16" cy="16" r="8.6" fill="#f2b83f" stroke="#c98a16" stroke-width="1.8"/><path d="M11.8 13.2a4.6 4.6 0 0 1 3.4-2.6" fill="none" stroke="#fff3ca" stroke-width="1.8" stroke-linecap="round"/><path d="M12.8 17.6c.9 1.3 2 1.9 3.2 1.9s2.3-.6 3.2-1.9" fill="none" stroke="#7a4f00" stroke-width="1.6" stroke-linecap="round"/></svg>'
+};
+function ico(name, cls){ return '<span class="ico'+(cls?' '+cls:'')+'">'+(ICONS[name]||'')+'</span>'; }
+function paintIcons(root){ (root||document).querySelectorAll('[data-icon]').forEach(el=>{ if(!el.querySelector('svg')) el.innerHTML=ICONS[el.dataset.icon]||''; }); }
+
+/* 設定選單（底部抽屜）：頂列齒輪打開。家長相關只放入口，按了還是要輸入密碼 */
+function openSettings(){
+  document.querySelectorAll('.sheet-ov').forEach(o=>o.remove());
+  const kids=state.children.map(ch=>{ const cur=ch.id===state.activeChildId;
+    return `<button class="srow${cur?' cur':''}" data-kid="${escapeHtml(ch.id)}">${ico(cur?'checkCircle':'user')}<span>${escapeHtml(ch.name||'孩子')}</span><span class="sval">${cur?'目前':''}</span></button>`; }).join('');
+  const ov=document.createElement('div'); ov.className='sheet-ov';
+  ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="設定"><div class="grip"></div><h3>設定</h3>
+    <div class="grp">切換孩子</div>${kids}
+    <div class="grp">顯示與聲音</div>
+    <button class="srow" data-act="custom">${ico('layout')}<span>自訂首頁</span>${ico('chevron','chev')}</button>
+    <button class="srow" data-act="diff">${ico('sliders')}<span>功課難易度</span><span class="sval">${escapeHtml(diff().name)}</span>${ico('chevron','chev')}</button>
+    <button class="srow" data-act="bgm">${ico('music')}<span>背景音樂</span><span class="sval" id="svBgm">${state.bgm?'開':'關'}</span></button>
+    <button class="srow" data-act="tts">${ico('speaker')}<span>點讀</span><span class="sval" id="svTts">${state.tts?'開':'關'}</span></button>
+    <div class="grp">說明</div>
+    <button class="srow" data-act="manual">${ico('help')}<span>怎麼玩</span>${ico('chevron','chev')}</button>
+    <button class="srow" data-act="about">${ico('info')}<span>關於</span>${ico('chevron','chev')}</button>
+    <div class="grp">家長（需要密碼）</div>
+    <button class="srow parent" data-act="parent">${ico('key')}<span>進入家長後台</span>${ico('chevron','chev')}</button>
+    <button class="srow parent" data-act="parent">${ico('users')}<span>更改密碼與孩子資料</span>${ico('chevron','chev')}</button>
+    <div class="grp">其他</div>
+    <button class="srow" data-act="newday">${ico('refresh')}<span>開始新的一天（重設今天功課）</span></button>
+    <div style="margin-top:16px;"><button class="btn-secondary" data-act="close">關閉</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>{ ov.remove(); document.removeEventListener('keydown',esc); };
+  const esc=e=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown',esc);
+  ov.onclick=e=>{ if(e.target===ov) close(); };
+  ov.querySelectorAll('[data-kid]').forEach(b=>b.onclick=()=>{
+    close(); if(b.dataset.kid===state.activeChildId) return;
+    state.activeChildId=b.dataset.kid; dailyResetIfNeeded(); save();
+    showTab(currentTab==='parent'?'home':currentTab);
+  });
+  ov.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{
+    const a=b.dataset.act;
+    if(a==='bgm'){ toggleBgm(); const v=$('#svBgm'); if(v) v.textContent=state.bgm?'開':'關'; return; }
+    if(a==='tts'){ state.tts=!state.tts; save(); const v=$('#svTts'); if(v) v.textContent=state.tts?'開':'關'; if(currentTab==='home') renderHome(); return; }
+    close();
+    if(a==='custom') openHomeCustom();
+    else if(a==='diff') openDiffModal();
+    else if(a==='manual') openManual();
+    else if(a==='about') openAbout();
+    else if(a==='parent') showTab('parent');
+    else if(a==='newday') newDayReset();
+  });
+}
+/* 原本在首頁底部的「新的一天（重設功課）」，改版後收進設定選單 */
+function newDayReset(){
+  const c=C();
+  askConfirm('開始新的一天？<br><span class="hint">今日功課會重設為未完成。</span>', ()=>{
+    allHW().forEach(it=>c.homework[it.id]=false); c.homeworkDate=dateKey();
+    c.zombiePush=0; c.zombieDrift=0; c.plantHP=100; c.combo=0; c.routine={}; c.routineDate=dateKey(); save();
+    if(currentTab==='home') renderHome();
+  }, '開始新的一天');
+}
+</script>
 <script>
 /* ---------- 工具 ---------- */
 const $ = (s,r=document)=>r.querySelector(s);
@@ -4117,8 +4331,8 @@ function useEnergy(){
 function tickEnergy(){
   const b=$('#energyBtn'); if(!b) return;
   const left=Math.ceil((energyReadyAt-Date.now())/1000);
-  if(left>0){ b.disabled=true; b.textContent='💥 能量豆（'+left+'s）'; }
-  else { b.disabled=false; b.textContent='💥 能量豆大招'; }
+  if(left>0){ b.disabled=true; b.textContent='能量豆冷卻中（'+left+' 秒）'; }
+  else { b.disabled=false; b.textContent='能量豆大招：把拖延怪炸退一大段'; }
 }
 
 /* ---------- 睡覺後鎖定練習 ---------- */
@@ -4185,6 +4399,7 @@ function firstUnfinishedHW(){
 function showTab(tab, hwId){
   /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
   if(tab!=='parent') parentUnlocked=false;
+  refreshSunCount();
   const _ec=C().eyeRestUntil;
   if(_ec && _ec>Date.now() && isEyeTab(tab)){ showEyeLock(_ec-Date.now()); return; }
   if(PRACTICE_TABS.includes(tab) && practiceLocked()){ renderLock(tab); return; }
@@ -5313,7 +5528,10 @@ function renderOnboarding(){
 }
 
 /* 小花園首頁 */
+/* 頂列的陽光是全站唯一的陽光數字，換分頁、換孩子、重畫首頁都要更新（原本只在陽光變動時才更新，打開 App 會顯示 0） */
+function refreshSunCount(){ const c=C(); if(c) $$('.sunCount').forEach(e=>e.textContent=c.sun); }
 function renderHome(){
+  refreshSunCount();
   ensureSchedule();
   if(!manualAutoShown && !state.seenManual && !state.seenTour){ manualAutoShown=true; state.seenManual=true; state.manualSeenVer=MANUAL_VER; save(); setTimeout(()=>{ if(typeof openManual==='function') openManual(); },1000); }
   /* 說明書有大改版時提醒老使用者一次（首裝那次不提醒，因為剛看過） */
@@ -5338,16 +5556,15 @@ function renderHome(){
       <span>☀️ ${ch.sun}</span><span>✅ ${done}/${list.length}</span></div>`;
   }).join('');
   const HM = state.homeModules;
+  const pendingN = visibleHW().filter(it=>c.homework[it.id]==='pending').length;
+  const nextSunText = pendingN ? '請爸媽簽名：每簽 1 項功課 +30 陽光，拖延怪大幅後退'
+    : unfinished ? '寫完功課、請爸媽簽名：每項 +30 陽光'
+    : '今天的功課都完成了！點植物發射露珠，每次 +1 陽光';
   const secZombie = HM.zombie ? `
-    <div class="home-sec battle-card" id="secZombieBox" style="animation-delay:.05s;">
-      <div class="module-heading">
-        <div><p class="hint" style="margin:0;">DAILY DEFENSE</p><h2 style="font-size:17px;margin:2px 0 0;">🛡 今日守護戰</h2></div>
-        <div class="battle-condition-row">
-          <span class="shield-badge">🛡 護盾豆 × ${c.streakShields||0}</span>
-          <span class="holiday-badge-sm">${hol?'🎉 假日模式':'📅 平日模式'}</span>
-        </div>
-      </div>
-      <div class="threat-label">⏰ 拖延怪倒數：每天 ${r.wake} 起床後出發，${r.sleep} 睡覺前寫完就能打退牠！你的植物會自動發射露珠保衛花園，點掉下來的 ☀️ 還能收集陽光！</div>
+    <section class="card2 battle2 battle-card" id="secZombieBox">
+      <div class="card-head"><h2><img class="mon-avatar" src="assets/monsters/拖延怪/拖延怪_頭像.png" alt="">拖延怪戰場</h2>
+        <span class="pill">${ico('shield')}護盾豆 ${c.streakShields||0}</span></div>
+      <p style="margin:0 0 8px;font-size:13px;color:var(--muted);">${hol?'今天放假，拖延怪不會前進。':'拖延怪 '+r.wake+' 出發，'+r.sleep+' 睡覺前寫完功課就能打退牠。點植物可以發射露珠。'}</p>
       <div class="battle lawn-battle" id="homeBattle">
         <div class="house">🏠</div>
         <div class="lane"></div>
@@ -5357,21 +5574,20 @@ function renderHome(){
         <div class="sun-layer" id="homeSunLayer"></div>
         <div class="battle-overlay" id="battleOverlay"></div>
       </div>
-      <div style="text-align:center;margin:4px 0 2px;color:#d98a00;font-weight:800;font-size:14px;">👆 點植物可以發射露珠，把拖延怪打退！</div>
       <div class="timeline" id="homeTimeline"></div>
-      <div style="text-align:center;margin-top:6px;"><span class="lead-tag warn" id="leadTag">⏱ 計算中…</span></div>
-      <div class="hp-wrap"><span>🌻 植物血量</span><div class="hp-bar"><i id="hpFill"></i></div></div>
-      <div style="text-align:center;margin-top:8px;"><button class="next-btn" id="energyBtn">💥 能量豆大招</button></div>
-      <div id="zStatus" style="font-weight:800;margin:8px 0;"></div>
-      <div class="monster-state-panel">
-        <div class="module-heading"><div><p class="hint" style="margin:0;">MONSTER STATUS</p><h2 style="font-size:15px;margin:2px 0 0;">敵人狀態</h2></div></div>
+      <div style="text-align:center;margin-top:6px;"><span class="lead-tag warn" id="leadTag">計算中…</span></div>
+      <div class="hp-wrap"><span>植物血量</span><div class="hp-bar"><i id="hpFill"></i></div></div>
+      <div id="zStatus" style="font-weight:600;margin:8px 0;font-size:15px;"></div>
+      <div class="reward-line">${ico('sun')}<span>${nextSunText}</span></div>
+      <div style="margin-top:12px;"><button class="btn-secondary" id="energyBtn">能量豆大招：把拖延怪炸退一大段</button></div>
+      <details><summary>認識三隻怪物</summary>
         <div class="monster-state-list">
           <div class="monster-state-item active"><img src="assets/monsters/拖延怪/拖延怪_頭像.png" alt="拖延怪"><div><strong>拖延怪</strong><span>日常逼近．被任務推退</span></div><b>目前</b></div>
           <div class="monster-state-item"><img src="assets/monsters/粗心大王/粗心大王_頭像.png" alt="粗心大王"><div><strong>粗心大王</strong><span>連續答錯 2 題時出現</span></div><b>答錯觸發</b></div>
           <div class="monster-state-item"><img src="assets/monsters/週末魔王/週末魔王_頭像.png" alt="週末魔王"><div><strong>週末魔王</strong><span>週六日限定．完成簽核可加碼</span></div><b>週末 Boss</b></div>
         </div>
-      </div>
-    </div>` : '';
+      </details>
+    </section>` : '';
   const secRoutine = HM.routine ? `
     <div class="home-sec home-module routine-card" id="secRoutineBox" style="animation-delay:.12s;">
       <div class="module-heading"><div><p class="hint" style="margin:0;">DAILY RHYTHM</p><h2 style="font-size:17px;margin:2px 0 0;">🕐 今日作息（${['星期一','星期二','星期三','星期四','星期五','星期六','星期日'][todayWeekdayIndex()]}）</h2></div></div>
@@ -5421,64 +5637,55 @@ function renderHome(){
      而那是首頁第 6 個區塊，要捲很久才看得到 */
   const overdueCount = studyOverdue(c.id).length;
   const overdueBanner = overdueCount ? `
-    <button class="overdue-banner" id="goOverdue">
-      <span style="font-size:24px;">⏰</span>
-      <span style="flex:1;"><b>有 ${overdueCount} 項讀書計劃還沒做</b>
-        <span>已經過了預定日期。點我去看，可以一鍵重新安排到考試前。</span></span>
-      <span class="ob-go">›</span>
+    <button class="alert2" id="goOverdue">${ico('clock')}
+      <span style="flex:1;"><b>有 ${overdueCount} 項讀書計劃還沒做</b>已經過了預定日期。點我去看，可以一鍵重新安排到考試前。</span>
+      ${ico('chevron')}
     </button>` : '';
   /* 被扣分要講清楚原因。陽光無聲無息變少，孩子只會以為是程式壞掉 */
   const pensToday = todayPenalties(c.id);
   const penaltyBanner = pensToday.length ? `
-    <div class="overdue-banner" style="cursor:default;">
-      <span style="font-size:24px;">⚠️</span>
+    <div class="alert2">${ico('alert')}
       <span style="flex:1;"><b>今天被扣了 ${pensToday.reduce((s,p)=>s+p.actual,0)} 陽光</b>
         <span>${pensToday.map(p=>escapeHtml((p.emoji||'⚠️')+' '+p.name+'（－'+p.actual+'）')).join('　')}</span></span>
     </div>` : '';
+  /* 2026-09-28 UI 改版：問候 → 提醒 → 主線任務（今天功課＋下一步＋一個主要按鈕）→ 戰場 → 快捷入口 → 其餘區塊 */
+  const total=visibleHW().length;
+  const nextHW=firstUnfinishedHW();
+  const hr=new Date().getHours();
+  const hello= hr<5?'晚安':hr<11?'早安':hr<18?'午安':'晚安';
+  const tip = hol ? '今天放假，功課可以休息，自由練習照樣能賺陽光。'
+    : total===0 ? '還沒有設定今天的功課，可以請爸媽到家長後台設定。'
+    : finished===total ? '今天的功課都完成了，拖延怪打不進來！'
+    : (!nextHW && pendingN) ? '功課都寫完了，請爸媽簽名就能打退拖延怪。'
+    : '還有 '+(total-finished-pendingN)+' 項功課沒寫'+(pendingN?'、'+pendingN+' 項等爸媽簽名':'')+'，全部簽完就能打退拖延怪。';
+  let ctaText, ctaAct, nextLine;
+  if(nextHW){ ctaText=(finished+pendingN===0)?'開始寫功課':'繼續完成作業'; ctaAct='tasks'; nextLine='下一步：<b>'+escapeHtml(displayHWName(nextHW))+'</b>'; }
+  else if(pendingN){ ctaText='請家長簽名（'+pendingN+' 項）'; ctaAct='sign'; nextLine='寫完的功課要請爸媽在家長後台簽名，才算完成。'; }
+  else if(studyDueCount){ ctaText='去做讀書計劃（'+studyDueCount+' 項）'; ctaAct='plan'; nextLine='功課都完成了，接著做今天的讀書計劃。'; }
+  else { ctaText='今天都完成了，去練習場'; ctaAct='practice'; nextLine='想多賺陽光，可以去練習場答題。'; }
+  const chips=visibleHW().map(it=>{
+    const v=c.homework[it.id]; const st=v===true?'done':v==='pending'?'pending':'todo';
+    return `<li><button class="hw-chip ${st}" data-hw="${escapeHtml(it.id)}" ${st==='done'?'disabled':''}>${ico(st==='done'?'checkCircle':st==='pending'?'clock':'circle')}<span>${escapeHtml(displayHWName(it))}</span><small>${st==='done'?'已完成':st==='pending'?'等簽名':'還沒寫'}</small></button></li>`;
+  }).join('');
   app.innerHTML = `
-  <div class="panel">
-    <h2 class="title-sticker">🌻 ${escapeHtml(name)} 的小花園</h2>
-    <p class="hint">把今天的功課都寫完（請爸媽簽名），拖延怪就會被打退，植物就安全囉！陽光會一直累積，除非超時或違規被扣。</p>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-      <div class="sun-box" style="position:static;display:inline-flex;margin:0;">
-        <span class="sun-emoji">☀️</span><span class="sunCount">${c.sun}</span> 陽光</div>
-      <span class="stat">👦 切換孩子</span>
-      <select id="profileSel" class="profile-sel">${profileOpts}</select>
-      <span class="stat" style="color:#2e7d32;font-weight:800;">🎚 ${diffLabel()}${liveDiffNote()}</span>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-      <button class="reset-btn" id="homeCustomBtn">⚙️ 自訂首頁顯示</button>
-      <button class="reset-btn" id="homeManualBtn">❓ 怎麼玩</button>
-      <button class="reset-btn" id="homeAboutBtn">ℹ️ 關於</button>
-      <button class="reset-btn" id="homeDiffBtn">🎚 功課難易度</button>
-      <button class="reset-btn" id="bgmBtn">${state.bgm?'🎵 音樂：開':'🎵 音樂：關'}</button>
-    </div>
-    ${banner}
+  <div class="home2">
+    <div class="greet"><h1>${escapeHtml(name)}，${hello}！</h1><p>${tip}</p></div>
+    ${hol?`<div class="alert2 holiday">${ico('flag')}<span style="flex:1;"><b>今天是「${escapeHtml(hol)}」</b>學校功課可以休息，自由練習照樣能賺陽光。</span></div>`:''}
     ${penaltyBanner}
     ${overdueBanner}
+    <section class="card2 quest" id="questCard">
+      <div class="card-head"><h2>今天的功課</h2><span class="pill">${ico('checkCircle')}已完成 ${finished}/${total}</span></div>
+      <div class="qbar" role="progressbar" aria-label="今天功課完成度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${hwPct}"><i style="width:${hwPct}%"></i></div>
+      <ul class="hw-chips">${chips}</ul>
+      <p class="next-step">${nextLine}</p>
+      <button class="btn-primary" id="ctaStart">${ctaText}</button>
+      <div class="quest-foot"><span class="pill">${ico('flame')}連續 ${c.streak||0} 天</span><span class="pill">${ico('sliders')}${escapeHtml(diff().name)}</span></div>
+      ${studyTodayHTML(c)}
+    </section>
     ${secZombie}
-    <div class="progress-card-row">
-      <div>
-        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:5px;">
-          <span>📝 今日功課</span><span style="color:#2e8b40;">${finished}/${visibleHW().length} 完成</span>
-        </div>
-        <div style="height:12px;background:#ece0c4;border-radius:8px;overflow:hidden;">
-          <div style="height:100%;width:${hwPct}%;background:linear-gradient(90deg,#7dc855,#4ea63b);transition:width .5s;"></div>
-        </div>
-        <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':(studyDueCount?'📚 功課寫完了，換讀書計劃 ▶':'🎉 今天都完成了，自由練習 ▶')}</button>
-        ${studyTodayHTML(c)}
-      </div>
-      <div class="home-module">
-        <div class="module-heading"><div><p class="hint" style="margin:0;">TODAY'S FOCUS</p></div></div>
-        <div style="text-align:center;">
-          <div style="font-size:30px;font-weight:900;color:var(--leaf-dark);">${hwPct}<small style="font-size:16px;">%</small></div>
-          <div style="font-size:12px;color:var(--muted);">今日完成度</div>
-        </div>
-        <div class="progress-resources">
-          <div class="resource-stat"><span class="resource-icon streak-icon">連</span><div><strong>${c.streak||0} 天</strong><small>目前連勝</small></div></div>
-          <div class="resource-stat"><span class="resource-icon shield-icon">盾</span><div><strong>${c.streakShields||0} 顆</strong><small>護盾豆</small></div></div>
-        </div>
-      </div>
+    <div class="quick2">
+      <button id="qkToday" type="button">${ico('book')}今天功課</button>
+      <button id="qkGarden" type="button">${ico('sprout')}花園收藏</button>
     </div>
     ${secGarden}
     <div class="home-module-grid">
@@ -5486,9 +5693,6 @@ function renderHome(){
       ${secBadge}
       ${secLeader}
       ${secSchedule}
-    </div>
-    <div class="home-sec" style="text-align:center;margin-top:14px;">
-      <button class="reset-btn" id="newDay">🔄 新的一天（重設功課）</button>
     </div>
   </div>`;
   if(HM.schedule) attachSchedule();
@@ -5556,10 +5760,17 @@ function renderHome(){
   updateClock();
   /* 優先序：學校功課 → 讀書計劃 → 練習場（加分） */
   const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{
-    if(hasUnfinished) renderTodayTasks();
-    else if(studyDueCount) showTab('plan');
+    if(ctaAct==='tasks') renderTodayTasks();
+    else if(ctaAct==='sign') showTab('parent');
+    else if(ctaAct==='plan') showTab('plan');
     else showTab('practice');
   };
+  $$('.hw-chip[data-hw]').forEach(b=>b.onclick=()=>{
+    const v=c.homework[b.dataset.hw]; if(v===true) return;
+    if(v==='pending') renderTodayTasks(); else renderHomeworkCheck(b.dataset.hw);
+  });
+  const qt=$('#qkToday'); if(qt) qt.onclick=renderTodayTasks;
+  const qg=$('#qkGarden'); if(qg) qg.onclick=()=>{ const el=$('#secGardenBox'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); else showTab('collection'); };
   $$('input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderHome(); }; });
   const gob=$('#goOverdue'); if(gob) gob.onclick=()=>showTab('plan');
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
@@ -7932,6 +8143,7 @@ function weekChartSVG(c){
 
 /* ---------- 啟動 ---------- */
 $$('.tab-btn').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
+paintIcons(); { const sb=$('#settingsBtn'); if(sb) sb.onclick=openSettings; }
 applyActiveSubjects();
 applySubjectIcons();
 function bootApp(){
