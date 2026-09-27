@@ -729,7 +729,7 @@ function openHomeCustom(){
     {k:'garden', t:'🌿 你的植物花園'},
     {k:'schedule', t:'📋 今日行程（排程）'}
   ];
-  const subj = Object.keys(HW_TYPES).map(t=>`<label class="mod-row-toggle"><span class="subj-nm">${subjectIcon(t)} ${SUBJECT_NAMES[t]}（${SUBJECT_DESC[t]}）</span><span class="subj-ic"><input class="name-in" type="text" maxlength="8" value="${subjectName(t)}" data-name="${t}" title="自訂科目名稱"><input class="emoji-in" type="text" maxlength="4" value="${subjectIcon(t)}" data-emoji="${t}" title="自訂圖示 emoji"><input type="checkbox" data-subject="${t}" ${state.activeSubjects[t]===false?' ':'checked'}></span></label>`).join('');
+  const subj = Object.keys(HW_TYPES).map(t=>`<label class="mod-row-toggle"><span class="subj-nm">${subjectIcon(t)} ${SUBJECT_NAMES[t]}（${SUBJECT_DESC[t]}）</span><span class="subj-ic"><input class="name-in" type="text" maxlength="8" value="${escapeHtml(subjectName(t))}" data-name="${t}" title="自訂科目名稱"><input class="emoji-in" type="text" maxlength="4" value="${escapeHtml(subjectIcon(t))}" data-emoji="${t}" title="自訂圖示 emoji"><input type="checkbox" data-subject="${t}" ${state.activeSubjects[t]===false?' ':'checked'}></span></label>`).join('');
   const ov=document.createElement('div'); ov.className='modal-ov';
   ov.innerHTML=`
     <div class="modal">
@@ -738,7 +738,8 @@ function openHomeCustom(){
       ${items.map(it=>`<label class="mod-row-toggle"><span>${it.t}</span><input type="checkbox" data-k="${it.k}" ${state.homeModules[it.k]?'checked':''}></label>`).join('')}
       <div style="margin-top:14px;border-top:2px dashed #e3d3a3;padding-top:10px;">
         <div style="font-weight:800;color:#7a6a45;margin-bottom:6px;">📚 要保留哪些科目？（取消的會從頂部按鈕和首頁功課清單消失）</div>
-        ${subj}
+        <button class="reset-btn" id="hmSubjUnlock" type="button" style="margin:0 0 8px;">🔐 科目設定要家長密碼，按這裡解鎖</button>
+        <div id="hmSubj">${subj}</div>
       </div>
       <div style="display:flex;gap:10px;margin-top:16px;">
         <button class="next-btn" id="hmSave" style="flex:1;">✅ 儲存</button>
@@ -747,6 +748,19 @@ function openHomeCustom(){
     </div>`;
   document.body.appendChild(ov);
   ov.querySelectorAll('input[data-k]').forEach(cb=>{ cb.onchange=()=>{ state.homeModules[cb.dataset.k]=cb.checked; save(); }; });
+  /* 科目開關要家長密碼：睡覺鎖只看「有顯示的科目」寫完沒，孩子把科目全部藏起來就能躲過（2026-09-28 稽核 A8） */
+  const subjInputs=ov.querySelectorAll('#hmSubj input');
+  subjInputs.forEach(inp=>{ inp.disabled=true; });
+  ov.querySelector('#hmSubj').style.opacity='.55';
+  ov.querySelector('#hmSubjUnlock').onclick=()=>{
+    askInput({ title:'🔐 家長解鎖科目設定', okLabel:'解鎖',
+      fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
+    }, v=>{
+      const err=checkPIN(v.pin); if(err) return err;
+      subjInputs.forEach(inp=>{ inp.disabled=false; }); ov.querySelector('#hmSubj').style.opacity='';
+      ov.querySelector('#hmSubjUnlock').remove();
+    });
+  };
   ov.querySelectorAll('input[data-subject]').forEach(cb=>{ cb.onchange=()=>{ state.activeSubjects[cb.dataset.subject]=cb.checked; save(); }; });
   ov.querySelectorAll('input[data-emoji]').forEach(inp=>{ inp.oninput=()=>{ state.subjectIcons[inp.dataset.emoji]=inp.value.trim()||defaultSubjectIcons()[inp.dataset.emoji]; save(); applySubjectIcons(); }; });
   ov.querySelectorAll('input[data-name]').forEach(inp=>{ inp.oninput=()=>{ state.subjectNames[inp.dataset.name]=inp.value.trim()||SUBJECT_NAMES[inp.dataset.name]; save(); applySubjectIcons(); }; });
@@ -966,7 +980,9 @@ const DIFF_MAP = {
 const LEVEL_ORDER=['L1','L2','L3','L4','L5'];
 /* 舊存檔的三檔命名 → 新五檔 */
 const LEGACY_LEVEL={ toddler:'L1', basic:'L2', advanced:'L4' };
-function normLevel(k){ if(!k) return ''; if(DIFF_MAP[k]) return k; return LEGACY_LEVEL[k]||''; }
+/* 開機讀檔（let state = load()）比 DIFF_MAP／LEGACY_LEVEL 的宣告早，這裡不能用那兩個常數，
+   否則有設難易度的存檔一律讀檔失敗、被換成空白新檔（2026-09-28 稽核 A1） */
+function normLevel(k){ if(!k) return ''; if(/^L[1-5]$/.test(k)) return k; return ({toddler:'L1', basic:'L2', advanced:'L4'})[k]||''; }
 function ageToLevel(age){
   age=Number(age)||0;
   if(age<=5) return 'L1';
@@ -1049,7 +1065,16 @@ function replayModule(key){
   else if(key==='custom') renderCustom();
 }
 /* 錯題間隔重複（spaced repetition）：答對就拉長下次複習間隔，答錯重置 */
-function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])); }
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+/* 使用者輸入的文字一律把 < > 換成全形 ＜ ＞：從網路貼的題庫、單字表、備份檔就算夾帶網頁程式碼也組不起來。
+   讀檔、存檔、解析貼上內容時都會跑一次；顯示端另外用 escapeHtml（2026-09-28 稽核 A3） */
+function cleanText(v){ return typeof v==='string' ? v.replace(/</g,'＜').replace(/>/g,'＞') : v; }
+function deepClean(o){
+  if(!o||typeof o!=='object') return o;
+  const keys=Array.isArray(o)? o.keys() : Object.keys(o);
+  for(const k of keys){ const v=o[k]; if(typeof v==='string'){ if(/[<>]/.test(v)) o[k]=cleanText(v); } else if(v&&typeof v==='object') deepClean(v); }
+  return o;
+}
 function shuffleOpts(opts, correct){ const arr=(opts&&opts.length?opts.slice():[correct]).slice(); if(!arr.includes(correct)) arr.push(correct); for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
 function dueReviews(){
   const c=C(); const list=c.wrongQuestions||[]; const now=Date.now();
@@ -1481,11 +1506,18 @@ function freshState(){
     studyPlan:{items:[]}
   };
 }
+/* _loadFailed 用 var：load() 在開機時就會被呼叫，比這一行的位置早 */
+var _loadFailed;
 function load(seed){
+  _loadFailed=false;
+  let raw=null;
   try{
-    const raw = seed ? JSON.stringify(seed) : (localStorage.getItem(SAVE_KEY) || localStorage.getItem('pvz_homework_v10'));
+    raw = seed ? JSON.stringify(seed) : (localStorage.getItem(SAVE_KEY) || localStorage.getItem('pvz_homework_v10'));
     const s=JSON.parse(raw);
-    if(s){
+    if(s && typeof s==='object' && !Array.isArray(s)){
+      deepClean(s);
+      if(!Array.isArray(s.rewards)) s.rewards=freshState().rewards;
+      s.rewards=s.rewards.filter(r=>r&&typeof r==='object');
       if(Array.isArray(s.rewards)){
         s.rewards.forEach(r=>{ if(r.claimed!==undefined && r.status===undefined){ r.status=r.claimed?'approved':'none'; delete r.claimed; } if(r.status===undefined) r.status='none'; });
       }
@@ -1494,7 +1526,7 @@ function load(seed){
       if(!Array.isArray(s.penaltyLog)) s.penaltyLog=[];
       if(s.weekRoutine===undefined){
         const d=defaultWeekRoutine();
-        if(s.routine){ for(let i=0;i<7;i++) s.weekRoutine[i]={...d[i], ...s.routine}; }
+        if(s.routine){ s.weekRoutine={}; for(let i=0;i<7;i++) s.weekRoutine[i]={...d[i], ...s.routine}; }
         else s.weekRoutine=d;
       }
       if(!Array.isArray(s.homeworkList)){
@@ -1502,11 +1534,17 @@ function load(seed){
         const nd={}; def.forEach(it=>{ nd[it.id]=!!(old[it.name]||old[it.type]); });
         s.homeworkList=def; s.homework=nd;
       } else { if(!s.homework) s.homework={}; s.homeworkList.forEach(it=>{ if(s.homework[it.id]===undefined) s.homework[it.id]=false; }); }
+      if(Array.isArray(s.children)) s.children=s.children.filter(ch=>ch&&typeof ch==='object'&&!Array.isArray(ch));
       if(!Array.isArray(s.children)||s.children.length===0){
         const old={...s}; delete old.children;
         s.children=[makeChildFromOld(old)]; s.activeChildId=s.children[0].id;
       }
       s.children.forEach(ch=>{
+        /* 缺欄位的孩子（例如格式不完整的備份檔）用預設值補齊，避免之後畫面一打開就出錯 */
+        const base=defaultChild('');
+        Object.keys(base).forEach(k=>{ if(ch[k]===undefined) ch[k]=base[k]; });
+        if(typeof ch.id!=='string'||!ch.id) ch.id=base.id;
+        if(typeof ch.name!=='string') ch.name=String(ch.name==null?'':ch.name);
         /* 2026-09-26 功課清單改為每個孩子各自一份；舊存檔把全域清單複製給每個孩子，state.homeworkList 留著給舊版本讀 */
         if(!Array.isArray(ch.homeworkList)) ch.homeworkList=JSON.parse(JSON.stringify(Array.isArray(s.homeworkList)&&s.homeworkList.length?s.homeworkList:defaultHomeworkList()));
         if(!ch.homework) ch.homework={};
@@ -1531,6 +1569,9 @@ function load(seed){
       if(s.schedCheckin===undefined) s.schedCheckin=5;
       if(s.schedOnTime===undefined) s.schedOnTime=10;
       if(s.parentPIN===undefined) s.parentPIN='1234';
+      if(typeof s.parentPIN==='number') s.parentPIN=String(s.parentPIN);
+      if(typeof s.parentPIN!=='string'||!/^\d{1,6}$/.test(s.parentPIN)) s.parentPIN='1234';   /* 格式壞掉的密碼會讓家長永遠進不了後台 */
+      if(!s.children.some(ch=>ch.id===s.activeChildId)) s.activeChildId=s.children[0].id;
       if(s.eyeRestOn===undefined) s.eyeRestOn=true;
       if(s.quizLimitMin===undefined) s.quizLimitMin=30;
       if(s.restMin===undefined) s.restMin=10;
@@ -1548,12 +1589,15 @@ function load(seed){
       if(s.notifiedDate===undefined) s.notifiedDate='';
       return s;
     }
-  }catch(e){}
+  }catch(e){ try{ console.error('load() 失敗', e); }catch(_){} }
+  /* 讀檔失敗：先把原始資料另存一份，避免接下來的自動存檔把它蓋掉（2026-09-28 稽核 A1） */
+  _loadFailed=!!raw;   /* 全新使用者（本來就沒有存檔）不算失敗 */
+  if(!seed && raw){ try{ if(!localStorage.getItem(SAVE_KEY+'_rescue')) localStorage.setItem(SAVE_KEY+'_rescue', raw); }catch(_){} }
   return freshState();
 }
 function save(){
   let raw;
-  try{ raw=JSON.stringify(state); }
+  try{ deepClean(state); raw=JSON.stringify(state); }
   catch(e){ toast('⚠️ 存檔失敗：資料無法序列化'); return; }
   // localStorage 同步兜底（私密模式可能拋錯，忽略）
   try{ localStorage.setItem(SAVE_KEY, raw); }catch(e){}
@@ -3452,10 +3496,23 @@ function checkinTask(id){
   addSun(state.schedCheckin||5); goodSound();
   toast('📍 準時打卡「'+it.label+'」 +'+(state.schedCheckin||5)+'☀️'); save(); renderHome();
 }
+/* 2026-09-28 稽核 A7：原本任何時間按「完成」都算準時（早上一口氣按完就拿滿獎勵），
+   還會順便把吃飯、洗澡標成完成、繞過超時扣分；功課類不用寫完也能按 */
+function schedRealDone(it, c){
+  if(it.kind==='routine') return !!(c.routine && c.routine[it.routineKey] && c.routine[it.routineKey].status==='done');
+  if(it.kind==='homework'){ const v=c.homework&&c.homework[it.hwId]; return v===true||v==='pending'; }
+  return true;
+}
 function markSchedDone(id){
   const it=state.schedule.find(x=>x.id===id); if(!it) return;
   const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
-  const onTime = nowMin <= toMin(it.time)+(it.dur||0);
+  const startMin=toMin(it.time);
+  if(nowMin<startMin-10){ toast('還沒到「'+it.label+'」的時間（'+it.time+'），到了再按完成'); return; }
+  if(!schedRealDone(it, C())){
+    toast(it.kind==='routine' ? '「'+it.label+'」請先在上面「今日作息」按開始、完成' : '「'+it.label+'」要先寫完、在今日功課送出申請，才能按完成');
+    return;
+  }
+  const onTime = nowMin <= startMin+(it.dur||0);
   const isNew=setSchedDoneNoRender(id, onTime);
   pushZombie(0.06);
   if(isNew) toast(onTime?('⏱「'+it.label+'」準時完成！獎勵陽光 +'+(state.schedOnTime||10)+'（行程區可收集）'):('✅「'+it.label+'」完成（超時，無額外獎勵）'));
@@ -3492,7 +3549,7 @@ function schedCardHTML(it){
   if(it.kind!=='routine') btns+='<button class="rt-btn" data-act="edit" data-id="'+it.id+'">✏️</button>';
   return `<div class="reward" style="align-items:flex-start;">
     <div style="flex:1;">
-      <div style="font-weight:800;font-size:16px;">${(it.emoji||'📌')} ${it.label}${kindBadge}</div>
+      <div style="font-weight:800;font-size:16px;">${escapeHtml(it.emoji||'📌')} ${escapeHtml(it.label)}${kindBadge}</div>
       <div style="font-size:13px;color:#7a6a45;margin-top:2px;">
         ⏰<input type="time" value="${it.time}" data-time="${it.id}" style="border:1px solid #d8c79a;border-radius:6px;padding:2px 4px;font-size:12px;">
         ⏳<input type="number" min="5" value="${it.dur}" data-dur="${it.id}" style="width:46px;border:1px solid #d8c79a;border-radius:6px;padding:2px 4px;font-size:12px;">分
@@ -3538,7 +3595,7 @@ function openSchedModal(id){
   const ov=document.createElement('div'); ov.className='modal-ov';
   ov.innerHTML=`<div class="modal">
     <h3>${it?'✏️ 編輯行程':'➕ 新增行程'}</h3>
-    <div class="mod-row"><label>事項名稱</label><br><input id="sLbl" class="in" style="width:100%;max-width:none;" value="${it?it.label:''}" placeholder="例如：練鋼琴"></div>
+    <div class="mod-row"><label>事項名稱</label><br><input id="sLbl" class="in" style="width:100%;max-width:none;" value="${escapeHtml(it?it.label:'')}" placeholder="例如：練鋼琴"></div>
     <div class="mod-row"><label>圖示 emoji</label><br><input id="sEm" class="in" maxlength="4" value="${it?it.emoji:'📌'}" style="width:80px;"></div>
     <div class="mod-row"><label>時間</label><br><input id="sTime" class="in" type="time" value="${it?it.time:'19:00'}"></div>
     <div class="mod-row"><label>預計分鐘</label><br><input id="sDur" class="in" type="number" min="5" value="${it?it.dur:30}"></div>
@@ -3652,7 +3709,7 @@ function renderTimeline(g){
     const status=st.status||'todo';
     const late = status!=='done' && g.nowMin > m+(it.dur||0);
     const cls = status==='done'?'done':status==='checked'?'checked':(late?'overdue todo':'todo');
-    marks += `<div class="tl-mk ${cls}" style="left:${tlX(m)}%;" title="${it.label} ${it.time}">
+    marks += `<div class="tl-mk ${cls}" style="left:${tlX(m)}%;" title="${escapeHtml(it.label)} ${escapeHtml(it.time)}">
       <span class="tl-ic">${status==='done'?'✅':(it.emoji||'📌')}</span>
       <span class="tl-t">${it.time}</span><span class="tl-dot"></span></div>`;
   });
@@ -3886,12 +3943,13 @@ function renderRoutineBonus(box){
       <div class="bonus-sub">選一個「加功獎勵」吧：</div>
       <div class="bonus-row">
         <button class="bonus-btn" id="bBounSun" ${claimed?'disabled':''}>☀️ ${claimed?'今日已領取 ✅':'領作息獎勵包 +25 陽光'}</button>
-        <button class="bonus-btn" id="bPlant">🌻 免費解鎖一棵植物</button>
+        <button class="bonus-btn" id="bPlant" ${claimed?'disabled':''}>🌻 免費解鎖一棵植物</button>
         <button class="bonus-btn" id="bQuiz">📚 加功題挑戰</button>
       </div>
     </div>`;
   const bs=$('#bBounSun'); if(bs) bs.onclick=()=>{ const cc=C(); if((cc.routineBonusDate||'')===dateKey()) return; addSun(25); cc.routineBonusDate=dateKey(); goodSound(); toast('☀️ 領到作息獎勵 +25 陽光！'); save(); renderHome(); };
-  const bp=$('#bPlant'); if(bp) bp.onclick=()=>{ const cc=C(); const locked=GARDEN_PLANTS.filter(p=>!cc.garden[p.id]); if(locked.length){ const p=locked[Math.floor(Math.random()*locked.length)]; cc.garden[p.id]=true; if(Array.isArray(cc.deck)&&cc.deck.length<5) cc.deck=cc.deck.concat([p.id]); goodSound(); sunBurstAt(window.innerWidth/2,window.innerHeight*0.4); toast('🌻 免費解鎖了 '+p.nm+'！'); } else { addSun(15); toast('🌻 植物都解鎖啦，改送 +15 陽光！'); } save(); renderHome(); };
+  /* 陽光和植物二擇一、每天一次：原本植物這顆沒檢查也沒記日期，可以無限按（2026-09-28 稽核 A6） */
+  const bp=$('#bPlant'); if(bp) bp.onclick=()=>{ const cc=C(); if((cc.routineBonusDate||'')===dateKey()) return; cc.routineBonusDate=dateKey(); const locked=GARDEN_PLANTS.filter(p=>!cc.garden[p.id]); if(locked.length){ const p=locked[Math.floor(Math.random()*locked.length)]; cc.garden[p.id]=true; if(Array.isArray(cc.deck)&&cc.deck.length<5) cc.deck=cc.deck.concat([p.id]); goodSound(); sunBurstAt(window.innerWidth/2,window.innerHeight*0.4); toast('🌻 免費解鎖了 '+p.nm+'！'); } else { addSun(15); toast('🌻 植物都解鎖啦，改送 +15 陽光！'); } save(); renderHome(); };
   const bq=$('#bQuiz'); if(bq) bq.onclick=()=>{ toast('📚 去做加功題，腦力升級！'); renderDailyQuiz(); };
 }
 function startRoutine(key){
@@ -4102,7 +4160,7 @@ function showEyeLock(msLeft){
       askInput({ title:'🔓 家長解除護眼鎖定', okLabel:'解除',
         fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
       }, v=>{
-        if(v.pin!==state.parentPIN) return '密碼不對';
+        const err=checkPIN(v.pin); if(err) return err;
         ov.className=''; const cc=C(); cc.eyeRestUntil=0; save(); toast('🔓 已家長解鎖');
       });
     };
@@ -4125,6 +4183,8 @@ function firstUnfinishedHW(){
   return visibleHW().find(it=>c.homework[it.id]!==true && c.homework[it.id]!=='pending')||null;
 }
 function showTab(tab, hwId){
+  /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
+  if(tab!=='parent') parentUnlocked=false;
   const _ec=C().eyeRestUntil;
   if(_ec && _ec>Date.now() && isEyeTab(tab)){ showEyeLock(_ec-Date.now()); return; }
   if(PRACTICE_TABS.includes(tab) && practiceLocked()){ renderLock(tab); return; }
@@ -4195,7 +4255,7 @@ function renderTodayTasks(){
         const card=document.createElement('button');
         card.className='hw-card'+(done?' done':'')+(pend?' pending':'');
         const label = done?'已完成 ✅':pend?'申請中 ⏳':'去寫 →';
-        card.innerHTML=`<span>${(done?'✅':pend?'⏳':'⬜')} ${subjectIcon(it.type)} ${displayHWName(it)}</span><span>${label}</span>`;
+        card.innerHTML=`<span>${(done?'✅':pend?'⏳':'⬜')} ${subjectIcon(it.type)} ${escapeHtml(displayHWName(it))}</span><span>${label}</span>`;
         card.onclick=()=>renderHomeworkCheck(it.id);
         list.appendChild(card);
       });
@@ -4239,7 +4299,7 @@ function renderHomeworkCheck(hwId){
   }
   app.innerHTML=`
   <div class="panel">
-    <h2 class="title-sticker">${subjectIcon(it.type)} ${nm}</h2>
+    <h2 class="title-sticker">${subjectIcon(it.type)} ${escapeHtml(nm)}</h2>
     <p class="hint">這是在學校寫的功課。寫完後在這裡確認完成，請爸媽簽名就能賺陽光打退拖延怪！</p>
     ${body}
     <div style="text-align:center;margin-top:10px;"><button class="reset-btn" id="hwBack">⬅ 回功課清單</button></div>
@@ -4273,7 +4333,7 @@ function renderPracticeHub(){
     if(!visible.length) return;
     html+=`<div class="home-sec home-module"><div class="module-heading"><div><p class="hint" style="margin:0;">${grp.title.toUpperCase()}</p><h2 style="font-size:17px;margin:2px 0 0;">${grp.icon} ${grp.title}</h2></div></div><div class="practice-grid">`;
     visible.forEach(([t,n,ic])=>{
-      html+=`<button class="practice-card" data-tab="${t}"><div class="pc-ic">${ic||subjectIcon(t)}</div><div class="pc-nm">${n||subjectName(t)}</div></button>`;
+      html+=`<button class="practice-card" data-tab="${t}"><div class="pc-ic">${ic||subjectIcon(t)}</div><div class="pc-nm">${escapeHtml(n||subjectName(t))}</div></button>`;
     });
     html+='</div></div>';
   });
@@ -4331,7 +4391,7 @@ function renderStudyPlan(){
   const unsched=studyUnscheduled(c.id).length;
   app.innerHTML=`
   <div class="panel">
-    <h2 class="title-sticker">📅 ${c.name||'我'}的讀書計劃</h2>
+    <h2 class="title-sticker">📅 ${escapeHtml(c.name||'我')}的讀書計劃</h2>
     <p class="hint">學校功課以外的自修／測驗卷／評量進度。設定考試日期與範圍，系統會自動幫你往回推該哪天讀哪一課。做完一項 +${STUDY_ITEM_SUN} 陽光（每天前 ${STUDY_FULL_COUNT} 項全額，之後每項 ${STUDY_ITEM_SUN_LOW} 陽光）。</p>
     <div id="examZone"></div>
     <div class="plan-toolbar">
@@ -4379,7 +4439,7 @@ function paintExamZone(){
       }).filter(Boolean);
       return `<div class="exam-card${d<0?' past':''}">
         <div class="ex-main">
-          <div class="ex-name">${e.name}</div>
+          <div class="ex-name">${escapeHtml(e.name)}</div>
           <div class="ex-meta">${e.date.replace(/-/g,'/')} · 範圍 ${(e.scopes||[]).length} 項 · 共 ${cnt} 課，還剩 ${left} 課沒讀</div>
         </div>
         <div class="ex-count ${d<=3?'urgent':''}">${d<0?'已結束':d===0?'就是今天':'還有 '+d+' 天'}</div>
@@ -4406,7 +4466,7 @@ function paintExamZone(){
   box.querySelectorAll('[data-exedit]').forEach(b=> b.onclick=()=>openExamModal(b.dataset.exedit));
   box.querySelectorAll('[data-exdel]').forEach(b=> b.onclick=()=>{
     const e=studyPlan().exams.find(x=>x.id===b.dataset.exdel); if(!e) return;
-    askConfirm('刪除考試「'+e.name+'」？<br><span class="hint">已排好的課次日期會保留，不會被清掉。</span>', ()=>{
+    askConfirm('刪除考試「'+escapeHtml(e.name)+'」？<br><span class="hint">已排好的課次日期會保留，不會被清掉。</span>', ()=>{
       studyPlan().exams=studyPlan().exams.filter(x=>x.id!==e.id); save();
       toast('🗑 已刪除考試「'+e.name+'」'); renderStudyPlan();
     });
@@ -4427,7 +4487,7 @@ function paintPlanSubject(){
         const mats=studyMaterialsOf(s.id);
         return `<button class="plan-sub" data-sub="${s.id}">
           <span class="ps-ic">${s.icon||'📚'}</span>
-          <span class="ps-main"><span class="ps-nm">${s.name}</span>
+          <span class="ps-main"><span class="ps-nm">${escapeHtml(s.name)}</span>
             <span class="ps-sub">${mats.length? mats.join('・') : '尚未新增教材'} · ${done}/${items.length} 完成${od?` · <b style="color:#c0392b;">${od} 逾期</b>`:''}</span>
             <span class="ps-bar"><i style="width:${pct}%"></i></span></span>
           <span class="ps-go">›</span></button>`;
@@ -4446,7 +4506,7 @@ function paintPlanMaterials(){
   const mats=studyMaterialsOf(sub.id);
   box.innerHTML=`
     <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ 所有科目</button>
-      <span class="crumb-now">${sub.icon||'📚'} ${sub.name}</span>
+      <span class="crumb-now">${escapeHtml(sub.icon||'📚')} ${escapeHtml(sub.name)}</span>
       <button class="reset-btn" id="subDel" style="margin-left:auto;">🗑 刪除此科</button></div>
     <div class="plan-sublist">
       ${mats.map(m=>{
@@ -4466,7 +4526,7 @@ function paintPlanMaterials(){
   $('#planBack').onclick=()=>{ planSubjectId=null; planMaterial=null; renderStudyPlan(); };
   $('#subDel').onclick=()=>{
     const n=studyItemsOfSubject(sub.id).length;
-    askConfirm('刪除「'+sub.name+'」以及底下 '+n+' 筆課次？<br><span class="hint">這個動作無法復原。</span>', ()=>{
+    askConfirm('刪除「'+escapeHtml(sub.name)+'」以及底下 '+n+' 筆課次？<br><span class="hint">這個動作無法復原。</span>', ()=>{
       deleteStudySubject(sub.id); planSubjectId=null; planMaterial=null;
       toast('🗑 已刪除 '+sub.name); renderStudyPlan();
     });
@@ -4482,8 +4542,8 @@ function paintPlanLessons(){
   const today=dateKey();
   const unitWord=/數學|社會|自然/.test(sub.name)?'單元':'課';
   box.innerHTML=`
-    <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ ${sub.name}</button>
-      <span class="crumb-now">${sub.icon||'📚'} ${sub.name} · ${planMaterial}</span>
+    <div class="plan-crumb"><button class="reset-btn" id="planBack">‹ ${escapeHtml(sub.name)}</button>
+      <span class="crumb-now">${escapeHtml(sub.icon||'📚')} ${escapeHtml(sub.name)} · ${escapeHtml(planMaterial)}</span>
       <span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;">
         <button class="reset-btn" id="matCopy" ${items.length?'':'disabled'}>📋 複製到其他教材</button>
         <button class="reset-btn" id="matAdd2">＋ 加課次</button>
@@ -4495,7 +4555,7 @@ function paintPlanLessons(){
         const multi=!it.extra && studySiblingCount(it)>1;
         return `<label class="plan-row${it.done?' done':''}${od?' overdue':''}${isToday?' today':''}${it.extra?' extra':''}">
           <input type="checkbox" data-sid="${it.id}" ${it.done?'checked':''}>
-          <span class="pr-main"><span class="pr-label">${it.extra? ('📄 '+(it.lessonName||'複習考')+(extraSiblingCount(it)>1?' ('+(it.part||1)+')':'')) : ('第'+it.lesson+unitWord+(multi?' ('+(it.part||1)+')':'')+(it.lessonName?' '+it.lessonName:''))}</span>
+          <span class="pr-main"><span class="pr-label">${escapeHtml(it.extra? ('📄 '+(it.lessonName||'複習考')+(extraSiblingCount(it)>1?' ('+(it.part||1)+')':'')) : ('第'+it.lesson+unitWord+(multi?' ('+(it.part||1)+')':'')+(it.lessonName?' '+it.lessonName:'')))}</span>
             <span class="pr-due">${it.due? ((od?'⚠️ 逾期 · ':'')+(isToday?'📌 今天 · ':'')+it.due.slice(5).replace('-','/')) : '🕗 尚未排程（設定考試後自動排）'}</span></span>
           <span class="row-btns">
             ${showWordsFor(it)?`<button class="row-word${itemWords(it).length?' has':''}" data-word="${it.id}" title="${itemWords(it).length?('這一課有 '+itemWords(it).length+' 個單字，點我考試'):'加入單字'}">📝${itemWords(it).length||''}</button>`:''}
@@ -4512,7 +4572,7 @@ function paintPlanLessons(){
   const mc=$('#matCopy'); if(mc && !mc.disabled) mc.onclick=()=>openCopyModal(sub.id, planMaterial);
   $('#matDel').onclick=()=>{
     const m=planMaterial;
-    askConfirm('刪除「'+sub.name+' · '+m+'」底下的 '+items.length+' 課？<br><span class="hint">這個動作無法復原。</span>', ()=>{
+    askConfirm('刪除「'+escapeHtml(sub.name)+' · '+escapeHtml(m)+'」底下的 '+items.length+' 課？<br><span class="hint">這個動作無法復原。</span>', ()=>{
       const sp=studyPlan();
       sp.items=sp.items.filter(i=>!(i.subjectId===sub.id && i.material===m));
       sp.exams.forEach(e=>{ e.scopes=(e.scopes||[]).filter(s=>!(s.subjectId===sub.id && s.material===m)); });
@@ -4696,7 +4756,7 @@ function openCopyModal(subjectId, fromMaterial){
   const ov=document.createElement('div'); ov.className='modal-ov';
   ov.innerHTML=`<div class="modal">
     <h3>📋 複製課次到其他教材</h3>
-    <p class="hint" style="margin:8px 0 0;">把「${sub.name} · ${fromMaterial}」的 ${src.length} 課（含課名）整份複製過去，日期與完成狀態不會跟著複製，複製完可以重新排程。</p>
+    <p class="hint" style="margin:8px 0 0;">把「${escapeHtml(sub.name)} · ${escapeHtml(fromMaterial)}」的 ${src.length} 課（含課名）整份複製過去，日期與完成狀態不會跟著複製，複製完可以重新排程。</p>
     <div class="mod-row" style="margin-top:12px;"><label>複製到哪個教材</label><br>
       <input id="cpTo" class="in" style="width:100%;max-width:none;" placeholder="例如：測驗卷"></div>
     <div class="mod-row"><label>快速選擇</label><br>
@@ -4768,11 +4828,11 @@ function openWordsModal(itemId){
   const title=it.extra ? (it.lessonName||'複習考') : ('第'+it.lesson+'課'+(it.lessonName?' '+it.lessonName:''));
   const ov=document.createElement('div'); ov.className='modal-ov';
   ov.innerHTML=`<div class="modal">
-    <h3>📝 ${sub?sub.name:''} ${title} 的單字</h3>
+    <h3>📝 ${escapeHtml(sub?sub.name:'')} ${escapeHtml(title)} 的單字</h3>
     <p class="hint" style="margin:8px 0 0;">一行一個單字，英文和中文用空白或逗號隔開。例如：<br>
       <code>apple 蘋果</code>　<code>banana,香蕉</code>　<code>go to school 上學</code></p>
     <div class="mod-row" style="margin-top:10px;">
-      <textarea id="wdText" class="in" style="width:100%;max-width:none;height:170px;font-size:15px;" placeholder="apple 蘋果&#10;banana 香蕉&#10;cat 貓">${cur.map(w=>w.en+' '+w.zh).join('\n')}</textarea>
+      <textarea id="wdText" class="in" style="width:100%;max-width:none;height:170px;font-size:15px;" placeholder="apple 蘋果&#10;banana 香蕉&#10;cat 貓">${escapeHtml(cur.map(w=>w.en+' '+w.zh).join('\n'))}</textarea>
       <div class="hint" id="wdCount" style="margin:6px 0 0;"></div>
     </div>
     <div style="display:flex;gap:10px;margin-top:14px;">
@@ -4830,7 +4890,7 @@ function renderWordTest(itemId){
       <h2 class="title-sticker">📝 單字拼寫</h2>
       <p class="hint">${title}　第 ${i+1} / ${queue.length} 題　✅ ${right}</p>
       <div class="word-card">
-        <div class="wd-zh">${w.zh|| '（沒有中文提示）'}</div>
+        <div class="wd-zh">${escapeHtml(w.zh|| '（沒有中文提示）')}</div>
         <div class="wd-hint" id="wdMask">${hint}</div>
         <input id="wdIn" class="in wd-input" type="text" autocomplete="off" autocapitalize="off"
                autocorrect="off" spellcheck="false" placeholder="輸入英文單字">
@@ -4856,7 +4916,7 @@ function renderWordTest(itemId){
         const ps=practiceSun(3,'enword'); addSun(ps); goodSound(); onCorrect(ps);
       } else {
         wrongList.push(w);
-        fb.innerHTML='💡 正確拼法：<b>'+w.en+'</b>'; fb.className='feedback bad';
+        fb.innerHTML='💡 正確拼法：<b>'+escapeHtml(w.en)+'</b>'; fb.className='feedback bad';
         inp.classList.add('ng'); badSound();
         /* logWrong 的第 5 個參數是「選項陣列」，而且它內部已經會呼叫 onWrong()，
            不要再自己呼叫一次，也不要傳物件進去（會在 .slice() 拋錯） */
@@ -4877,7 +4937,7 @@ function renderWordTest(itemId){
       <h2 class="title-sticker">${pct>=80?'🎉 太棒了！':pct>=60?'👍 不錯！':'💪 再練一次'}</h2>
       <p style="font-size:20px;font-weight:800;margin:12px 0;">${queue.length} 題答對 ${right} 題（${pct}%）</p>
       ${wrongList.length?`<div class="wd-review"><div style="font-weight:800;margin-bottom:6px;">要再記一下的單字</div>
-        ${wrongList.map(w=>`<div class="wd-row"><b>${w.en}</b><span>${w.zh||''}</span></div>`).join('')}</div>`:''}
+        ${wrongList.map(w=>`<div class="wd-row"><b>${escapeHtml(w.en)}</b><span>${escapeHtml(w.zh||'')}</span></div>`).join('')}</div>`:''}
       <div style="display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
         <button class="next-btn" id="wdAgain">🔁 再考一次</button>
         <button class="reset-btn" id="wdBack">⬅ 回讀書計劃</button>
@@ -4991,7 +5051,7 @@ function openLessonModal(subjectId, fixedMaterial){
     ${fixedMaterial?'':`<div class="mod-row"><label>教材名稱</label><br>
       <input id="matNm" class="in" style="width:100%;max-width:none;" placeholder="例如：自修 / 測驗卷 / 評量">
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">
-        ${[...new Set(['自修','講義','測驗卷','評量','習作'].concat(mats))].map(m=>`<button class="reset-btn" data-mat-pre="${m}" type="button" style="padding:6px 10px;font-size:13px;">${m}${mats.includes(m)?'（已有）':''}</button>`).join('')}
+        ${[...new Set(['自修','講義','測驗卷','評量','習作'].concat(mats))].map(m=>`<button class="reset-btn" data-mat-pre="${escapeHtml(m)}" type="button" style="padding:6px 10px;font-size:13px;">${escapeHtml(m)}${mats.includes(m)?'（已有）':''}</button>`).join('')}
       </div></div>`}
     <div class="mod-row"><label>從第幾課開始</label><br>
       <input id="lsStart" class="in" type="number" min="1" value="${nextNo}" style="width:90px;"></div>
@@ -5080,7 +5140,7 @@ function openExamModal(examId){
   const scopeRows=subs.map(s=>{
     const mats=studyMaterialsOf(s.id);
     if(!mats.length) return '';
-    return `<div class="scope-sub"><div class="scope-nm">${s.icon||'📚'} ${s.name}</div>
+    return `<div class="scope-sub"><div class="scope-nm">${escapeHtml(s.icon||'📚')} ${escapeHtml(s.name)}</div>
       ${mats.map(m=>{
         const n=studyItemsOfMaterial(s.id,m).filter(i=>!i.done).length;
         const on = editing && (editing.scopes||[]).some(x=>x.subjectId===s.id && x.material===m);
@@ -5091,7 +5151,7 @@ function openExamModal(examId){
   ov.innerHTML=`<div class="modal">
     <h3>${editing?'✏️ 編輯考試':'🎯 新增考試'}</h3>
     <div class="mod-row"><label>考試名稱</label><br>
-      <input id="exNm" class="in" style="width:100%;max-width:none;" placeholder="例如：第一次段考" value="${editing?editing.name:'段考'}"></div>
+      <input id="exNm" class="in" style="width:100%;max-width:none;" placeholder="例如：第一次段考" value="${escapeHtml(editing?editing.name:'段考')}"></div>
     <div class="mod-row"><label>考試日期</label><br>
       <input id="exDate" class="in" type="date" value="${editing?editing.date:addDaysKey(dateKey(),21)}"></div>
     <div class="mod-row"><label>考試範圍（勾選要讀完的教材）</label>
@@ -5268,13 +5328,13 @@ function renderHome(){
   const r = todayRoutine();
   const hol = isHolidayToday();
   const banner = hol ? `<div class="holiday-banner"><span class="holiday-mark">休</span><div><strong>🎉 今天是「${hol}」</strong><span>學校功課可以休息，自由練習照樣能賺陽光！</span></div></div>` : '';
-  const profileOpts = state.children.map(ch=>`<option value="${ch.id}" ${ch.id===state.activeChildId?'selected':''}>${ch.name||'孩子'}</option>`).join('');
+  const profileOpts = state.children.map(ch=>`<option value="${escapeHtml(ch.id)}" ${ch.id===state.activeChildId?'selected':''}>${escapeHtml(ch.name||'孩子')}</option>`).join('');
   const leaderboard = state.children.slice().sort((a,b)=>b.sun-a.sun).map((ch,i)=>{
     /* 每個孩子各自的功課清單（2026-09-26 起），不能拿目前孩子的清單去算別人 */
     const list=hwListOf(ch).filter(it=> state.activeSubjects[it.type]===true );
     const done=list.filter(it=>ch.homework[it.id]===true).length;
     return `<div class="leader"><span style="font-size:22px;">${i===0?'🥇':i===1?'🥈':'🥉'}</span>
-      <span style="flex:1;font-weight:800;">${ch.name||'孩子'}</span>
+      <span style="flex:1;font-weight:800;">${escapeHtml(ch.name||'孩子')}</span>
       <span>☀️ ${ch.sun}</span><span>✅ ${done}/${list.length}</span></div>`;
   }).join('');
   const HM = state.homeModules;
@@ -5373,11 +5433,11 @@ function renderHome(){
     <div class="overdue-banner" style="cursor:default;">
       <span style="font-size:24px;">⚠️</span>
       <span style="flex:1;"><b>今天被扣了 ${pensToday.reduce((s,p)=>s+p.actual,0)} 陽光</b>
-        <span>${pensToday.map(p=>(p.emoji||'⚠️')+' '+p.name+'（－'+p.actual+'）').join('　')}</span></span>
+        <span>${pensToday.map(p=>escapeHtml((p.emoji||'⚠️')+' '+p.name+'（－'+p.actual+'）')).join('　')}</span></span>
     </div>` : '';
   app.innerHTML = `
   <div class="panel">
-    <h2 class="title-sticker">🌻 ${name} 的小花園</h2>
+    <h2 class="title-sticker">🌻 ${escapeHtml(name)} 的小花園</h2>
     <p class="hint">把今天的功課都寫完（請爸媽簽名），拖延怪就會被打退，植物就安全囉！陽光會一直累積，除非超時或違規被扣。</p>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
       <div class="sun-box" style="position:static;display:inline-flex;margin:0;">
@@ -5556,7 +5616,7 @@ function renderLock(tab){
       hint:'只解除今天，明天過了睡覺時間還是會鎖。',
       fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
     }, v=>{
-      if(v.pin!==state.parentPIN) return '密碼不對';
+      const err=checkPIN(v.pin); if(err) return err;
       state.sleepOverrideTonight=dateKey(); save(); toast('🔓 已家長解鎖，今天不再鎖定'); showTab(tab);
     });
   };
@@ -5686,7 +5746,7 @@ function renderReadInto(boxId,subjectKey,stories){
   const qb=$('#rqq');
   s.q.forEach((item,qi)=>{
     const wrap=document.createElement('div'); wrap.style.margin='16px 0';
-    wrap.innerHTML=`<div style="font-weight:800;font-size:17px;">Q${qi+1}. ${item.q}</div>`;
+    wrap.innerHTML=`<div style="font-weight:800;font-size:17px;">Q${qi+1}. ${escapeHtml(item.q)}</div>`;
     const ch=document.createElement('div'); ch.className='choices';
     // 隨機打散選項順序，避免正解永遠出現在第一個
     const order = item.a.map((_,i)=>i);
@@ -7072,7 +7132,7 @@ function renderCustom(){
   const c=C(); const done = c.homework[item.id]===true;
   app.innerHTML=`
   <div class="panel">
-    <h2>📚 ${bank.name}</h2>
+    <h2>📚 ${escapeHtml(bank.name)}</h2>
     <p class="hint">自訂題庫練習，答對 +5 陽光。${bank.questions.length} 題。</p>
     <div id="customBox"></div>
     ${completeBtnHTML()}
@@ -7089,7 +7149,7 @@ function customRound(bank){
   const opts=customWrongOptions(item, bank).concat([correct]);
   for(let i=opts.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [opts[i],opts[j]]=[opts[j],opts[i]]; }
   const box=document.createElement('div');
-  box.innerHTML=`<div class="q-row"><span class="q-text">${q}</span></div><div class="choices" id="cust"></div><div class="feedback" id="custF"></div><button class="next-btn" id="custN">下一題 ▶</button>`;
+  box.innerHTML=`<div class="q-row"><span class="q-text">${escapeHtml(q)}</span></div><div class="choices" id="cust"></div><div class="feedback" id="custF"></div><button class="next-btn" id="custN">下一題 ▶</button>`;
   const target=$('#customBox'); target.innerHTML=''; target.appendChild(box);
   $('#custN').onclick=()=>{ bank._idx=(bank._idx||0)+1; customRound(bank); };
   renderChoices({ box:$('#cust'), opts, correct, moduleKey:'custom', sun:5, fb:$('#custF'),
@@ -7107,7 +7167,7 @@ function renderCustomList(){
   allHW().filter(x=>x.type==='custom').forEach(it=>{
     const bank=state.customBanks.find(b=>b.id===it.bankId);
     const card=document.createElement('button'); card.className='hw-card';
-    card.innerHTML=`<span>📚 ${it.name}</span><span>去練習 →</span>`;
+    card.innerHTML=`<span>📚 ${escapeHtml(it.name)}</span><span>去練習 →</span>`;
     card.onclick=()=>showTab('custom', it.id);
     list.appendChild(card);
   });
@@ -7131,7 +7191,7 @@ function renderReview(){
   <div class="panel">
     <h2>📕 錯題本（${wrong.length} 題待練）</h2>
     <p class="hint">把之前的錯題練到答對，就能把它從錯題本刪除，還能解鎖「錯題剋星」徽章！答對 +5 陽光。</p>
-    <div class="q-row"><span class="q-text">${item.q}</span></div>
+    <div class="q-row"><span class="q-text">${escapeHtml(item.q)}</span></div>
     <div class="choices" id="rv"></div>
     <div class="feedback" id="rvF"></div>
     <button class="next-btn" id="rvN">下一題 ▶（${idx+1}/${wrong.length}）</button>
@@ -7188,12 +7248,12 @@ function renderShop(){
     const div=document.createElement('div'); div.className='reward';
     const status = r.status || 'none';
     if(status==='approved'){
-      div.innerHTML=`<div><div class="nm">🎁 ${r.name}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost" style="color:#2e7d32;">✅ 已發放，去跟爸媽拿獎勵！</div></div>`;
+      div.innerHTML=`<div><div class="nm">🎁 ${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost" style="color:#2e7d32;">✅ 已發放，去跟爸媽拿獎勵！</div></div>`;
     } else if(status==='pending'){
-      div.innerHTML=`<div><div class="nm">🎁 ${r.name}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost" style="color:#e08e0b;">⏳ 申請中，請找爸媽確認發放</div></div>`;
+      div.innerHTML=`<div><div class="nm">🎁 ${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost" style="color:#e08e0b;">⏳ 申請中，請找爸媽確認發放</div></div>`;
     } else {
       const can = c.sun>=r.cost;
-      div.innerHTML=`<div><div class="nm">${r.name}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${r.cost} 陽光</div></div>
+      div.innerHTML=`<div><div class="nm">${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${escapeHtml(r.cost)} 陽光</div></div>
         <button class="next-btn" ${can?'':'disabled'}>兌換</button>`;
       const btn=div.querySelector('button');
       if(can) btn.onclick=()=>{
@@ -7210,7 +7270,22 @@ function renderShop(){
 }
 
 /* ---------- 家長後台 ---------- */
-let parentUnlocked=false;
+let parentUnlocked=false, _parentLastAct=0;
+const PARENT_IDLE_MS=5*60*1000;
+function lockParent(){ if(!parentUnlocked) return; parentUnlocked=false; if(currentTab==='parent') renderParent(); }
+['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(parentUnlocked) _parentLastAct=Date.now(); },true));
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) lockParent(); });
+setInterval(()=>{ if(parentUnlocked && Date.now()-_parentLastAct>PARENT_IDLE_MS) lockParent(); }, 30*1000);
+/* 家長密碼統一檢查：連錯 5 次起鎖 30 秒，之後每多錯一次時間加倍（最多 30 分鐘）。回傳空字串＝通過（2026-09-28 稽核 A5） */
+function checkPIN(pin){
+  const now=Date.now();
+  if((state.pinLockUntil||0)>now) return '錯太多次，請 '+Math.ceil((state.pinLockUntil-now)/1000)+' 秒後再試';
+  if(String(pin)===String(state.parentPIN)){ if(state.pinFails||state.pinLockUntil){ state.pinFails=0; state.pinLockUntil=0; save(); } return ''; }
+  state.pinFails=(state.pinFails||0)+1;
+  let msg='密碼不對';
+  if(state.pinFails>=5){ const sec=Math.min(1800, 30*Math.pow(2,state.pinFails-5)); state.pinLockUntil=now+sec*1000; msg='錯太多次，請 '+sec+' 秒後再試'; }
+  save(); return msg;
+}
 let editingRewardId=null;
 /* 找到某獎勵目前「待確認」的最新一筆兌換紀錄（購買時機制保證同一獎勵同時最多一筆 pending） */
 function findPendingRedemption(rewardId){
@@ -7225,15 +7300,17 @@ function renderParent(){
       <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
       <p class="hint">這裡記錄孩子的學習狀況、設定真實獎勵，需要家長密碼才能查看。</p>
       <div style="text-align:center;padding:14px 0;">
-        <input id="pin" inputmode="numeric" maxlength="6" placeholder="請輸入密碼"
+        <input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="請輸入密碼"
           style="font-size:24px;text-align:center;padding:12px;border-radius:12px;border:2px solid #c9b98a;width:200px;">
         <div style="margin-top:14px;"><button class="next-btn" id="pinGo">進入後台 🔓</button></div>
-        <p style="color:#9a7b2e;font-size:13px;margin-top:12px;">預設密碼：1234（可在後台修改）</p>
+        <p style="color:#9a7b2e;font-size:13px;margin-top:12px;">家長：還沒改過密碼的話，進去後請先到「🔐 密碼與安全」修改。</p>
       </div>
     </div>`;
     $('#pinGo').onclick=()=>{
-      if($('#pin').value===state.parentPIN){ parentUnlocked=true; goodSound(); renderParent(); }
-      else { badSound(); toast('密碼錯誤！'); }
+      const err=checkPIN($('#pin').value);
+      if(!err){ parentUnlocked=true; _parentLastAct=Date.now(); goodSound(); renderParent();
+        if(state.parentPIN==='1234') toast('⚠️ 還在用預設密碼 1234，孩子也查得到。請到下方「🔐 密碼與安全」改掉', 6000); }
+      else { badSound(); toast(err==='密碼不對'?'密碼錯誤！':err); $('#pin').value=''; }
     };
     $('#pin').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#pinGo').click(); });
     return;
@@ -7250,14 +7327,14 @@ function renderParent(){
   const totalSec=Object.values(c.timeByDate).reduce((x,y)=>x+y,0);
   const learned=Object.keys(c.known).length;
   const rewardText = state.rewards.length
-    ? state.rewards.map(r=>{ const st = r.status==='approved'?'已發放':r.status==='pending'?'待確認':'未兌換'; return `${r.name}（${r.cost}陽光·${st}）`; }).join('；')
+    ? state.rewards.map(r=>{ const st = r.status==='approved'?'已發放':r.status==='pending'?'待確認':'未兌換'; return `${escapeHtml(r.name)}（${escapeHtml(r.cost)}陽光·${st}）`; }).join('；')
     : '（尚無獎勵）';
 
   let rewardMgmt='<div style="margin-top:8px;">';
   state.rewards.forEach(r=>{
     const st = r.status||'none';
     const badge = st==='approved' ? '· 已發放' : st==='pending' ? '· 待確認' : '';
-    rewardMgmt+=`<div class="reward"><div><div class="nm">${r.name}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${r.cost} 陽光 ${badge}</div></div>`;
+    rewardMgmt+=`<div class="reward"><div><div class="nm">${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${escapeHtml(r.cost)} 陽光 ${badge}</div></div>`;
     if(st==='pending'){
       rewardMgmt+=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="next-btn" id="appr${r.id}" style="padding:8px 12px;font-size:14px;">✅ 確認發放</button>
@@ -7283,14 +7360,14 @@ function renderParent(){
   const redemptions=(state.redemptions||[]).slice().sort((a,b)=>b.requestedAt-a.requestedAt).slice(0,30);
   const redemStatusLabel={pending:'⏳ 待確認', approved:'✅ 已發放', rejected:'↩ 已退回'};
   let redemptionLogHTML = redemptions.length
-    ? redemptions.map(r=>`<div class="reward"><div><div class="nm">${r.rewardName}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${r.cost} 陽光 · ${r.childName||''} · ${fmtDT(r.requestedAt)}${r.decidedAt?'（'+fmtDT(r.decidedAt)+' 處理）':''}</div></div><div class="cost">${redemStatusLabel[r.status]||r.status}</div></div>`).join('')
+    ? redemptions.map(r=>`<div class="reward"><div><div class="nm">${escapeHtml(r.rewardName)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${escapeHtml(r.cost)} 陽光 · ${escapeHtml(r.childName||'')} · ${fmtDT(r.requestedAt)}${r.decidedAt?'（'+fmtDT(r.decidedAt)+' 處理）':''}</div></div><div class="cost">${redemStatusLabel[r.status]||r.status}</div></div>`).join('')
     : '<p style="color:#9a7b2e;">還沒有兌換紀錄。</p>';
   if(redemptions.length) redemptionLogHTML += '<div style="margin-top:10px;"><button class="reset-btn" id="clearRedemLog">🗑 清空紀錄</button></div>';
 
   /* 功課簽名 */
   const pendingHW = allHW().filter(it=>c.homework[it.id]==='pending');
   let signHTML = pendingHW.length? pendingHW.map(it=>`
-    <div class="reward"><div><div class="nm">📝 ${displayHWName(it)}</div><div class="cost" style="color:#b8740a;">申請完成，待簽名</div></div>
+    <div class="reward"><div><div class="nm">📝 ${escapeHtml(displayHWName(it))}</div><div class="cost" style="color:#b8740a;">申請完成，待簽名</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="next-btn" id="signOK${it.id}" style="padding:8px 12px;font-size:14px;">✅ 簽名完成</button>
         <button class="reset-btn" id="signNO${it.id}">↩ 退回</button></div></div>`).join('')
@@ -7324,7 +7401,7 @@ function renderParent(){
   if(state.customBanks.length===0) bankMgmt+='<p style="color:#9a7b2e;">尚無自訂題庫。</p>';
   state.customBanks.forEach(b=>{
     const cnt=allHW().filter(x=>x.type==='custom'&&x.bankId===b.id).length;
-    bankMgmt+=`<div class="reward"><div><div class="nm">📚 ${b.name}</div><div class="cost">${b.questions.length} 題${cnt?' · 已加入功課':''}</div></div>
+    bankMgmt+=`<div class="reward"><div><div class="nm">📚 ${escapeHtml(b.name)}</div><div class="cost">${b.questions.length} 題${cnt?' · 已加入功課':''}</div></div>
       <button class="reset-btn" id="delbank${b.id}">🗑 刪除</button></div>`;
   });
   bankMgmt+=`</div>
@@ -7346,7 +7423,7 @@ function renderParent(){
   let childMgmt='<div style="margin-top:8px;">';
   state.children.forEach(ch=>{
     const isActive=ch.id===state.activeChildId;
-    childMgmt+=`<div class="reward"><div><div class="nm">👦 ${ch.name||'孩子'}</div><div class="cost">☀️ ${ch.sun} 陽光 · ✅ ${hwListOf(ch).filter(it=>ch.homework[it.id]===true).length}/${hwListOf(ch).length}</div><div class="cost">🎚 年齡 <input id="age${ch.id}" type="number" min="3" max="15" value="${ch.age||7}" style="width:56px;padding:2px 4px;border-radius:6px;border:1px solid #cfe3b0;"> 歲 → ${DIFF_MAP[childLevel(ch)].name}</div></div>
+    childMgmt+=`<div class="reward"><div><div class="nm">👦 ${escapeHtml(ch.name||'孩子')}</div><div class="cost">☀️ ${ch.sun} 陽光 · ✅ ${hwListOf(ch).filter(it=>ch.homework[it.id]===true).length}/${hwListOf(ch).length}</div><div class="cost">🎚 年齡 <input id="age${ch.id}" type="number" min="3" max="15" value="${ch.age||7}" style="width:56px;padding:2px 4px;border-radius:6px;border:1px solid #cfe3b0;"> 歲 → ${DIFF_MAP[childLevel(ch)].name}</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="next-btn" id="sw${ch.id}" style="padding:8px 12px;font-size:14px;${isActive?'opacity:.6;':''}" ${isActive?'disabled':''}>${isActive?'✔ 使用中':'切換'}</button>
         <button class="reset-btn" id="delch${ch.id}" ${state.children.length<=1?'disabled':''}>🗑 刪除</button>
@@ -7376,7 +7453,7 @@ function renderParent(){
   const penaltyRows = pens.length ? pens.map(p=>`
     <div class="pn-row">
       <div class="pn-info">
-        <div class="pn-nm">${p.emoji||'⚠️'} ${p.name}</div>
+        <div class="pn-nm">${escapeHtml(p.emoji||'⚠️')} ${escapeHtml(p.name)}</div>
         <div class="pn-amt">${p.kind==='zero'?'🚨 陽光全部歸零':'－'+p.amount+' 陽光'}</div>
       </div>
       <div class="pn-btns">
@@ -7390,7 +7467,7 @@ function renderParent(){
   let penaltyLogHTML = penLog.length
     ? penLog.map(r=>`<div class="pn-row${r.undone?' done':''}">
         <div class="pn-info">
-          <div class="pn-nm">${r.emoji||'⚠️'} ${r.name}${r.undone?' <span class="hint">（已撤銷）</span>':''}</div>
+          <div class="pn-nm">${escapeHtml(r.emoji||'⚠️')} ${escapeHtml(r.name)}${r.undone?' <span class="hint">（已撤銷）</span>':''}</div>
           <div class="pn-amt" style="color:#7a6a52;font-weight:600;">－${r.actual} 陽光 · ${r.childName||''} · ${fmtDT(r.at)}</div>
         </div>
         ${r.undone?'':`<div class="pn-btns"><button class="reset-btn pnUndo" data-id="${r.id}">↩ 撤銷</button></div>`}
@@ -7418,7 +7495,7 @@ function renderParent(){
   <div class="panel">
     <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
     <p class="hint">孩子的學習狀況與獎勵設定。資料只存在這台裝置，不會上傳。</p>
-    <div style="margin:6px 0;"><span class="stat">👦 孩子：${c.name||'（未命名）'}</span>
+    <div style="margin:6px 0;"><span class="stat">👦 孩子：${escapeHtml(c.name||'（未命名）')}</span>
       <span class="stat">📝 今日功課：${finished}/${allHW().length}</span>
       <span class="stat">☀️ 陽光：${c.sun}</span></div>
     <div style="text-align:center;margin:10px 0;">
@@ -7445,7 +7522,7 @@ function renderParent(){
     ${hwMgmt}
 
     <h2 style="margin-top:18px;font-size:17px;">📅 讀書計劃</h2>
-    <p class="hint">科目、教材、課次與考試排程都在「📅 讀書計劃」分頁裡設定（不放在這裡，才不用兩個地方來回跑）。目前 <b>${c.name||'孩子'}</b> 有 ${studySubjectsOf(c.id).length} 科、${studyItemsOf(c.id).length} 課、${examsOf(c.id).length} 個考試。</p>
+    <p class="hint">科目、教材、課次與考試排程都在「📅 讀書計劃」分頁裡設定（不放在這裡，才不用兩個地方來回跑）。目前 <b>${escapeHtml(c.name||'孩子')}</b> 有 ${studySubjectsOf(c.id).length} 科、${studyItemsOf(c.id).length} 課、${examsOf(c.id).length} 個考試。</p>
     <div style="margin-top:8px;"><button class="reset-btn" id="goPlanTab">📅 開啟讀書計劃</button></div>
 
     <h2 style="margin-top:18px;font-size:17px;">📚 自訂題庫管理</h2>
@@ -7512,7 +7589,7 @@ function renderParent(){
     </div>
 
     <h2 style="margin-top:18px;font-size:17px;">⚠️ 自訂扣分項</h2>
-    <p class="hint">自己訂家規，違規時按「扣」立刻執行，對象是目前選到的孩子（<b>${(C().name||'孩子')}</b>）。孩子首頁會看到被扣的原因，按錯了可以在下方紀錄撤銷。</p>
+    <p class="hint">自己訂家規，違規時按「扣」立刻執行，對象是目前選到的孩子（<b>${escapeHtml(C().name||'孩子')}</b>）。孩子首頁會看到被扣的原因，按錯了可以在下方紀錄撤銷。</p>
     ${penaltyRows}
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <input id="pnName" class="in" placeholder="扣分原因（例：太晚還沒去睡覺）" style="flex:1;min-width:180px;">
@@ -7534,7 +7611,7 @@ function renderParent(){
     </div>
 
     <h2 style="margin-top:18px;font-size:17px;">📋 匯出紀錄</h2>
-    <textarea id="export" readonly>${summary}</textarea>
+    <textarea id="export" readonly>${escapeHtml(summary)}</textarea>
     <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
       <button class="next-btn" id="copyBtn">📋 複製紀錄</button>
       <button class="reset-btn" id="lockBtn">🔒 鎖定後台</button>
@@ -7642,7 +7719,7 @@ function renderParent(){
   if(bf) bf.onchange=(e)=>{
     const f=e.target.files[0]; if(!f) return;
     askInput({ title:'📚 上傳題庫', okLabel:'上傳',
-      hint:'檔案：'+f.name,
+      hint:'檔案：'+escapeHtml(f.name),
       fields:[{id:'name', label:'這份題庫的名稱', value:f.name.replace(/\.[^.]+$/,''), placeholder:'例如：康軒國語第一課'}]
     }, v=>{
       const name=v.name || f.name;
@@ -7669,7 +7746,7 @@ function renderParent(){
     const sw=$('#sw'+ch.id); if(sw && ch.id!==state.activeChildId) sw.onclick=()=>{ state.activeChildId=ch.id; dailyResetIfNeeded(); save(); renderParent(); };
     const dc=$('#delch'+ch.id); if(dc && state.children.length>1) dc.onclick=()=>{
       const planCnt=studyItemsOf(ch.id).length;
-      askConfirm('刪除「'+(ch.name||'孩子')+'」的檔案？'
+      askConfirm('刪除「'+escapeHtml(ch.name||'孩子')+'」的檔案？'
         +(planCnt? '<br><span class="hint">連同讀書計劃的 '+planCnt+' 個課次一起刪除。</span>':'')
         +'<br><span class="hint">此動作無法復原。</span>', ()=>{
         state.children=state.children.filter(x=>x.id!==ch.id);
@@ -7700,10 +7777,10 @@ function renderParent(){
         {id:'nw',  label:'新密碼',   type:'password', inputmode:'numeric', maxlength:6, placeholder:'數字，最多 6 位'},
         {id:'nw2', label:'再輸入一次新密碼', type:'password', inputmode:'numeric', maxlength:6}
       ]}, v=>{
-      if(v.old!==state.parentPIN) return '目前密碼不對';
+      const err=checkPIN(v.old); if(err) return err==='密碼不對'?'目前密碼不對':err;
       if(!/^\d{1,6}$/.test(v.nw)) return '新密碼只能是數字，最多 6 位';
       if(v.nw!==v.nw2) return '兩次輸入的新密碼不一樣';
-      state.parentPIN=v.nw; save(); goodSound(); toast('🔐 密碼已修改為 '+v.nw);
+      state.parentPIN=v.nw; save(); goodSound(); toast('🔐 密碼已修改，請記好新密碼');
     });
   };
   $('#toggleLock').onclick=()=>{ state.sleepLock=!state.sleepLock; save(); renderParent(); };
@@ -7734,7 +7811,29 @@ function renderParent(){
   $('#importFile').onchange=(e)=>{
     const f=e.target.files[0]; if(!f) return;
     const rd=new FileReader();
-    rd.onload=()=>{ try{ const s=JSON.parse(rd.result); if(s&&Array.isArray(s.children)){ state=load(s); parentUnlocked=false; save(); toast('✅ 存檔已還原'); showTab('home'); } else toast('檔案格式不正確'); }catch(err){ toast('讀取失敗'); } };
+    /* 2026-09-28 稽核 A2：原本不檢查內容、也不先問就直接覆蓋；格式不完整的檔案會把存檔清空，甚至讓後台再也打不開 */
+    rd.onload=()=>{
+      e.target.value='';
+      let s; try{ s=JSON.parse(rd.result); }catch(err){ toast('⚠️ 讀取失敗：這不是小花園的備份檔'); return; }
+      const kids=(s&&typeof s==='object'&&Array.isArray(s.children)) ? s.children.filter(ch=>ch&&typeof ch==='object'&&!Array.isArray(ch)) : [];
+      if(!kids.length){ toast('⚠️ 檔案格式不正確：找不到孩子的資料'); return; }
+      const names=kids.map(ch=>escapeHtml(String(ch.name||'（未命名）').slice(0,20))).join('、');
+      askConfirm('要用這個備份檔<b>覆蓋目前所有進度</b>嗎？<br>檔案裡有 '+kids.length+' 位孩子：'+names+'<br><span class="hint">目前的進度會被取代。不確定的話，先按「一鍵備份」把現在的進度也存一份。</span>', ()=>{
+        const prevRaw=JSON.stringify(state), prevPIN=state.parentPIN;
+        const ns=load(s);
+        if(_loadFailed){ toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return; }
+        /* 檔案裡有合法密碼才用；沒有的話 load() 會補成 1234，那樣會把家長改過的密碼變回預設，所以保留目前的 */
+        ns.parentPIN = /^\d{1,6}$/.test(String(s.parentPIN)) ? String(s.parentPIN) : prevPIN;
+        state=ns;
+        try{ showTab('home'); }
+        catch(err){
+          state=load(JSON.parse(prevRaw));
+          try{ showTab('home'); }catch(_){}
+          toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return;
+        }
+        parentUnlocked=false; save(); toast('✅ 存檔已還原');
+      }, '確定還原');
+    };
     rd.readAsText(f);
   };
 
@@ -7760,7 +7859,7 @@ function renderParent(){
     const p=penaltyList().find(x=>x.id===b.dataset.id); if(!p) return;
     const c=C();
     const willLose = p.kind==='zero' ? c.sun : Math.min(c.sun, Number(p.amount)||0);
-    askConfirm('要對「'+(c.name||'孩子')+'」執行<br><b>'+(p.emoji||'⚠️')+' '+p.name+'（'+penaltyDesc(p)+'）</b>嗎？'
+    askConfirm('要對「'+escapeHtml(c.name||'孩子')+'」執行<br><b>'+escapeHtml((p.emoji||'⚠️')+' '+p.name+'（'+penaltyDesc(p)+'）')+'</b>嗎？'
       +'<br><span class="hint">目前有 '+c.sun+' 陽光，會扣掉 '+willLose+'，剩下 '+(c.sun-willLose)+'。</span>'
       +(p.kind==='zero'?'<br><span class="hint">歸零會清掉存很久的陽光，按錯可以在扣分紀錄撤銷。</span>':''),
       ()=>{ const actual=runPenalty(p); toast((p.emoji||'⚠️')+' '+p.name+' －'+actual+' 陽光'); renderParent(); }, '確定扣分');
@@ -7779,7 +7878,7 @@ function renderParent(){
   });
   $$('.pnDel').forEach(b=>b.onclick=()=>{
     const p=penaltyList().find(x=>x.id===b.dataset.id); if(!p) return;
-    askConfirm('刪除扣分項「'+p.name+'」？<br><span class="hint">已經扣過的紀錄不會被刪掉。</span>', ()=>{
+    askConfirm('刪除扣分項「'+escapeHtml(p.name)+'」？<br><span class="hint">已經扣過的紀錄不會被刪掉。</span>', ()=>{
       state.penalties=penaltyList().filter(x=>x.id!==p.id);
       save(); toast('🗑 已刪除'); renderParent();
     });
@@ -7795,7 +7894,7 @@ function renderParent(){
   };
   $$('.pnUndo').forEach(b=>b.onclick=()=>{
     const rec=(state.penaltyLog||[]).find(x=>x.id===b.dataset.id); if(!rec) return;
-    askConfirm('把「'+rec.name+'」扣掉的 '+rec.actual+' 陽光還給「'+(rec.childName||'孩子')+'」？', ()=>{
+    askConfirm('把「'+escapeHtml(rec.name)+'」扣掉的 '+escapeHtml(rec.actual)+' 陽光還給「'+escapeHtml(rec.childName||'孩子')+'」？', ()=>{
       if(undoPenalty(rec.id)){ toast('↩ 已還回 '+rec.actual+' 陽光'); renderParent(); }
       else toast('這筆撤銷不了（孩子檔案可能已刪除）');
     }, '確定撤銷');
