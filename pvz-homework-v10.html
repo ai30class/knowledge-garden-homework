@@ -747,6 +747,32 @@
   .home2 .module-heading .hint{ display:none; }
   .home2 .panel-plain{ background:none; border:none; box-shadow:none; padding:0; overflow:visible; }
 
+
+  /* ---- 2026-09-28 戰場：天空＋草地、一條地面線，房子／植物／怪物都站在同一條線上 ---- */
+  .battle2 .lawn-battle{ height:170px; border:none; border-radius:16px; overflow:hidden; box-shadow:inset 0 0 0 1px var(--line);
+    background:linear-gradient(180deg,#d9eef0 0%,#eef7ea 60%,#a3d383 60%,#8cc56d 100%) !important; }
+  .battle2 .lawn-battle .lane{ inset:auto 0 0 0; height:40%; background:none; border-top:3px solid #74a957; }
+  .battle2 .lawn-battle .house{ left:4px; top:auto; bottom:30px; width:58px; height:58px; font-size:0; z-index:2; filter:drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
+  .battle2 .lawn-battle .house svg{ width:100%; height:100%; display:block; }
+  .battle2 .lawn-battle .defenders{ top:auto; bottom:30px; height:auto; padding:0; flex-wrap:nowrap; gap:0; align-items:flex-end; align-content:normal; justify-content:flex-end; overflow:visible; }
+  .battle2 .lawn-battle .defenders .lp{ flex:none; margin-left:-10px; }
+  .battle2 .lawn-battle .defenders .lp:first-child{ margin-left:0; }
+  .battle2 .lawn-battle .lp .p-svg{ width:40px; height:50px; }
+  .battle2 .lawn-battle .defenders.many .lp .p-svg{ width:34px; height:43px; }
+  .battle2 .lawn-battle .frontline{ display:none; }
+  .battle2 .lawn-battle .zombie{ bottom:30px; margin-left:-32px; }
+  .battle2 .lawn-battle .zombie.mega{ margin-left:-40px; }
+  .battle2 .zombie-wrap{ width:64px; height:64px; }
+  .battle2 .zombie.mega .zombie-wrap{ width:80px; height:80px; }
+  .battle2 .lawn-battle .zombie::after{ content:""; position:absolute; left:14%; right:14%; bottom:-3px; height:8px; border-radius:50%; background:rgba(40,70,40,.22); z-index:-1; }
+  .zombie.knocked .zombie-wrap{ animation:zKnock .8s ease-out; }
+  .zombie.knocked::before{ content:"哎喲！"; position:absolute; top:-20px; left:50%; transform:translateX(-50%); z-index:8;
+    font-size:13px; font-weight:700; color:var(--danger); background:#fff; border-radius:999px; padding:0 8px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.15); }
+  @keyframes zKnock{ 0%{ transform:none; } 25%{ transform:translateX(16px) rotate(10deg); } 55%{ transform:translateX(8px) rotate(-6deg); } 100%{ transform:none; } }
+  .pea{ position:absolute; width:12px; height:12px; border-radius:50%; z-index:6; pointer-events:none;
+    background:radial-gradient(circle at 35% 35%,#d6f7b0,#5cb85c 60%,#2e7d32); box-shadow:0 1px 2px rgba(0,0,0,.25); }
+  .battle2 .falling-sun{ width:34px; height:34px; font-size:0; }
+  .battle2 .falling-sun svg{ width:100%; height:100%; display:block; }
   /* ---- 設定選單（底部抽屜） ---- */
   .sheet-ov{ position:fixed; inset:0; z-index:1000; background:rgba(37,58,54,.45); display:flex; align-items:flex-end; justify-content:center; }
   .sheet{ width:100%; max-width:560px; max-height:86vh; overflow:auto; background:var(--surface); border-radius:20px 20px 0 0;
@@ -3843,7 +3869,7 @@ function updateZombie(unfinished){
   if(battle){ battle.querySelectorAll('.lp').forEach(d=>{ d.classList.remove('shake'); d.classList.remove('dead'); }); }
   const hol=isHolidayToday();
   if(hol){
-    z.style.left='94%'; z.style.right=''; z.className='zombie sleepy';
+    z.style.left='88%'; z.style.right=''; z.className='zombie sleepy';
     st.textContent='🎉 今天'+hol+'，拖延怪放假去囉！功課可以休息～'; st.style.color='#2e7d32';
     battle.classList.remove('danger','defeated');
     if(heartTimer){ clearTimeout(heartTimer); heartTimer=null; }
@@ -3852,7 +3878,7 @@ function updateZombie(unfinished){
     return;
   }
   if(c.plantHP<=0){
-    z.style.left='16%'; z.style.right=''; z.className='zombie mega';
+    z.style.left='30%'; z.style.right=''; z.className='zombie mega';
     st.textContent='💥 防線崩潰！植物被吃掉了…明天再戰！'; st.style.color='#c0392b';
     battle.classList.add('danger','defeated');
     battle.querySelectorAll('.lp').forEach(d=>{ d.classList.remove('shake'); d.classList.add('dead'); });
@@ -3863,7 +3889,7 @@ function updateZombie(unfinished){
     return;
   }
   if(unfinished===0){
-    z.style.left='94%'; z.style.right=''; z.className='zombie dazed';
+    z.style.left='88%'; z.style.right=''; z.className='zombie dazed';
     st.textContent='🎉 全部寫完！拖延怪被打退，植物安全！'; st.style.color='#2e7d32';
     battle.classList.remove('danger','defeated');
     if(heartTimer){ clearTimeout(heartTimer); heartTimer=null; }
@@ -3880,17 +3906,24 @@ function updateZombie(unfinished){
   const g = laneGeom();
   const pos = g.threat;                        // 0 = 完全跟上進度，1 = 時間用光卻沒做完
   c.zombieDrift = pos;                         // 保留欄位相容（現在由時間軸推導，不再自行累加）
-  z.style.left=g.zPct+'%'; z.style.right='';
+  /* 2026-09-28 戰場改版：植物防線跟著功課完成度往前推；拖延怪依時間壓力從右邊走過來，
+     走到防線的那一刻＝開始扣植物血（pos 0.55），之後停在防線前啃，不再穿過植物。
+     原本畫面上怪物要到 pos≈0.67 才碰到植物，但 0.55 就開始扣血，孩子看到植物掉血、怪物卻還很遠 */
+  const fP = 42 + g.doneR*20;
+  const approach = Math.min(1, pos/0.55);
+  const zVis = fP + 8 + (88 - fP - 8)*(1-approach);
+  z.style.left=zVis+'%'; z.style.right='';
   z.classList.toggle('mega', mega);
   z.classList.remove('dazed','sleepy');
-  // 防線：完成越多，植物陣線往外推得越遠（看得見的物理推進）
-  const defs=document.getElementById('homeDefenders'); if(defs) defs.style.width=g.fPct+'%';
-  const fl=document.getElementById('homeFront'); if(fl) fl.style.left=g.fPct+'%';
+  const defs=document.getElementById('homeDefenders'); if(defs){ defs.style.width=fP+'%'; defs.classList.toggle('many', defs.children.length>=4); }
+  const fl=document.getElementById('homeFront'); if(fl) fl.style.left=fP+'%';
+  if(_lastThreat!=null && pos < _lastThreat-0.04) knockbackZombie();
+  _lastThreat=pos;
   // 落後才會被啃：threat 超過 0.55 開始扣血，落後越多啃越兇（按真實秒數積分）
   if(pos>0.55){ c.plantHP=Math.max(0, c.plantHP-(pos-0.55)*(rushing?2.6:1.5)*(_dtSec/5)); }
   battle.classList.toggle('danger', pos>0.62);
   battle.classList.toggle('defeated', c.plantHP<=0);
-  const eatingNow = g.zPct <= g.fPct+4 && c.plantHP>0;
+  const eatingNow = pos>0.55 && c.plantHP>0;
   z.classList.toggle('eating', eatingNow);
   battle.querySelectorAll('.lp').forEach(d=> d.classList.toggle('shake', eatingNow));
   if(battleState!=='playing'){ battleState='playing'; battleDismissed=false; clearOverlay(); }
@@ -3946,19 +3979,25 @@ function renderTimeline(g){
     else { tag.className='lead-tag bad'; tag.textContent='⚠️ 落後 '+Math.abs(g.gapMin)+' 分鐘，拖延怪逼近中'; }
   }
 }
+let _lastThreat=null;
+function knockbackZombie(){
+  const z=$('#homeZombie'); if(!z) return;
+  for(let i=0;i<3;i++) setTimeout(shootPea, i*150);
+  setTimeout(()=>{ z.classList.add('knocked'); setTimeout(()=>z.classList.remove('knocked'),800); }, 380);
+}
 function pushZombie(amt){ const c=C(); c.zombiePush=Math.min(1.3,(c.zombiePush||0)+amt); save(); }
 function shootPea(){
   const battle=document.getElementById('homeBattle')||document.querySelector('.battle');
   if(!battle) return;
   const z=battle.querySelector('#homeZombie')||battle.querySelector('.zombie');
-  const plant=battle.querySelector('.lp')||battle.querySelector('.plant-def');
+  const lps=battle.querySelectorAll('.lp'); const plant=lps[lps.length-1]||battle.querySelector('.plant-def');
   if(!plant||!z) return;
-  const pea=document.createElement('div'); pea.textContent='🟢';
-  pea.style.cssText='position:absolute;font-size:20px;z-index:6;pointer-events:none;transition:left .35s linear,top .35s linear;';
+  const pea=document.createElement('div'); pea.className='pea';
+  pea.style.transition='left .35s linear,top .35s linear';
   battle.appendChild(pea);
   const br=battle.getBoundingClientRect(), pr=plant.getBoundingClientRect(), zr=z.getBoundingClientRect();
-  pea.style.left=(pr.left-br.left+12)+'px'; pea.style.top=(pr.top-br.top+14)+'px';
-  requestAnimationFrame(()=>{ pea.style.left=(zr.left-br.left+12)+'px'; pea.style.top=(zr.top-br.top+10)+'px'; });
+  pea.style.left=(pr.right-br.left-10)+'px'; pea.style.top=(pr.top-br.top+pr.height*0.3)+'px';
+  requestAnimationFrame(()=>{ pea.style.left=(zr.left-br.left+zr.width*0.35)+'px'; pea.style.top=(zr.top-br.top+zr.height*0.45)+'px'; });
   setTimeout(()=>pea.remove(),420);
 }
 /* 孩子主動操作瞬間：點防禦植物 → 發射露珠打退拖延怪（小額互動獎勵，受每日上限約束）。
@@ -3992,7 +4031,9 @@ function lawnPeaLoop(){
   const c=C();
   if(isHolidayToday() || c.plantHP<=0 || unfinishedCount()===0) return;
   const leftPct=parseFloat(z.style.left)||80;
-  if(leftPct<=14) return; // 已退到最左
+  const defs=document.getElementById('homeDefenders');
+  const frontPct=defs?(parseFloat(defs.style.width)||42):42;
+  if(leftPct-frontPct>30) return;   // 還沒走進射程，植物不會對著空氣發射
   shootPea();
   // 命中閃一下，但不自動推退（否則會抵消時間壓力）
   setTimeout(()=>{ const zz=document.getElementById('homeZombie'); if(zz){ zz.classList.add('hit'); setTimeout(()=>zz.classList.remove('hit'),200); } }, 380);
@@ -4001,7 +4042,7 @@ function lawnPeaLoop(){
 function lawnSunLoop(){
   const layer=document.getElementById('homeSunLayer'); if(!layer) return;
   if(layer.querySelectorAll('.falling-sun').length>=3) return;
-  const s=document.createElement('div'); s.className='falling-sun'; s.textContent='☀️';
+  const s=document.createElement('div'); s.className='falling-sun'; s.innerHTML=ICONS.sun;
   s.style.left=(10+Math.random()*78)+'%';
   s.onclick=()=>{
     addSun(5); goodSound();
@@ -5566,7 +5607,7 @@ function renderHome(){
         <span class="pill">${ico('shield')}護盾豆 ${c.streakShields||0}</span></div>
       <p style="margin:0 0 8px;font-size:13px;color:var(--muted);">${hol?'今天放假，拖延怪不會前進。':'拖延怪 '+r.wake+' 出發，'+r.sleep+' 睡覺前寫完功課就能打退牠。點植物可以發射露珠。'}</p>
       <div class="battle lawn-battle" id="homeBattle">
-        <div class="house">🏠</div>
+        <div class="house"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="42" y="12" width="7" height="12" rx="1.5" fill="#b9573d"/><path d="M6 31L32 9l26 22" fill="#e98568" stroke="#b9573d" stroke-width="2.5" stroke-linejoin="round"/><rect x="12" y="29" width="40" height="29" rx="3" fill="#fff6e2" stroke="#c9a36a" stroke-width="2"/><rect x="27" y="40" width="11" height="18" rx="5" fill="#2f6f4e"/><circle cx="35" cy="50" r="1.2" fill="#f2b83f"/><rect x="16" y="35" width="8" height="8" rx="1.5" fill="#cfe8f3" stroke="#7aa7b8" stroke-width="1.5"/><rect x="42" y="35" width="7" height="8" rx="1.5" fill="#cfe8f3" stroke="#7aa7b8" stroke-width="1.5"/><ellipse cx="14" cy="58" rx="7" ry="4.5" fill="#6aa84f"/><ellipse cx="51" cy="58" rx="7" ry="4.5" fill="#6aa84f"/></svg></div>
         <div class="lane"></div>
         <div class="frontline" id="homeFront" style="left:46%;"></div>
         <div class="defenders" id="homeDefenders"></div>
