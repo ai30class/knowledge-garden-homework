@@ -773,6 +773,103 @@
     background:radial-gradient(circle at 35% 35%,#d6f7b0,#5cb85c 60%,#2e7d32); box-shadow:0 1px 2px rgba(0,0,0,.25); }
   .battle2 .falling-sun{ width:34px; height:34px; font-size:0; }
   .battle2 .falling-sun svg{ width:100%; height:100%; display:block; }
+
+  /* ---- 2026-09-28 四頁改版（收藏、練習場、讀書計劃、家長後台） ---- */
+  .page2{ display:flex; flex-direction:column; gap:16px; }
+  .page2 .greet h1{ font-size:24px; font-weight:700; margin:0; color:var(--ink); line-height:1.3; }
+  .page2 .greet p{ font-size:15px; color:var(--muted); margin:4px 0 0; }
+  .np-k{ font-size:13px; color:var(--muted); font-weight:600; }
+  .next-plant{ display:flex; gap:16px; align-items:center; }
+  .next-plant .np-art{ width:84px; height:96px; flex:none; display:grid; place-items:center; background:#fff; border-radius:16px; }
+  .next-plant .np-art .p-svg, .p2-art .p-svg{ width:100%; height:100%; }
+  .next-plant .np-txt{ flex:1; min-width:0; }
+  .next-plant h2, .challenge h2{ all:unset; display:block; font-size:18px; font-weight:700; color:var(--ink); margin:2px 0 4px; }
+  .next-plant p, .challenge p{ margin:0 0 10px; font-size:15px; color:var(--ink); }
+  .plant-grid2{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  @media (min-width:600px){ .plant-grid2{ grid-template-columns:repeat(4,1fr); } }
+  .plant2{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; border-radius:16px; border:1.5px solid var(--line);
+    background:var(--surface); font:inherit; color:var(--ink); cursor:pointer; min-height:132px; }
+  .plant2 .p2-art{ width:52px; height:64px; display:block; }
+  .plant2 .p2-nm{ font-size:15px; font-weight:600; }
+  .plant2 .p2-st{ font-size:13px; color:var(--muted); display:flex; align-items:center; gap:2px; text-align:center; line-height:1.3; }
+  .plant2 .p2-st .ico{ width:14px; height:14px; }
+  .plant2.on{ border-color:var(--green); background:var(--green-soft); }
+  .plant2.on .p2-st{ color:var(--green); font-weight:600; }
+  .plant2.locked .p2-art{ filter:grayscale(1) opacity(.45); }
+  .plant2.can{ border-color:var(--honey); background:var(--honey-soft); }
+  .plant2.can .p2-art{ filter:none; }
+  .plant2:active{ transform:translateY(1px); }
+  .badge-wall2{ display:flex; flex-wrap:wrap; justify-content:center; }
+  .rank2{ display:flex; align-items:center; gap:10px; min-height:44px; border-bottom:1px solid var(--line); font-size:15px; }
+  .rank2:last-child{ border-bottom:none; }
+  .rank2.me{ font-weight:700; }
+  .rank2 .rk-n{ width:24px; height:24px; border-radius:999px; background:var(--honey-soft); display:grid; place-items:center; font-size:13px; font-weight:700; }
+  .rank2 .rk-nm{ flex:1; }
+  .rank2 .rk-v{ display:inline-flex; align-items:center; gap:4px; font-size:13px; color:var(--muted); }
+  .rank2 .rk-v .ico{ width:18px; height:18px; }
+  .entry2{ display:flex; align-items:center; gap:12px; width:100%; min-height:60px; padding:12px 16px; border-radius:16px; border:1px solid var(--line);
+    background:var(--surface); font:inherit; color:var(--ink); text-align:left; cursor:pointer; }
+  .entry2 .ico{ color:var(--green); }
+  .entry2 b{ display:block; font-size:16px; font-weight:600; }
+  .entry2 small{ font-size:13px; color:var(--muted); }
+  .entry2 .chev{ margin-left:auto; color:var(--muted); width:20px; height:20px; }
+  .challenge{ background:var(--peach-soft); }
+  .challenge .ch-row{ display:flex; gap:12px; align-items:flex-start; justify-content:space-between; }
+  .challenge .ch-mon{ width:64px; height:64px; border-radius:50%; object-fit:cover; background:#fff; flex:none; }
+  .challenge .stars{ color:#b27a00; letter-spacing:1px; }
+  .pgrp .card-head{ margin-bottom:10px; }
+  .sub2{ font-size:13px; color:var(--muted); }
+  .pbtns{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .pbtn{ display:flex; align-items:center; gap:8px; min-height:48px; padding:8px 12px; border-radius:14px; border:1.5px solid var(--line);
+    background:var(--surface); font:inherit; font-size:15px; font-weight:600; color:var(--ink); cursor:pointer; text-align:left; }
+  .pbtn .pb-ic{ font-size:20px; line-height:1; }
+  .pbtn:active{ background:var(--green-soft); border-color:var(--green); }
+  .quick2 button small{ display:block; font-size:13px; color:var(--muted); font-weight:400; }
+  .wk2{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:12px; }
+  .wd{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 0; border-radius:12px; background:#fff; font-size:13px; color:var(--muted); }
+  .wd .wd-c{ min-height:22px; display:grid; place-items:center; font-weight:700; color:var(--ink); font-size:15px; }
+  .wd .wd-c .ico{ width:22px; height:22px; color:var(--green); }
+  .wd .wd-none{ color:var(--line); }
+  .wd.today{ outline:2px solid var(--green); color:var(--green); font-weight:700; }
+  .today-h{ font-size:16px; font-weight:600; margin:4px 0 8px; color:var(--ink); }
+  .plan-row2{ display:flex; align-items:center; gap:10px; min-height:48px; padding:6px 10px; margin-bottom:6px; border-radius:14px; background:#fff; font-size:15px; cursor:pointer; }
+  .plan-row2 input{ width:22px; height:22px; accent-color:var(--green); flex:none; }
+  .plan-row2 .pr2-t{ flex:1; }
+  .plan-row2 small{ font-size:13px; color:var(--muted); white-space:nowrap; }
+  .plan-row2.late small{ color:var(--danger); }
+  .muted2{ color:var(--muted); font-size:15px; margin:0; }
+  .sec2{ font-size:18px; font-weight:700; color:var(--ink); margin:8px 0 -4px; }
+  /* 家長後台：深墨綠頂區，一眼看出是大人的操作區 */
+  .parent-hero{ background:var(--ink); color:#fff; border-radius:20px; padding:16px; }
+  .parent-hero h2{ all:unset; display:block; font-size:22px; font-weight:700; margin:10px 0 4px; }
+  .parent-hero p{ margin:0; font-size:15px; color:#d6e4dc; }
+  .ph-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .ph-tag{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--honey); }
+  .ph-tag .ico{ width:18px; height:18px; }
+  .ph-btn{ display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border-radius:14px; border:1.5px solid rgba(255,255,255,.5);
+    background:transparent; color:#fff; font:inherit; font-size:15px; font-weight:600; cursor:pointer; }
+  .ph-btn .ico{ width:18px; height:18px; }
+  .phub{ display:flex; flex-direction:column; gap:10px; }
+  .phub[hidden]{ display:none; }
+  .pcard{ display:flex; align-items:center; gap:12px; width:100%; min-height:64px; padding:12px 16px; border-radius:16px; border:1px solid var(--line);
+    background:var(--surface); font:inherit; color:var(--ink); text-align:left; cursor:pointer; }
+  .pcard b{ display:block; font-size:16px; font-weight:600; }
+  .pcard small{ font-size:13px; color:var(--muted); }
+  .pcard.warn{ background:var(--honey-soft); border-color:var(--honey); }
+  .pcard.warn small{ color:var(--ink); font-weight:600; }
+  .pcard .chev{ margin-left:auto; width:20px; height:20px; color:var(--muted); }
+  .pgroup{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:4px 16px 16px; }
+  .pgroup > h2{ font-size:18px !important; font-weight:700; color:var(--ink); margin:16px 0 6px !important; }
+  .pgroup[hidden]{ display:none !important; }
+  /* 舊元件在新頁面裡的收斂：按鈕照規格、卡片去掉貼紙白邊 */
+  .page2 .next-btn{ background:var(--green); color:#fff; border:none; border-radius:14px; box-shadow:0 3px 0 var(--green-pressed); min-height:44px; font-weight:700; }
+  .page2 .next-btn:disabled{ background:var(--disabled-bg); color:var(--disabled-text); box-shadow:none; }
+  .page2 .reset-btn{ background:var(--surface); color:var(--green); border:1.5px solid var(--green); border-radius:14px; box-shadow:none; min-height:44px; font-weight:600; }
+  .page2 .reward{ border:1px solid var(--line); box-shadow:none; border-radius:14px; }
+  .page2 .reward:hover{ transform:none; }
+  .page2 .stat{ border:1px solid var(--line); box-shadow:none; border-radius:999px; }
+  .page2 .module-heading .hint{ display:none; }
+  .plan2 .exam-zone, .plan2 .plan-toolbar, .plan2 #planBody{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:12px; }
   /* ---- 設定選單（底部抽屜） ---- */
   .sheet-ov{ position:fixed; inset:0; z-index:1000; background:rgba(37,58,54,.45); display:flex; align-items:flex-end; justify-content:center; }
   .sheet{ width:100%; max-width:560px; max-height:86vh; overflow:auto; background:var(--surface); border-radius:20px 20px 0 0;
@@ -1079,7 +1176,7 @@ function flashSaved(){
   if(!_savedBadge){
     _savedBadge=document.createElement('div');
     _savedBadge.textContent='✅ 已儲存';
-    _savedBadge.style.cssText='position:fixed;right:12px;bottom:12px;z-index:99999;background:rgba(34,160,94,.94);color:#fff;font:600 13px/1.2 -apple-system,sans-serif;padding:7px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;pointer-events:none';
+    _savedBadge.style.cssText='position:fixed;right:12px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:99999;background:rgba(34,160,94,.94);color:#fff;font:600 13px/1.2 -apple-system,sans-serif;padding:7px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;pointer-events:none';
     document.body.appendChild(_savedBadge);
   }
   _savedBadge.style.opacity='1';
@@ -2834,7 +2931,7 @@ function toggleDeck(id){
     c.deck = deckIds(c).concat([id]);
     toast('🌿 '+p.nm+' 上場守護花園！');
   }
-  goodSound(); save(); renderHome();
+  goodSound(); save(); rerenderGardenView();
 }
 
 /* ================= 向量角色（取代 emoji）================= */
@@ -4439,7 +4536,7 @@ function firstUnfinishedHW(){
 }
 function showTab(tab, hwId){
   /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
-  if(tab!=='parent') parentUnlocked=false;
+  if(tab!=='parent'){ parentUnlocked=false; parentCat=null; }
   refreshSunCount();
   const _ec=C().eyeRestUntil;
   if(_ec && _ec>Date.now() && isEyeTab(tab)){ showEyeLock(_ec-Date.now()); return; }
@@ -4577,35 +4674,40 @@ function renderHomeworkCheck(hwId){
 
 /* 練習場入口（4 大類分組） */
 function renderPracticeHub(){
+  /* 2026-09-28 UI 改版：上面是今日挑戰（每日小考），下面四組科目，最後是複習錯題與測驗卷 */
+  const c=C(); const rec=(c.quizLog||{})[dateKey()];
   const groups=[
-    {title:'國語', icon:'📗', items:[['zhuyin','注音'],['readtest','閱讀測驗'],['social','社會'],['nature','自然']]},
-    {title:'數學', icon:'➕', items:[['math','數學'],['num','數感'],['logic','邏輯'],['coding','程式思維']]},
-    {title:'英文', icon:'🔤', items:[['enword','英文單字','🔤'],['engrammar','英文文法','📝'],['enreading','英文閱讀測驗','📖']]},
-    {title:'知識', icon:'🌍', items:[['life','生活常識'],['facts','百科'],['science','自然科學']]}
+    {title:'國語', sub:'注音、閱讀、社會自然', items:[['zhuyin','注音'],['readtest','閱讀測驗'],['social','社會'],['nature','自然']]},
+    {title:'數學', sub:'計算、數感與邏輯', items:[['math','數學'],['num','數感'],['logic','邏輯'],['coding','程式思維']]},
+    {title:'英文', sub:'單字、文法與閱讀', items:[['enword','英文單字','🔤'],['engrammar','英文文法','📝'],['enreading','英文閱讀','📖']]},
+    {title:'知識', sub:'生活、百科與科學', items:[['life','生活常識'],['facts','百科'],['science','自然科學']]}
   ];
-  let html='<div class="panel"><h2 class="title-sticker">🎮 練習場</h2><p class="hint">挑一個科目練習，答對賺陽光種植物！</p>';
-  groups.forEach(grp=>{
+  const grpHTML=groups.map(grp=>{
     const visible=grp.items.filter(([t])=>state.activeSubjects[t]!==false);
-    if(!visible.length) return;
-    html+=`<div class="home-sec home-module"><div class="module-heading"><div><p class="hint" style="margin:0;">${grp.title.toUpperCase()}</p><h2 style="font-size:17px;margin:2px 0 0;">${grp.icon} ${grp.title}</h2></div></div><div class="practice-grid">`;
-    visible.forEach(([t,n,ic])=>{
-      html+=`<button class="practice-card" data-tab="${t}"><div class="pc-ic">${ic||subjectIcon(t)}</div><div class="pc-nm">${escapeHtml(n||subjectName(t))}</div></button>`;
-    });
-    html+='</div></div>';
-  });
-  const reviewCount = dueReviews().length;
-  html+=`<div class="home-sec home-module bonus-group"><div class="module-heading"><div><p class="hint" style="margin:0;">EXTRA CREDIT</p><h2 style="font-size:17px;margin:2px 0 0;">⭐ 今日加分（有空再做）</h2></div></div><div class="practice-grid">
-    <button class="practice-card" id="phDq"><div class="pc-ic">⭐</div><div class="pc-nm">每日小考</div><div class="pc-tag">每天一回合</div></button>
-    <button class="practice-card" id="phRv"><div class="pc-ic">🔁</div><div class="pc-nm">複習錯題</div><div class="pc-tag">${reviewCount?reviewCount+' 題':'無錯題'}</div></button>
-    <button class="practice-card" id="phEx"><div class="pc-ic">📝</div><div class="pc-nm">測驗卷</div><div class="pc-tag">混合測驗</div></button>
-  </div></div>`;
-  html+='<div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="phHome">🌻 回小花園</button></div></div>';
-  app.innerHTML=html;
-  $$('.practice-card[data-tab]').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
-  const dq=$('#phDq'); if(dq) dq.onclick=renderDailyQuiz;
-  const rv=$('#phRv'); if(rv) rv.onclick=()=>{ if(!dueReviews().length){ toast('🎉 目前沒有錯題要複習！'); } else renderReviewDrill(); };
-  const ex=$('#phEx'); if(ex) ex.onclick=()=>showTab('exam');
-  const ph=$('#phHome'); if(ph) ph.onclick=()=>showTab('home');
+    if(!visible.length) return '';
+    return `<section class="card2 pgrp"><div class="card-head"><h2>${grp.title}</h2><span class="sub2">${grp.sub}</span></div>
+      <div class="pbtns">${visible.map(([t,n,ic])=>`<button class="pbtn" data-tab="${t}" type="button"><span class="pb-ic">${ic||subjectIcon(t)}</span><span>${escapeHtml(n||subjectName(t))}</span></button>`).join('')}</div></section>`;
+  }).join('');
+  const reviewCount=dueReviews().length;
+  app.innerHTML=`
+  <div class="page2">
+    <div class="greet"><h1>練習場</h1><p>挑一個科目練習，答對賺陽光種植物。</p></div>
+    <section class="card2 quest challenge">
+      <div class="ch-row"><div><div class="np-k">今日挑戰</div><h2>每日小考</h2>
+        <p>${rec?'今天拿到 <b class="stars">'+'★'.repeat(rec.stars||0)+'</b>（答對 '+rec.right+'/'+rec.total+'），可以再挑戰一次':'跨科混合 '+liveDiff().quiz+' 題，星星越多陽光越多'}</p></div>
+        <img class="ch-mon" src="assets/monsters/粗心大王/粗心大王_頭像.png" alt=""></div>
+      <button class="btn-primary" id="phDq" type="button">${rec?'再挑戰一次':'開始每日小考'}</button>
+    </section>
+    ${grpHTML}
+    <div class="quick2">
+      <button id="phRv" type="button">${ico('refresh')}<span>複習錯題<small>${reviewCount?reviewCount+' 題':'沒有錯題'}</small></span></button>
+      <button id="phEx" type="button">${ico('pencil')}<span>測驗卷<small>混合測驗</small></span></button>
+    </div>
+  </div>`;
+  $$('.pbtn[data-tab]').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
+  $('#phDq').onclick=renderDailyQuiz;
+  $('#phRv').onclick=()=>{ if(!dueReviews().length){ toast('🎉 目前沒有錯題要複習！'); } else renderReviewDrill(); };
+  $('#phEx').onclick=()=>showTab('exam');
 }
 
 /* 首頁「今日複習」：學校功課之外、今天到期（含逾期未補）的複習項目 */
@@ -4645,9 +4747,28 @@ function renderStudyPlan(){
   const doneCount=mine.filter(i=>i.done).length;
   const overdue=studyOverdue(c.id).length;
   const unsched=studyUnscheduled(c.id).length;
+  /* 2026-09-28 UI 改版：上半是孩子看的（考試倒數、本週打勾、今天清單），下半是爸媽的考試與科目設定 */
+  const today=dateKey();
+  const ne=examsOf(c.id).find(e=>examCountdown(e)>=0);
+  const dow=(new Date().getDay()+6)%7;
+  const week=[0,1,2,3,4,5,6].map(i=>{
+    const key=dateKey(i-dow); const items=mine.filter(it=>it.due===key); const done=items.filter(it=>it.done).length;
+    return {key, n:'一二三四五六日'[i], total:items.length, left:items.length-done};
+  });
+  const due=studyDueToday(c.id);
+  const td=new Date();
+  const kidHTML=`
+    <div class="greet"><h1>讀書計劃</h1><p>${ne?escapeHtml(ne.name)+'・'+(examCountdown(ne)===0?'就是今天':'還有 '+examCountdown(ne)+' 天'):'還沒設定考試。爸媽可以在下方新增考試，系統會排好每天要讀的進度。'}</p></div>
+    <section class="card2 quest">
+      <div class="card-head"><h2>本週</h2><span class="pill">${ico('checkCircle')}已完成 ${doneCount}/${mine.length}</span></div>
+      <div class="wk2">${week.map(d=>`<div class="wd${d.key===today?' today':''}${d.total&&!d.left?' done':''}"><span class="wd-n">${d.n}</span><span class="wd-c">${!d.total?'<span class="wd-none">·</span>':!d.left?ico('checkCircle'):d.left}</span></div>`).join('')}</div>
+      <h3 class="today-h">今天・${td.getMonth()+1} 月 ${td.getDate()} 日</h3>
+      ${due.length?due.map(it=>`<label class="plan-row2${it.due<today?' late':''}"><input type="checkbox" data-hsid="${it.id}"><span class="pr2-t">${escapeHtml(studyItemLabel(it))}</span><small>${it.due<today?'逾期・':''}+${studyNextSun()} 陽光</small></label>`).join(''):'<p class="muted2">今天沒有要讀的項目。</p>'}
+    </section>
+    <h2 class="sec2">考試與科目設定（爸媽）</h2>`;
   app.innerHTML=`
-  <div class="panel">
-    <h2 class="title-sticker">📅 ${escapeHtml(c.name||'我')}的讀書計劃</h2>
+  <div class="page2 plan2">
+    ${kidHTML}
     <p class="hint">學校功課以外的自修／測驗卷／評量進度。設定考試日期與範圍，系統會自動幫你往回推該哪天讀哪一課。做完一項 +${STUDY_ITEM_SUN} 陽光（每天前 ${STUDY_FULL_COUNT} 項全額，之後每項 ${STUDY_ITEM_SUN_LOW} 陽光）。</p>
     <div id="examZone"></div>
     <div class="plan-toolbar">
@@ -4664,6 +4785,7 @@ function renderStudyPlan(){
     <div id="planBody"></div>
   </div>`;
   paintExamZone();
+  $$('.plan-row2 input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderStudyPlan(); }; });
   $$('.plan-tab').forEach(b=> b.onclick=()=>{ planView=b.dataset.pv; renderStudyPlan(); });
   if(planView==='week') paintPlanWeek(); else paintPlanSubject();
 }
@@ -5491,32 +5613,63 @@ function openExamModal(examId){
   };
 }
 /* 收藏入口 */
+/* 2026-09-28 UI 改版：收藏頁直接顯示植物圖鑑（解鎖／上場），下面是徽章、家族排行榜、自訂題庫。
+   原本三個入口都是跳回首頁找對應區塊 */
+function leaderboardHTML(){
+  return state.children.slice().sort((a,b)=>b.sun-a.sun).map((ch,i)=>{
+    const list=hwListOf(ch).filter(it=> state.activeSubjects[it.type]===true );
+    const done=list.filter(it=>ch.homework[it.id]===true).length;
+    return `<div class="rank2${ch.id===state.activeChildId?' me':''}"><span class="rk-n">${i+1}</span><span class="rk-nm">${escapeHtml(ch.name||'孩子')}</span><span class="rk-v">${ico('sun')}${ch.sun}</span><span class="rk-v">${ico('checkCircle')}${done}/${list.length}</span></div>`;
+  }).join('');
+}
 function renderCollection(){
   const c=C();
   const owned=ownedPlantCount(c);
-  const badgeCount=BADGES.filter(b=>c.badges && c.badges[b.id]).length;
+  const next=GARDEN_PLANTS.find(p=>!c.garden[p.id]);
+  const badgeGot=BADGES.filter(b=>c.badges&&c.badges[b.id]).length;
+  const nextHTML = next ? `
+    <section class="card2 quest next-plant">
+      <div class="np-art">${plantSVG(next.id)}</div>
+      <div class="np-txt"><div class="np-k">下一株</div><h2>${escapeHtml(next.nm)}</h2>
+        <p>${c.sun>=next.need?'陽光夠了！點下面的「'+escapeHtml(next.nm)+'」就能解鎖':'再累積 <b>'+(next.need-c.sun)+'</b> 陽光就能解鎖（需要 '+next.need+'）'}</p>
+        <div class="qbar" role="progressbar" aria-label="解鎖進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100,Math.round(c.sun/next.need*100))}"><i style="width:${Math.min(100,Math.round(c.sun/next.need*100))}%"></i></div></div>
+    </section>` : `
+    <section class="card2 quest"><div class="card-head"><h2>8 種植物全部解鎖了！</h2></div><p style="margin:0;">從下面挑 ${MAX_PLANTS} 盆上場守護花園，其他的在溫室休息。</p></section>`;
+  const plants=GARDEN_PLANTS.map(p=>{
+    const own=!!c.garden[p.id], on=own&&inDeck(c,p.id), can=!own&&c.sun>=p.need;
+    const st=on?'守護中・點我回溫室':own?'在溫室・點我上場':can?'可以解鎖':p.need+' 陽光解鎖';
+    return `<button class="plant2 ${own?'own':'locked'}${on?' on':''}${can?' can':''}" data-pid="${p.id}"><span class="p2-art">${plantSVG(p.id)}</span><span class="p2-nm">${escapeHtml(p.nm)}</span><span class="p2-st">${on?ico('shield'):''}${st}</span></button>`;
+  }).join('');
   app.innerHTML=`
-  <div class="panel">
-    <h2 class="title-sticker">🏆 收藏</h2>
-    <p class="hint">看看你累積的成就與收藏！</p>
-    <div class="collect-grid">
-      <button class="collect-card" id="cGarden"><div class="cc-icon">🌿</div><div class="cc-title">花園圖鑑</div><div class="cc-sub">${owned}/${GARDEN_PLANTS.length} 解鎖</div></button>
-      <button class="collect-card" id="cBadge"><div class="cc-icon">🏅</div><div class="cc-title">徽章牆</div><div class="cc-sub">${badgeCount}/${BADGES.length} 收集</div></button>
-      <button class="collect-card" id="cRank"><div class="cc-icon">🏆</div><div class="cc-title">家族排行榜</div><div class="cc-sub">${state.children.length} 人競賽</div></button>
-      <button class="collect-card" id="cShop"><div class="cc-icon">🎁</div><div class="cc-title">獎勵商店</div><div class="cc-sub">花陽光換獎勵</div></button>
-      <button class="collect-card" id="cCustom"><div class="cc-icon">📚</div><div class="cc-title">自訂題庫</div><div class="cc-sub">家長專區</div></button>
-      <button class="collect-card" id="cParent"><div class="cc-icon">👨‍👩‍👧</div><div class="cc-title">家長後台</div><div class="cc-sub">設定與統計</div></button>
-    </div>
-    <div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="clHome">🌻 回小花園</button></div>
+  <div class="page2">
+    <div class="greet"><h1>我的食蟲植物</h1><p>已解鎖 ${owned}/${GARDEN_PLANTS.length} 種，上場守護 ${deckIds(c).length}/${MAX_PLANTS} 盆。</p></div>
+    ${nextHTML}
+    <div class="plant-grid2">${plants}</div>
+    <button class="btn-primary" id="goShop" type="button">前往陽光兌換所</button>
+    <section class="card2"><div class="card-head"><h2>我的徽章</h2><span class="pill">${badgeGot}/${BADGES.length}</span></div><div class="badge-wall2">${badgesHTML()}</div></section>
+    ${state.children.length>1?`<section class="card2"><div class="card-head"><h2>家族排行榜</h2></div>${leaderboardHTML()}</section>`:''}
+    <button class="entry2" id="goCustom" type="button">${ico('book')}<span><b>自訂題庫</b><small>爸媽出的練習題</small></span>${ico('chevron','chev')}</button>
   </div>`;
-  $('#cGarden').onclick=()=>{ homeFocus='garden'; showTab('home'); };
-  $('#cBadge').onclick=()=>{ homeFocus='badge'; showTab('home'); };
-  $('#cRank').onclick=()=>{ homeFocus='rank'; showTab('home'); };
-  $('#cShop').onclick=()=>showTab('shop');
-  $('#cCustom').onclick=()=>showTab('custom');
-  $('#cParent').onclick=()=>showTab('parent');
-  $('#clHome').onclick=()=>showTab('home');
+  $$('.plant2[data-pid]').forEach(b=>b.onclick=()=>gardenPlantClick(plantById(b.dataset.pid)));
+  $('#goShop').onclick=()=>showTab('shop');
+  $('#goCustom').onclick=()=>showTab('custom');
 }
+/* 植物圖鑑的點擊：沒解鎖就用陽光解鎖、已解鎖就上場／回溫室。首頁與收藏頁共用 */
+function gardenPlantClick(p){
+  if(!p) return;
+  const c=C();
+  if(c.garden[p.id]){ toggleDeck(p.id); return; }
+  if(c.sun>=p.need){
+    addSun(-p.need); c.garden[p.id]=true;
+    if(!Array.isArray(c.deck)) c.deck=[];
+    if(deckIds(c).length<MAX_PLANTS) c.deck=deckIds(c).concat([p.id]);   // 有空位就直接上場
+    save(); goodSound(); sunBurstAt(window.innerWidth/2, window.innerHeight*0.4);
+    toast('🌻 用 '+p.need+' 陽光解鎖了 '+p.nm+'！'); rerenderGardenView();
+  }
+  else { badSound(); toast('還需要 '+(p.need-c.sun)+' 陽光才能解鎖 '+p.nm); }
+}
+/* 在哪一頁操作植物就重畫哪一頁（原本一律重畫首頁，在收藏頁點會跳走） */
+function rerenderGardenView(){ refreshSunCount(); if(currentTab==='collection') renderCollection(); else renderHome(); }
 
 /* 開場引導：名字 → 4 張世界觀引導卡（含進度點） */
 function renderOnboarding(){
@@ -5768,17 +5921,7 @@ function renderHome(){
         : `<div class="g-tag">☀️ ${p.need} 解鎖</div>`;
       pot.innerHTML=`<div class="pl">${plantSVG(p.id)}</div><div class="nm">${p.nm}</div>${tag}`;
       if(!owned) pot.style.filter='grayscale(1) opacity(.55)';
-      pot.onclick=()=>{
-        if(owned){ toggleDeck(p.id); return; }
-        if(c.sun>=p.need){
-          addSun(-p.need); c.garden[p.id]=true;
-          if(!Array.isArray(c.deck)) c.deck=[];
-          if(deckIds(c).length<MAX_PLANTS) c.deck=deckIds(c).concat([p.id]);   // 有空位就直接上場
-          save(); goodSound(); sunBurstAt(window.innerWidth/2, window.innerHeight*0.4);
-          toast('🌻 用 '+p.need+' 陽光解鎖了 '+p.nm+'！'); renderHome();
-        }
-        else { badSound(); toast('還需要 '+(p.need-c.sun)+' 陽光才能解鎖 '+p.nm); }
-      };
+      pot.onclick=()=>gardenPlantClick(p);
       g.appendChild(pot);
     });
   }
@@ -5802,7 +5945,7 @@ function renderHome(){
   /* 優先序：學校功課 → 讀書計劃 → 練習場（加分） */
   const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{
     if(ctaAct==='tasks') renderTodayTasks();
-    else if(ctaAct==='sign') showTab('parent');
+    else if(ctaAct==='sign'){ showTab('parent'); parentCat='sign'; }
     else if(ctaAct==='plan') showTab('plan');
     else showTab('practice');
   };
@@ -7523,8 +7666,9 @@ function renderShop(){
 
 /* ---------- 家長後台 ---------- */
 let parentUnlocked=false, _parentLastAct=0;
+let parentCat=null;   /* 2026-09-28 UI 改版：家長後台先顯示分類卡片，點進去才看該類設定；null＝分類總覽 */
 const PARENT_IDLE_MS=5*60*1000;
-function lockParent(){ if(!parentUnlocked) return; parentUnlocked=false; if(currentTab==='parent') renderParent(); }
+function lockParent(){ if(!parentUnlocked) return; parentUnlocked=false; parentCat=null; if(currentTab==='parent') renderParent(); }
 ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(parentUnlocked) _parentLastAct=Date.now(); },true));
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) lockParent(); });
 setInterval(()=>{ if(parentUnlocked && Date.now()-_parentLastAct>PARENT_IDLE_MS) lockParent(); }, 30*1000);
@@ -7548,9 +7692,8 @@ function findPendingRedemption(rewardId){
 function renderParent(){
   if(!parentUnlocked){
     app.innerHTML = `
-    <div class="panel">
-      <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
-      <p class="hint">這裡記錄孩子的學習狀況、設定真實獎勵，需要家長密碼才能查看。</p>
+    <div class="page2 parent2">
+      <div class="parent-hero"><span class="ph-tag">${ico('key')}家長後台</span><h2>請輸入家長密碼</h2><p>這裡是大人的操作區：簽名、獎勵、家規與設定。</p></div>
       <div style="text-align:center;padding:14px 0;">
         <input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="請輸入密碼"
           style="font-size:24px;text-align:center;padding:12px;border-radius:12px;border:2px solid #c9b98a;width:200px;">
@@ -7743,10 +7886,27 @@ function renderParent(){
 獎勵：${rewardText}
 每週作息：平日 起床 ${state.weekRoutine[0].wake} → 睡覺 ${state.weekRoutine[0].sleep}；週末 起床 ${state.weekRoutine[5].wake} → 睡覺 ${state.weekRoutine[5].sleep}`;
 
+  const PCATS=[
+    {k:'sign', t:'今日功課與簽名', d: (()=>{ const n=allHW().filter(it=>c.homework[it.id]==='pending').length; return n?'待確認 '+n+' 件':'沒有待簽名的功課'; })(), warn: allHW().some(it=>c.homework[it.id]==='pending')},
+    {k:'rewards', t:'真實獎勵與兌換', d: (()=>{ const n=(state.redemptions||[]).filter(r=>r.status==='pending').length; return n?'申請中 '+n+' 件':'設定獎勵、處理兌換'; })(), warn: (state.redemptions||[]).some(r=>r.status==='pending')},
+    {k:'setup', t:'孩子、功課與題庫', d: state.children.length+' 位孩子・今日功課 '+allHW().length+' 項'},
+    {k:'rules', t:'作息與家規', d:'每週作息、超時扣分、自訂扣分項、放假'},
+    {k:'stats', t:'學習紀錄', d:'正確率 '+acc+'%・今天練習 '+fmt(todaySec)},
+    {k:'security', t:'密碼、安全與備份', d: state.parentPIN==='1234'?'還在用預設密碼，建議修改':'睡覺鎖'+(state.sleepLock?'開':'關')+'・護眼鎖'+(state.eyeRestOn?'開':'關'), warn: state.parentPIN==='1234'}
+  ];
+  if(parentCat && !PCATS.some(p=>p.k===parentCat)) parentCat=null;
+  const curCat=PCATS.find(p=>p.k===parentCat);
   app.innerHTML = `
-  <div class="panel">
-    <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
-    <p class="hint">孩子的學習狀況與獎勵設定。資料只存在這台裝置，不會上傳。</p>
+  <div class="page2 parent2">
+    <div class="parent-hero">
+      <div class="ph-row">${curCat?`<button class="ph-btn" id="pBack" type="button">‹ 返回</button>`:`<span class="ph-tag">${ico('key')}家長後台</span>`}<button class="ph-btn" id="lockBtn" type="button">${ico('key')}鎖定</button></div>
+      <h2>${curCat?escapeHtml(curCat.t):escapeHtml(c.name||'孩子')+'的守護設定'}</h2>
+      <p>${curCat?'目前孩子：'+escapeHtml(c.name||'孩子'):'查看進度、確認簽名、設定獎勵。資料只存在這台裝置，不會上傳。'}</p>
+    </div>
+    <div class="phub"${curCat?' hidden':''}>
+      ${PCATS.map(p=>`<button class="pcard${p.warn?' warn':''}" data-pcat="${p.k}" type="button"><span><b>${p.t}</b><small>${escapeHtml(p.d)}</small></span>${ico('chevron','chev')}</button>`).join('')}
+    </div>
+    <div class="pgroup" data-cat="stats">
     <div style="margin:6px 0;"><span class="stat">👦 孩子：${escapeHtml(c.name||'（未命名）')}</span>
       <span class="stat">📝 今日功課：${finished}/${allHW().length}</span>
       <span class="stat">☀️ 陽光：${c.sun}</span></div>
@@ -7765,10 +7925,14 @@ function renderParent(){
     <div>${weekChartSVG(c)}</div>
     <div style="margin-top:6px;">${weekHtml}</div>
 
+    </div>
+    <div class="pgroup" data-cat="sign">
     <h2 style="margin-top:18px;font-size:17px;">✍️ 功課簽名（待確認）</h2>
     <p class="hint">孩子點「完成功課」後會變成申請中，請家長在這裡「簽名完成」才正式給 +30 陽光。</p>
     ${signHTML}
 
+    </div>
+    <div class="pgroup" data-cat="setup">
     <h2 style="margin-top:18px;font-size:17px;">📝 功課清單設定（可自訂）</h2>
     <p class="hint">改名、換練習種類、排序、新增或刪除。完成任何一項都需家長簽名 +30 陽光。至少保留一項。</p>
     ${hwMgmt}
@@ -7785,6 +7949,8 @@ function renderParent(){
     <p class="hint">可新增多位孩子，各自有獨立的小花園、陽光與功課；首頁有家族排行榜。</p>
     ${childMgmt}
 
+    </div>
+    <div class="pgroup" data-cat="rewards">
     <h2 style="margin-top:18px;font-size:17px;">🎁 真實獎勵管理（可自訂）</h2>
     <p class="hint">孩子點兌換後變「申請中」，要由家長「確認發放」才正式給出。</p>
     ${rewardMgmt}
@@ -7793,6 +7959,8 @@ function renderParent(){
     <p class="hint">完整兌換歷史，「清除領取紀錄」不會刪掉這裡的紀錄。</p>
     ${redemptionLogHTML}
 
+    </div>
+    <div class="pgroup" data-cat="security">
     <h2 style="margin-top:18px;font-size:17px;">🔐 密碼與安全</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button class="reset-btn" id="chgPin">✏️ 修改密碼</button>
@@ -7819,6 +7987,8 @@ function renderParent(){
       </div>
     </div>
 
+    </div>
+    <div class="pgroup" data-cat="rules">
     <h2 style="margin-top:18px;font-size:17px;">📅 每週作息設定（星期一到日）</h2>
     <p class="hint">每天各自設定 起床 / 吃飯 / 洗澡 / 睡覺。起床＝拖延怪出發、睡覺＝拖延怪截止（自動聯動）。</p>
     <div style="overflow-x:auto;">
@@ -7862,14 +8032,19 @@ function renderParent(){
       <span style="margin-left:8px;color:#2e7d32;font-weight:800;">目前：${holNow?holNow:'要上課'}</span>
     </div>
 
+    </div>
+    <div class="pgroup" data-cat="stats">
     <h2 style="margin-top:18px;font-size:17px;">📋 匯出紀錄</h2>
     <textarea id="export" readonly>${escapeHtml(summary)}</textarea>
     <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
       <button class="next-btn" id="copyBtn">📋 複製紀錄</button>
-      <button class="reset-btn" id="lockBtn">🔒 鎖定後台</button>
+    </div>
     </div>
   </div>`;
 
+  $$('.parent2 .pgroup').forEach(g=>{ g.hidden = g.dataset.cat!==parentCat; });
+  $$('[data-pcat]').forEach(b=>b.onclick=()=>{ parentCat=b.dataset.pcat; renderParent(); window.scrollTo(0,0); });
+  const pBackBtn=$('#pBack'); if(pBackBtn) pBackBtn.onclick=()=>{ parentCat=null; renderParent(); window.scrollTo(0,0); };
   /* handlers：獎勵 */
   state.rewards.forEach(r=>{
     const d=$('#del'+r.id); if(d) d.onclick=()=>{ state.rewards=state.rewards.filter(x=>x.id!==r.id); save(); renderParent(); };
@@ -8163,7 +8338,7 @@ function renderParent(){
     save(); renderParent();
   };
   $('#copyBtn').onclick=()=>{ const ta=$('#export'); ta.select(); try{ navigator.clipboard.writeText(ta.value); toast('已複製！'); }catch(e){ document.execCommand('copy'); toast('已複製！'); } };
-  $('#lockBtn').onclick=()=>{ parentUnlocked=false; renderParent(); };
+  $('#lockBtn').onclick=()=>{ parentUnlocked=false; parentCat=null; renderParent(); };
 }
 
 /* 近 7 天練習時間 SVG 圖表 */
