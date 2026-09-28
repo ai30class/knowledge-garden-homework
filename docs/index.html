@@ -1786,7 +1786,7 @@ function openManual(){
       <ol>
         <li>在學校把功課寫完 → 首頁「今天的功課」點該項 → 勾選確認項目 → 點「完成」申請簽名。</li>
         <li>請爸媽打開「家長後台」（首頁按「請家長簽名」，或右上角齒輪 →「進入家長後台」）→ 點「簽名完成」→ 立刻 <b>+30 陽光</b>、拖延怪後退！</li>
-        <li>點戰場上任何一株植物 👉 發射露珠把拖延怪打退一點點，+1 互動陽光（隨手玩都行）。</li>
+        <li>點戰場上任何一株植物 👉 發射露珠把拖延怪打退一點點，+1 互動陽光（隨手玩都行；點植物和撿陽光每天最多 20）。</li>
       </ol>
     </div>
     <div class="man-sec">
@@ -1801,8 +1801,8 @@ function openManual(){
     <div class="man-sec">
       <h3>☀️ 陽光小提醒</h3>
       <p>• 每天賺到的陽光最多 <b>350</b>，隔天額度歸零。<br>
-      • 同一科當天重複刷，第 2 次起獎勵會變少——鼓勵寫真功課，而不是狂刷題。<br>
-      • 連續每天完成功課有加碼；中斷會扣 10 陽光，先買一顆 🛡️ 護盾豆可以保住紀錄。</p>
+      • 同一科當天練第 2 回合起獎勵會變少——鼓勵寫真功課，而不是狂刷題。<br>
+      • 連續每天完成功課有加碼（週末、放假日不算中斷）；中斷會扣 10 陽光，先買一顆 🛡️ 護盾豆可以保住紀錄。</p>
     </div>
     <div class="man-sec">
       <h3>👨‍👩‍👧 家長後台（右上角齒輪 →「進入家長後台」）</h3>
@@ -1932,6 +1932,14 @@ function load(seed){
         s.rewards.forEach(r=>{ if(r.claimed!==undefined && r.status===undefined){ r.status=r.claimed?'approved':'none'; delete r.claimed; } if(r.status===undefined) r.status='none'; });
       }
       if(!Array.isArray(s.redemptions)) s.redemptions=[];
+      /* 2026-09-28 稽核 B6：狀態改看兌換紀錄。舊存檔若有「申請中」但沒有對應紀錄，補一筆，陽光才退得回去 */
+      s.rewards.forEach(r=>{
+        if(r.status==='pending' && !s.redemptions.some(x=>x.rewardId===r.id && x.status==='pending')){
+          const ch=(Array.isArray(s.children)&&s.children[0])||{};
+          s.redemptions.push({id:'rl_mig_'+r.id, rewardId:r.id, childId:ch.id||'', childName:(ch.name||'孩子')+'（舊資料）', rewardName:r.name, cost:r.cost, tier:r.tier, requestedAt:Date.now(), status:'pending', decidedAt:null});
+        }
+        r.status='none';
+      });
       if(!Array.isArray(s.penalties)) s.penalties=defaultPenalties();
       if(!Array.isArray(s.penaltyLog)) s.penaltyLog=[];
       if(s.weekRoutine===undefined){
@@ -1970,6 +1978,11 @@ function load(seed){
       if(s.routineStep===undefined) s.routineStep=5;
       if(s.routinePenalty===undefined) s.routinePenalty=5;
       if(!Array.isArray(s.schedule)) s.schedule=[];
+      s.children.forEach(ch=>{ if(!Array.isArray(ch.schedule)){
+        const same = s.scheduleDate===dateKey();
+        ch.schedule = same ? JSON.parse(JSON.stringify(s.schedule.filter(x=>x&&x.kind!=='homework'))) : [];
+        ch.scheduleDate = same ? s.scheduleDate : '';
+      } });
       /* 讀書計劃：舊存檔沒有這欄（或只有早期的 items），把三個陣列都補齊 */
       if(!s.studyPlan || typeof s.studyPlan!=='object') s.studyPlan={};
       if(!Array.isArray(s.studyPlan.subjects)) s.studyPlan.subjects=[];
@@ -1983,6 +1996,9 @@ function load(seed){
       if(typeof s.parentPIN!=='string'||!/^\d{1,6}$/.test(s.parentPIN)) s.parentPIN='1234';   /* 格式壞掉的密碼會讓家長永遠進不了後台 */
       if(!s.children.some(ch=>ch.id===s.activeChildId)) s.activeChildId=s.children[0].id;
       if(s.eyeRestOn===undefined) s.eyeRestOn=true;
+      if(typeof s.eyeRestUntil!=='number') s.eyeRestUntil=Math.max(0,...s.children.map(ch=>Number(ch.eyeRestUntil)||0));
+      if(typeof s.studyMs!=='number') s.studyMs=0;
+      if(typeof s.studyMsDate!=='string') s.studyMsDate=dateKey();
       if(s.quizLimitMin===undefined) s.quizLimitMin=30;
       if(s.restMin===undefined) s.restMin=10;
       if(!Array.isArray(s.customBanks)) s.customBanks=[];
@@ -2025,11 +2041,24 @@ function ensureSunDay(c){
   if(c.lastSunDate!==t){ c.lastSunDate=t; c.dailySunEarned=0; c.answeredToday={}; }
 }
 /* 重刷舊題收益衰減：同一練習模組當日答對次數越多，獎勵越少（防無限刷題賺陽光） */
+/* 互動陽光：點植物發射 +1、撿飄落陽光 +5，每天合計最多 INTERACT_SUN_CAP（2026-09-28 稽核 B8）。
+   原本都算進 350 上限，連點約 2 分鐘就吃光，晚上家長簽名功課時反而拿不到 */
+const INTERACT_SUN_CAP=20;
+function addInteractiveSun(n){
+  const c=C(); ensureSunDay(c);
+  if(c.interSunDate!==dateKey()){ c.interSunDate=dateKey(); c.interSun=0; }
+  const left=INTERACT_SUN_CAP-(c.interSun||0); if(left<=0) return 0;
+  const got=addSun(Math.min(n,left), true); c.interSun=(c.interSun||0)+got; return got;
+}
 function practiceSun(base, key){
   const c=C(); ensureSunDay(c);
   const m = c.answeredToday || (c.answeredToday={});
   const n = m[key]||0;
-  const factor = n===0 ? 1 : n===1 ? 0.5 : 0.25;
+  /* 2026-09-28 稽核 B14：照說明書「同一科第 2 回合起減半、第 3 回合起四分之一」。
+     原本是每答對一題就遞減（3、2、1、1、1），答對第 3 題就只剩 1，練習動力太低 */
+  const round = Math.max(1, (liveDiff().quiz)||8);
+  const r = Math.floor(n/round);
+  const factor = r===0 ? 1 : r===1 ? 0.5 : 0.25;
   const reward = Math.max(0, Math.round(base*factor));
   m[key] = n+1;
   return reward;
@@ -2042,11 +2071,13 @@ function addSun(n, silent){
     const remaining = SUN_DAILY_CAP - (c.dailySunEarned||0);
     if(remaining<=0){
       if(!silent) toast('☀️ 今天陽光能領的已達上限（'+SUN_DAILY_CAP+'），明天再來！');
-      return;
+      return 0;
     }
     const give = Math.min(n, remaining);
     c.sun += give;
     c.dailySunEarned = (c.dailySunEarned||0) + give;
+    save(); $$('.sunCount').forEach(e=>e.textContent=c.sun);
+    return give;   /* 回傳實際給的數字（2026-09-28 稽核 B8／B9） */
   } else {
     c.sun += n;
   }
@@ -2306,8 +2337,7 @@ function studyItemLabel(it){
 /* 某天是不是國定假日（或家長手動標記的放假日）。注意：不含一般的週六日，
    週末要不要排是由 exam.days 決定的 */
 function isHolidayOn(key){
-  const md=key.slice(5);
-  if(TAIWAN_HOLIDAYS_2026[md]) return TAIWAN_HOLIDAYS_2026[md];
+  if(TW_HOLIDAYS[key]) return TW_HOLIDAYS[key];
   if((state.manualHolidays||[]).includes(key)) return '手動放假';
   return null;
 }
@@ -2435,6 +2465,8 @@ function scheduleForExam(exam, skipHolidays=true){
   if(!total) return {count:0, perDay:0, tight:false, perSubject:[]};
 
   const today=dateKey();
+  /* 2026-09-28 稽核 B10：考試已經過了就不排，原本會全部排到過去的日子、永遠卡在逾期 */
+  if(exam.date < today) return {count:0, perDay:0, tight:false, perSubject:[], past:true};
   const lastDay=addDaysKey(exam.date,-1);
   const startKey = lastDay < today ? exam.date : today;
   const endKey   = lastDay < today ? exam.date : lastDay;
@@ -2606,11 +2638,12 @@ function toggleStudyItem(id){
   } else {
     const n=studyDoneToday(c);
     const gain=studySunFor(n);
-    it.done=true; it.doneAt=Date.now(); it.sunGot=gain;
+    const got=addSun(gain, true);
+    it.done=true; it.doneAt=Date.now(); it.sunGot=got;   /* 記實際給的，取消時才不會多扣（2026-09-28 稽核 B9） */
     c.studyDoneCount=n+1;
-    addSun(gain); goodSound(); pushZombie(0.06);
-    toast('📚 完成「'+studyItemLabel(it)+'」+'+gain+' 陽光！'
-      + (gain<STUDY_ITEM_SUN ? '（今天已完成 '+(n+1)+' 項，之後每項 '+STUDY_ITEM_SUN_LOW+' 陽光）' : ''));
+    goodSound(); pushZombie(0.06);
+    toast('📚 完成「'+studyItemLabel(it)+'」'+(got?'+'+got+' 陽光！':'！')
+      + (got<gain ? '（今天陽光已到上限 '+SUN_DAILY_CAP+'）' : gain<STUDY_ITEM_SUN ? '（今天已完成 '+(n+1)+' 項，之後每項 '+STUDY_ITEM_SUN_LOW+' 陽光）' : ''));
   }
   save();
 }
@@ -2634,7 +2667,16 @@ setInterval(()=>{
   if(ticksSinceEye>=1200){ ticksSinceEye=0; toast('👀 看遠方 20 秒，保護眼睛！'); }
   if(++_saveTick>=10){ _saveTick=0; save(); }
 },1000);
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); else checkDayRollover(); });
+/* 2026-09-28 稽核 B3：主畫面的 App 從背景叫回來不會重新載入，原本隔天還顯示昨天的 ✅、作息獎勵可以再領 */
+let _lastSeenDay=null;
+function checkDayRollover(){
+  const k=dateKey(); if(_lastSeenDay===null){ _lastSeenDay=k; return; }
+  if(k===_lastSeenDay) return; _lastSeenDay=k;
+  dailyResetIfNeeded(); ensureSchedule();
+  if(typeof currentTab!=='undefined' && currentTab==='home') renderHome();
+}
+setInterval(checkDayRollover, 60*1000);
 /* 首次任何使用者互動就解鎖音訊，避免開頭幾次 beep 落在 suspended context 而靜音 */
 function unlockAudioOnce(){ ensureAudio(); }
 document.addEventListener('pointerdown', unlockAudioOnce, {once:true});
@@ -3744,32 +3786,38 @@ const ENGLISH = [
   {en:'science',zh:'科學'},{en:'exercise',zh:'運動'},{en:'vegetable',zh:'蔬菜'},{en:'window',zh:'窗戶'}
 ];
 
-/* ---------- 國定假日（台灣 2026） ---------- */
-const TAIWAN_HOLIDAYS_2026 = {
-  '01-01':'元旦','02-16':'除夕','02-17':'春節','02-18':'春節','02-19':'春節','02-20':'春節',
-  '04-03':'兒童節','04-05':'清明節','05-01':'勞動節','06-19':'端午節','09-25':'中秋節',
-  '10-09':'國慶日','10-10':'國慶日'
+/* ---------- 國定假日（台灣） ----------
+   2026-09-28 稽核 B1：原本只寫 2026 年、用「月-日」比對，2027 起春節端午中秋全部對錯日子，2026 年也漏了 9 天。
+   改成完整日期表，逐日取自行政院人事行政總處「政府行政機關辦公日曆表」：
+   115年（2026）dgpa.gov.tw/information?uid=41&pid=12573（114.06.13 公告，放假 120 日）
+   116年（2027）dgpa.gov.tw/information?uid=41&pid=12982（115.05.21 公告，放假 121 日）
+   含落在週末的節日本身（顯示名稱用）與補假；兩年都沒有補行上班日。每年公告後補上下一年。 */
+const TW_HOLIDAYS = {
+  '2026-01-01':'開國紀念日','2026-02-15':'小年夜','2026-02-16':'除夕','2026-02-17':'春節','2026-02-18':'春節','2026-02-19':'春節',
+  '2026-02-20':'小年夜補假','2026-02-27':'和平紀念日補假','2026-02-28':'和平紀念日','2026-04-03':'兒童節補假','2026-04-04':'兒童節',
+  '2026-04-05':'清明節','2026-04-06':'清明節補假','2026-05-01':'勞動節','2026-06-19':'端午節','2026-09-25':'中秋節',
+  '2026-09-28':'教師節','2026-10-09':'國慶日補假','2026-10-10':'國慶日','2026-10-25':'光復紀念日','2026-10-26':'光復紀念日補假',
+  '2026-12-25':'行憲紀念日',
+  '2027-01-01':'開國紀念日','2027-02-04':'小年夜','2027-02-05':'除夕','2027-02-06':'春節','2027-02-07':'春節','2027-02-08':'春節',
+  '2027-02-09':'春節補假','2027-02-10':'春節補假','2027-02-28':'和平紀念日','2027-03-01':'和平紀念日補假','2027-04-04':'兒童節',
+  '2027-04-05':'清明節','2027-04-06':'兒童節補假','2027-04-30':'勞動節補假','2027-05-01':'勞動節','2027-06-09':'端午節',
+  '2027-09-15':'中秋節','2027-09-28':'教師節','2027-10-10':'國慶日','2027-10-11':'國慶日補假','2027-10-25':'光復紀念日',
+  '2027-12-24':'行憲紀念日補假','2027-12-25':'行憲紀念日','2027-12-31':'開國紀念日補假'
 };
-function isHolidayToday(){
-  const k=dateKey(); const md=k.slice(5);
-  if(TAIWAN_HOLIDAYS_2026[md]) return TAIWAN_HOLIDAYS_2026[md];
-  if((state.manualHolidays||[]).includes(k)) return '手動放假';
-  return null;
-}
+const TW_HOLIDAY_YEARS = [2026, 2027];   /* 表裡有的年份；今年不在裡面時家長後台會提醒 */
+function isHolidayToday(){ return isHolidayOn(dateKey()); }
 
 /* ---------- 每週作息 / 拖延怪計時逼近 ---------- */
 function todayWeekdayIndex(){ return (new Date().getDay()+6)%7; }
 function todayRoutine(){ const wr=state.weekRoutine||defaultWeekRoutine(); return wr[todayWeekdayIndex()]; }
 function zombieBounds(){
   const r=todayRoutine();
-  const [sh,sm]=r.sleep.split(':').map(Number);
-  const [wh,wm]=r.wake.split(':').map(Number);
-  return {startMin:wh*60+wm, endMin:sh*60+sm};
+  return {startMin:toMin(r.wake), endMin:toMin(r.sleep)};
 }
 function zombieProgress(){
   const {startMin,endMin}=zombieBounds();
   const now=new Date();
-  const nowMin=now.getHours()*60+now.getMinutes();
+  const nowMin=nowFrameMin();
   if(endMin<=startMin) return 1;
   let p=(nowMin-startMin)/(endMin-startMin);
   if(p<0)p=0; if(p>1)p=1;
@@ -3784,7 +3832,15 @@ function fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return m+' 分 '+(s<10?
 function fmtDT(ts){ if(!ts) return ''; const d=new Date(ts); return d.toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}); }
 
 /* ---------- 今日行程（排程系統）：自動產生 + 準時打卡 + 時間內完成獎勵 + 拖延怪跟時間軸走 ---------- */
-function toMin(t){ const a=(t||'0:0').split(':'); const h=parseInt(a[0])||0, m=parseInt(a[1])||0; return h*60+m; }
+/* 2026-09-28 稽核 B4：時間一律換算成「以起床前 3 小時為一天開頭」的分鐘數。
+   原本一天從 0 點算，睡覺時間設 00:30 會被當成一大早：國中生整天被睡覺鎖、拖延怪整天貼門口；
+   睡覺 21:00 的話，半夜 0 點到起床之間反而不鎖 */
+function dayFrameStart(){ try{ const r=todayRoutine(); const [h,m]=String(r.wake||'07:00').split(':').map(Number); return Math.max(0,(h||0)*60+(m||0)-180); }catch(e){ return 240; } }
+function frameMin(m){ return m < dayFrameStart() ? m+1440 : m; }
+function nowFrameMin(){ const d=new Date(); return frameMin(d.getHours()*60+d.getMinutes()); }
+/* 「今晚」屬於哪一天：半夜過後、還沒到一天開頭，都算前一天 */
+function frameDateKey(){ const d=new Date(); return (d.getHours()*60+d.getMinutes()) < dayFrameStart() ? dateKey(-1) : dateKey(); }
+function toMin(t){ const a=(t||'0:0').split(':'); const h=parseInt(a[0])||0, m=parseInt(a[1])||0; return frameMin(h*60+m); }
 function defaultSchedule(){
   const r=todayRoutine(); const lim=state.routineLimit||{eat:40,bath:30};
   const items=[
@@ -3801,15 +3857,29 @@ function defaultSchedule(){
   });
   return items;
 }
+/* 2026-09-28 稽核 B5：今日行程改成每個孩子各一份（c.schedule）。原本全家共用 state.schedule，
+   功課那幾列取自「當天第一個打開的孩子」，妹妹的行程會出現哥哥的功課，被算成逾期、拖延怪一直逼近。
+   state.schedule 留著給舊版本讀 */
+function mySchedule(){ const c=C(); if(!Array.isArray(c.schedule)) c.schedule=[]; return c.schedule; }
 function ensureSchedule(){
-  if(state.scheduleDate!==dateKey() || !Array.isArray(state.schedule)){
-    state.schedule=defaultSchedule(); state.scheduleDate=dateKey();
-    state.children.forEach(ch=>{ ch.sched={}; ch.bonusSun=0; });
-    save();
+  const c=C(); let changed=false;
+  if(c.scheduleDate!==dateKey() || !Array.isArray(c.schedule)){
+    c.schedule=defaultSchedule(); c.scheduleDate=dateKey(); c.sched={}; c.bonusSun=0; changed=true;
+  } else {
+    /* 功課清單中途改了（加、刪、藏科目），功課那幾列跟著對齊；時間被調過的保留 */
+    const want=visibleHW(); const wantIds=new Set(want.map(it=>it.id));
+    const before=c.schedule.length;
+    c.schedule=c.schedule.filter(x=>x.kind!=='homework' || wantIds.has(x.hwId));
+    const have=new Set(c.schedule.filter(x=>x.kind==='homework').map(x=>x.hwId));
+    let t=Math.max(19*60-35, ...c.schedule.filter(x=>x.kind==='homework').map(x=>toMin(x.time)%1440));
+    want.forEach(it=>{ if(have.has(it.id)) return; t+=35;
+      c.schedule.push({id:'sc_hw_'+it.id, label:displayHWName(it), time:String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0'), dur:30, emoji:subjectIcon(it.type), kind:'homework', hwId:it.id}); });
+    changed = changed || c.schedule.length!==before || want.some(it=>!have.has(it.id));
   }
+  if(changed) save();
 }
 function scheduleWindow(){
-  const sc=state.schedule; if(!sc||!sc.length) return null;
+  const sc=mySchedule(); if(!sc||!sc.length) return null;
   let mn=1e9, mx=-1;
   sc.forEach(it=>{ const s=toMin(it.time); if(s<mn)mn=s; const e=s+(it.dur||0); if(e>mx)mx=e; });
   if(mx<=mn) mx=mn+30;
@@ -3817,15 +3887,15 @@ function scheduleWindow(){
 }
 function timePressure(){
   const sw=scheduleWindow();
-  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const now=new Date(); const nowMin=nowFrameMin();
   if(sw){ let p=(nowMin-sw.start)/sw.total; if(p<0)p=0; if(p>1)p=1; return p; }
   return zombieProgress();
 }
 function scheduleOverdue(){
   if(isHolidayToday()) return 0;
-  const c=C(); const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const c=C(); const now=new Date(); const nowMin=nowFrameMin();
   let n=0;
-  (state.schedule||[]).forEach(it=>{
+  mySchedule().forEach(it=>{
     const st=(c.sched&&c.sched[it.id])||{};
     if(st.status==='done') return;
     if(nowMin > toMin(it.time)+(it.dur||0)) n++;
@@ -3841,9 +3911,9 @@ function laneX(ratio){ return LANE_R - Math.max(0,Math.min(1,ratio))*(LANE_R-LAN
 /* 作戰窗口：從「第一個還沒完成的行程」到「睡覺」。隨著一天推進自動收窄，拖延怪相對移動才看得出來。 */
 function activeWindow(){
   const sw=scheduleWindow(); if(!sw) return null;
-  const c=C(); const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const c=C(); const now=new Date(); const nowMin=nowFrameMin();
   let first=null;
-  (state.schedule||[]).forEach(it=>{
+  mySchedule().forEach(it=>{
     const st=(c.sched&&c.sched[it.id])||{};
     if(st.status!=='done'){ const m=toMin(it.time); if(first===null||m<first) first=m; }
   });
@@ -3855,7 +3925,7 @@ function activeWindow(){
 }
 /* 今日完成度：行程項目（已含功課）已完成=1、已打卡=0.45 */
 function doneRatio(){
-  const c=C(); const sc=state.schedule||[];
+  const c=C(); const sc=mySchedule();
   if(!sc.length) return unfinishedCount()===0 ? 1 : 0;
   let d=0;
   sc.forEach(it=>{ const st=(c.sched&&c.sched[it.id])||{};
@@ -3867,7 +3937,7 @@ function doneRatio(){
    → 完成一項行程，doneR 跳升，拖延怪就「被實體推退」一大段，回饋非常直接。 */
 function laneGeom(){
   const c=C(); const aw=activeWindow();
-  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const now=new Date(); const nowMin=nowFrameMin();
   const timeR = aw ? Math.max(0, Math.min(1,(nowMin-aw.start)/aw.total)) : zombieProgress();
   const push = Math.min(0.25, (c.zombiePush||0)*0.18);           // 答題打退＝額外進度加成
   const overdue = Math.min(0.20, scheduleOverdue()*0.055);       // 逾期未做＝額外威脅
@@ -3883,7 +3953,7 @@ function laneGeom(){
 function tlX(min){ const aw=activeWindow(); if(!aw) return 50; return laneX((min-aw.start)/aw.total); }
 function setSchedDoneNoRender(id, onTime){
   const c=C(); if(!c.sched) c.sched={};
-  const it=state.schedule.find(x=>x.id===id); if(!it) return false;
+  const it=mySchedule().find(x=>x.id===id); if(!it) return false;
   const wasDone=(c.sched[id]||{}).status==='done';
   c.sched[id]={status:'done', doneAt:Date.now(), onTime:onTime};
   if(it.kind==='routine' && it.routineKey){
@@ -3895,9 +3965,9 @@ function setSchedDoneNoRender(id, onTime){
 }
 function checkinTask(id){
   const c=C(); if(!c.sched) c.sched={};
-  const it=state.schedule.find(x=>x.id===id); if(!it) return;
+  const it=mySchedule().find(x=>x.id===id); if(!it) return;
   if((c.sched[id]||{}).status==='done'){ toast('這項已經完成囉'); return; }
-  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const now=new Date(); const nowMin=nowFrameMin();
   const startMin=toMin(it.time);
   const wStart=startMin-10, wEnd=startMin+(it.dur||0)+10;
   if(nowMin<wStart){ toast('還沒到時間喔，「'+it.label+'」預計 '+it.time); return; }
@@ -3914,8 +3984,8 @@ function schedRealDone(it, c){
   return true;
 }
 function markSchedDone(id){
-  const it=state.schedule.find(x=>x.id===id); if(!it) return;
-  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const it=mySchedule().find(x=>x.id===id); if(!it) return;
+  const now=new Date(); const nowMin=nowFrameMin();
   const startMin=toMin(it.time);
   if(nowMin<startMin-10){ toast('還沒到「'+it.label+'」的時間（'+it.time+'），到了再按完成'); return; }
   if(!schedRealDone(it, C())){
@@ -3929,12 +3999,12 @@ function markSchedDone(id){
   goodSound(); save(); renderHome();
 }
 function schedCompleteBtn(id){
-  const it=state.schedule.find(x=>x.id===id); if(!it) return;
+  const it=mySchedule().find(x=>x.id===id); if(!it) return;
   markSchedDone(id);
 }
 function deleteSchedTask(id){
-  const it=state.schedule.find(x=>x.id===id); if(!it||it.kind!=='custom') return;
-  state.schedule=state.schedule.filter(x=>x.id!==id); save(); goodSound(); renderHome();
+  const it=mySchedule().find(x=>x.id===id); if(!it||it.kind!=='custom') return;
+  C().schedule=mySchedule().filter(x=>x.id!==id); save(); goodSound(); renderHome();
 }
 function collectBonusSun(){
   const c=C(); const b=c.bonusSun||0;
@@ -3943,7 +4013,7 @@ function collectBonusSun(){
 }
 function schedCardHTML(it){
   const c=C(); const st=(c.sched&&c.sched[it.id])||{}; const status=st.status||'todo';
-  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const now=new Date(); const nowMin=nowFrameMin();
   const startMin=toMin(it.time); const inWindow = nowMin>=startMin-10 && nowMin<=startMin+(it.dur||0)+10;
   const statusTxt = status==='done'?'✅ 已完成':status==='checked'?'📍 已打卡':'⬜ 待辦';
   const statusColor = status==='done'?'#1c6b2a':status==='checked'?'#b8740a':'#7a6a45';
@@ -3970,7 +4040,7 @@ function schedCardHTML(it){
   </div>`;
 }
 function renderSchedulePanel(){
-  const c=C(); const sc=state.schedule||[]; const bonus=c.bonusSun||0;
+  const c=C(); const sc=mySchedule(); const bonus=c.bonusSun||0;
   const cards=sc.map(schedCardHTML).join('');
   const bonusHTML = bonus>0
     ? '<button class="next-btn" id="collectBonus" style="margin-top:10px;">🎁 收集獎勵陽光（+'+bonus+'☀️）</button>'
@@ -3988,8 +4058,8 @@ function renderSchedulePanel(){
 }
 function attachSchedule(){
   const list=$('#schedList'); if(!list) return;
-  list.querySelectorAll('input[data-time]').forEach(inp=>{ inp.onchange=()=>{ const it=state.schedule.find(x=>x.id===inp.dataset.time); if(it){ it.time=inp.value; save(); renderHome(); } }; });
-  list.querySelectorAll('input[data-dur]').forEach(inp=>{ inp.onchange=()=>{ const it=state.schedule.find(x=>x.id===inp.dataset.dur); if(it){ it.dur=Math.max(0,parseInt(inp.value)||0); save(); renderHome(); } }; });
+  list.querySelectorAll('input[data-time]').forEach(inp=>{ inp.onchange=()=>{ const it=mySchedule().find(x=>x.id===inp.dataset.time); if(it){ it.time=inp.value; save(); renderHome(); } }; });
+  list.querySelectorAll('input[data-dur]').forEach(inp=>{ inp.onchange=()=>{ const it=mySchedule().find(x=>x.id===inp.dataset.dur); if(it){ it.dur=Math.max(0,parseInt(inp.value)||0); save(); renderHome(); } }; });
   list.querySelectorAll('button[data-act]').forEach(b=>{ b.onclick=()=>{
     const id=b.dataset.id, act=b.dataset.act;
     if(act==='check') checkinTask(id);
@@ -4001,7 +4071,7 @@ function attachSchedule(){
   const cb=$('#collectBonus'); if(cb) cb.onclick=collectBonusSun;
 }
 function openSchedModal(id){
-  const it = id? state.schedule.find(x=>x.id===id) : null;
+  const it = id? mySchedule().find(x=>x.id===id) : null;
   const ov=document.createElement('div'); ov.className='modal-ov';
   ov.innerHTML=`<div class="modal">
     <h3>${it?'✏️ 編輯行程':'➕ 新增行程'}</h3>
@@ -4022,7 +4092,7 @@ function openSchedModal(id){
     const time=$('#sTime').value||'19:00'; const dur=parseInt($('#sDur').value)||30;
     if(!label){ badSound(); toast('請填寫事項名稱'); return; }
     if(it){ it.label=label; it.emoji=emoji; it.time=time; it.dur=dur; }
-    else { state.schedule.push({id:'sc_c_'+Date.now(), label, emoji, time, dur, kind:'custom'}); }
+    else { mySchedule().push({id:'sc_c_'+Date.now(), label, emoji, time, dur, kind:'custom'}); }
     save(); goodSound(); ov.remove(); renderHome();
   };
 }
@@ -4068,7 +4138,7 @@ function updateZombie(unfinished){
     renderTimeline();
     return;
   }
-  const now=new Date(); const nowMin=now.getHours()*60+now.getMinutes();
+  const now=new Date(); const nowMin=nowFrameMin();
   const {endMin}=zombieBounds(); const remainMin=endMin-nowMin;
   const overdue=scheduleOverdue();
   const mega=Date.now()<megaUntil;
@@ -4119,7 +4189,7 @@ function renderTimeline(g){
   const c=C();
   const hhmm=(m)=>{ m=((Math.round(m)%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
   let marks='';
-  (state.schedule||[]).forEach(it=>{
+  mySchedule().forEach(it=>{
     const m=toMin(it.time);
     if(m < aw.start-5 || m > aw.end+5) return;
     const st=(c.sched&&c.sched[it.id])||{};
@@ -4178,9 +4248,9 @@ function childFire(){
   shootPea();
   const z=document.getElementById('homeZombie'); if(z){ z.classList.add('hit'); setTimeout(()=>z.classList.remove('hit'),220); }
   screenShake('.battle, .lawn-battle');
-  const c=C(); const before=c.sun; addSun(1, true); const gained=c.sun-before;
+  const gained=addInteractiveSun(1);
   if(gained>0) toast('💥 發射成功！+'+gained+' 陽光');
-  else toast('💥 發射成功！');
+  else toast('💥 發射成功！（點植物的陽光今天已經拿滿 '+INTERACT_SUN_CAP+'）');
 }
 
 /* ---------- 真實戰場：植物防守 / 陽光掉落 ---------- */
@@ -4215,7 +4285,7 @@ function lawnSunLoop(){
   const s=document.createElement('div'); s.className='falling-sun'; s.innerHTML=ICONS.sun;
   s.style.left=(10+Math.random()*78)+'%';
   s.onclick=()=>{
-    addSun(5); goodSound();
+    const got=addInteractiveSun(5); goodSound(); if(!got) toast('☀️ 撿陽光的獎勵今天已經拿滿 '+INTERACT_SUN_CAP+' 了');
     s.style.transition='transform .3s, opacity .3s'; s.style.transform='scale(1.7)'; s.style.opacity='0';
     setTimeout(()=>{ if(s.parentNode) s.remove(); },300);
   };
@@ -4334,7 +4404,7 @@ function routineItems(){
     {key:'eat',  ic:'🍚', lb:'吃飯', t:r.eat},
     {key:'bath', ic:'🛁', lb:'洗澡', t:r.bath},
     {key:'sleep',ic:'💤', lb:'睡覺', t:r.sleep},
-  ].map(x=>{ const [h,m]=x.t.split(':').map(Number); return {...x, min:h*60+m}; })
+  ].map(x=>({...x, min:toMin(x.t)}))
    .sort((a,b)=>a.min-b.min);
 }
 function updateClock(){
@@ -4343,7 +4413,7 @@ function updateClock(){
   const hh=String(now.getHours()).padStart(2,'0');
   const mm=String(now.getMinutes()).padStart(2,'0');
   clk.textContent='🕐 現在時間 '+hh+':'+mm;
-  const nowMin=now.getHours()*60+now.getMinutes();
+  const nowMin=nowFrameMin();
   const items=routineItems();
   let next=items.find(x=>x.min>nowMin);
   items.forEach(x=>{ const el=$('#rt_'+x.key); if(el) el.classList.toggle('next-routine', !!next && x.key===next.key); });
@@ -4458,19 +4528,27 @@ function streakBonus(streak){
   return 0;
 }
 /* 家長簽名：核准/退回 */
+/* 前一個「上學日」：往回跳過週六日、國定假日、家長標記的放假日（2026-09-28 稽核 B2）。
+   原本只認「昨天」，週五中秋＋週末放假，週一簽名就被判中斷扣 10、每週一還會吃掉一顆護盾豆 */
+function prevSchoolDayKey(){
+  for(let i=1;i<=31;i++){ const k=dateKey(-i); const wd=parseKey(k).getDay(); if(wd===0||wd===6||isHolidayOn(k)) continue; return k; }
+  return dateKey(-1);
+}
 function approveHomework(id){
   const c=C(); if(c.homework[id]!=='pending') return;
   const megaActive = Date.now()<megaUntil;
-  c.homework[id]=true; addSun(30); pushZombie(0.18);
+  const got=addSun(30, true); pushZombie(0.18);
+  c.homework[id]=true;
   c.plantHP=Math.min(100,c.plantHP+25); shootPea(); goodSound();
   // 連續完成天數：加成／中斷懲罰／護盾豆補救
-  let msg='✅ 已簽名完成，+30 陽光！';
-  if(megaActive){ megaUntil=0; addSun(20, true); msg+=' 😎 打退週末魔王！加碼 +20 陽光！'; }
+  /* 提示寫實際拿到的陽光：已到每日上限時不能寫 +30（2026-09-28 稽核 B8） */
+  let msg = got>=30 ? '✅ 已簽名完成，+30 陽光！' : got>0 ? '✅ 已簽名完成，+'+got+' 陽光（今天已到上限 '+SUN_DAILY_CAP+'）' : '✅ 已簽名完成（今天陽光已到上限 '+SUN_DAILY_CAP+'，明天再領）';
+  if(megaActive){ megaUntil=0; const g2=addSun(20, true); msg+= g2? ' 😎 打退週末魔王！加碼 +'+g2+' 陽光！' : ' 😎 打退週末魔王！'; }
   const today=dateKey();
   if(c.lastDoneDate!==today){
     if(c.lastDoneDate===''){
       c.streak=1;
-    } else if(c.lastDoneDate===dateKey(-1)){
+    } else if(c.lastDoneDate >= prevSchoolDayKey()){
       c.streak=(c.streak||0)+1;
     } else if((c.streakShields||0)>0){
       c.streakShields--; c.streak=(c.streak||0)+1;
@@ -4483,7 +4561,7 @@ function approveHomework(id){
     }
     c.lastDoneDate=today;
     const bonus=streakBonus(c.streak);
-    if(bonus>0){ addSun(bonus, true); msg+=' 🔥 連續 '+c.streak+' 天，加碼 +'+bonus+' 陽光！'; }
+    if(bonus>0){ const g3=addSun(bonus, true); if(g3) msg+=' 🔥 連續 '+c.streak+' 天，加碼 +'+g3+' 陽光！'; }
   }
   checkBadges(); save(); toast(msg);
 }
@@ -4550,17 +4628,19 @@ function tickEnergy(){
 function practiceLocked(){
   if(!state.sleepLock) return false;
   /* 存的是解除當天的日期。原本存 true 且沒有任何地方重設，解除一次就永久失效 */
-  if(state.sleepOverrideTonight===dateKey()) return false;
+  if(state.sleepOverrideTonight===frameDateKey()) return false;   /* 「今晚」過了半夜還算同一晚 */
   const {endMin}=zombieBounds();
-  const nowMin=new Date().getHours()*60+new Date().getMinutes();
-  return nowMin>endMin && unfinishedCount()>0;
+  const nowMin=nowFrameMin(); const {startMin}=zombieBounds();
+  /* 睡覺時間到隔天起床前都算（可以跨半夜） */
+  return (nowMin>=endMin || nowMin<startMin) && unfinishedCount()>0;
 }
 
 /* ---------- 護眼強制休息（家長控制） ---------- */
 const EYE_TABS=PRACTICE_TABS; // 所有練習/小考分頁都算「用眼時間」
 function isEyeTab(tab){ return EYE_TABS.includes(tab); }
 function tickEye(){
-  const c=C(); const now=Date.now();
+  /* 2026-09-28 稽核 B7：護眼計時改成整台裝置一份（存在 state），原本每個孩子各算，被鎖住的孩子切到兄弟姊妹就能繼續玩 */
+  const c=state; const now=Date.now();
   if(c.studyMsDate!==dateKey()){ c.studyMs=0; c.studyMsDate=dateKey(); }
   if(c.eyeRestUntil && c.eyeRestUntil>now){
     if(isEyeTab(currentTab)) showEyeLock(c.eyeRestUntil-now); else hideEyeLock();
@@ -4586,7 +4666,7 @@ function showEyeLock(msLeft){
         fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
       }, v=>{
         const err=checkPIN(v.pin); if(err) return err;
-        ov.className=''; const cc=C(); cc.eyeRestUntil=0; save(); toast('🔓 已家長解鎖');
+        ov.className=''; state.eyeRestUntil=0; save(); toast('🔓 已家長解鎖');
       });
     };
   }
@@ -4608,10 +4688,11 @@ function firstUnfinishedHW(){
   return visibleHW().find(it=>c.homework[it.id]!==true && c.homework[it.id]!=='pending')||null;
 }
 function showTab(tab, hwId){
+  clearQTimer();   /* 2026-09-28 稽核 B11：原本答題到一半回首頁，約 25 秒後會自動算一題錯、跳出粗心大王蓋住首頁 */
   /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
   if(tab!=='parent'){ parentUnlocked=false; parentCat=null; }
   refreshSunCount();
-  const _ec=C().eyeRestUntil;
+  const _ec=state.eyeRestUntil;
   if(_ec && _ec>Date.now() && isEyeTab(tab)){ showEyeLock(_ec-Date.now()); return; }
   if(PRACTICE_TABS.includes(tab) && practiceLocked()){ renderLock(tab); return; }
   currentTab=tab;
@@ -4908,6 +4989,7 @@ function paintExamZone(){
   box.querySelectorAll('[data-exre]').forEach(b=> b.onclick=()=>{
     const e=studyPlan().exams.find(x=>x.id===b.dataset.exre); if(!e) return;
     const r=scheduleForExam(e, e.skipHolidays!==false);
+    if(r.past){ badSound(); toast('這個考試的日期（'+e.date.replace(/-/g,'/')+'）已經過了，先按「編輯」改日期再重新安排'); return; }
     if(!r.count){ toast('這個考試範圍裡沒有還沒讀完的課次'); return; }
     goodSound();
     toast('📅 已把還沒做的 '+r.count+' 項從今天重新分配到考試前'
@@ -5193,6 +5275,7 @@ function copyMaterialLessons(subjectId, fromMaterial, toMaterial){
     id:'sp_'+Date.now().toString(36)+'_c'+idx+Math.floor(Math.random()*100),
     childId:i.childId, subjectId, material:toMaterial,
     lesson:i.lesson, lessonName:i.lessonName,
+    part:i.part, extra:i.extra, seq:i.seq,   /* 2026-09-28 稽核 B13：原本沒複製，第二張、複習考會變成一般課次 */
     due:'', done:false, doneAt:null
   }));
   studyPlan().items.push(...made); save();
@@ -5604,7 +5687,7 @@ function openExamModal(examId){
     <div class="mod-row"><label>考試名稱</label><br>
       <input id="exNm" class="in" style="width:100%;max-width:none;" placeholder="例如：第一次段考" value="${escapeHtml(editing?editing.name:'段考')}"></div>
     <div class="mod-row"><label>考試日期</label><br>
-      <input id="exDate" class="in" type="date" value="${editing?editing.date:addDaysKey(dateKey(),21)}"></div>
+      <input id="exDate" class="in" type="date" min="${dateKey()}" value="${editing?editing.date:addDaysKey(dateKey(),21)}"></div>
     <div class="mod-row"><label>考試範圍（勾選要讀完的教材）</label>
       <div class="scope-box">${scopeRows||'<p class="hint">還沒有任何教材可以勾選。</p>'}</div></div>
     <div class="mod-row"><label>哪幾天要寫？<small style="font-weight:400;color:var(--muted);">（含週六日，這裡決定每週的固定節奏）</small></label>
@@ -5661,6 +5744,7 @@ function openExamModal(examId){
     const name=(ov.querySelector('#exNm').value||'').trim()||'段考';
     const date=ov.querySelector('#exDate').value;
     if(!date){ badSound(); toast('請選擇考試日期'); return; }
+    if(date < dateKey() && !(editing && editing.date===date)){ badSound(); toast('考試日期已經過了，請確認日期'); return; }
     const scopes=[...ov.querySelectorAll('[data-sc]:checked')].map(b=>{
       const [subjectId, m]=b.dataset.sc.split('|');
       return {subjectId, material:decodeURIComponent(m)};
@@ -5676,6 +5760,7 @@ function openExamModal(examId){
            studyPlan().exams.push(exam); }
     const r=scheduleForExam(exam, skipHolidays);
     ov.remove(); goodSound();
+    if(r.past){ toast('💾 已儲存「'+name+'」（考試日期已經過了，沒有重新排程）'); renderStudyPlan(); return; }
     if(r.tight) toast('🎯 已排 '+r.count+' 項，但時間很緊：最多一天要做 '+r.perDay+' 項');
     else {
       const u = days.length===7 ? '天' : '個可寫日';
@@ -5688,10 +5773,11 @@ function openExamModal(examId){
 /* 收藏入口 */
 /* 2026-09-28 UI 改版：收藏頁直接顯示植物圖鑑（解鎖／上場），下面是徽章、家族排行榜、自訂題庫。
    原本三個入口都是跳回首頁找對應區塊 */
+function hwDoneToday(ch, list){ return ch.homeworkDate===dateKey() ? list.filter(it=>ch.homework[it.id]===true).length : 0; }
 function leaderboardHTML(){
   return state.children.slice().sort((a,b)=>b.sun-a.sun).map((ch,i)=>{
     const list=hwListOf(ch).filter(it=> state.activeSubjects[it.type]===true );
-    const done=list.filter(it=>ch.homework[it.id]===true).length;
+    const done=hwDoneToday(ch, list);
     return `<div class="rank2${ch.id===state.activeChildId?' me':''}"><span class="rk-n">${i+1}</span><span class="rk-nm">${escapeHtml(ch.name||'孩子')}</span><span class="rk-v">${ico('sun')}${ch.sun}</span><span class="rk-v">${ico('checkCircle')}${done}/${list.length}</span></div>`;
   }).join('');
 }
@@ -5817,7 +5903,7 @@ function renderHome(){
   const leaderboard = state.children.slice().sort((a,b)=>b.sun-a.sun).map((ch,i)=>{
     /* 每個孩子各自的功課清單（2026-09-26 起），不能拿目前孩子的清單去算別人 */
     const list=hwListOf(ch).filter(it=> state.activeSubjects[it.type]===true );
-    const done=list.filter(it=>ch.homework[it.id]===true).length;
+    const done=hwDoneToday(ch, list);
     return `<div class="leader"><span style="font-size:22px;">${i===0?'🥇':i===1?'🥈':'🥉'}</span>
       <span style="flex:1;font-weight:800;">${escapeHtml(ch.name||'孩子')}</span>
       <span>☀️ ${ch.sun}</span><span>✅ ${done}/${list.length}</span></div>`;
@@ -6085,7 +6171,7 @@ function renderLock(tab){
       fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
     }, v=>{
       const err=checkPIN(v.pin); if(err) return err;
-      state.sleepOverrideTonight=dateKey(); save(); toast('🔓 已家長解鎖，今天不再鎖定'); showTab(tab);
+      state.sleepOverrideTonight=frameDateKey(); save(); toast('🔓 已家長解鎖，今晚不再鎖定'); showTab(tab);
     });
   };
 }
@@ -7566,7 +7652,7 @@ function renderDailyQuiz(){
     addSun(bonusSun);
     pushZombie(stars*0.12);
     const c=C(); const t=dateKey();
-    if(!c.quizLog[t]){ c.quizStreak=(c.quizStreak||0)+1; }
+    if(!c.quizLog[t]){ c.quizStreak = c.quizLog[dateKey(-1)] ? (c.quizStreak||0)+1 : 1; }   /* 2026-09-28 稽核 B12：原本不檢查昨天，其實是累計天數 */
     c.quizLog[t]={right, total, stars, pct};
     if(stars>=3) award('quizstar');
     award('quiz1');
@@ -7714,18 +7800,20 @@ function renderShop(){
   const list=$('#rewardList');
   rewards.forEach(r=>{
     const div=document.createElement('div'); div.className='reward';
-    const status = r.status || 'none';
-    if(status==='approved'){
-      div.innerHTML=`<div><div class="nm">🎁 ${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost" style="color:#2e7d32;">✅ 已發放，去跟爸媽拿獎勵！</div></div>`;
-    } else if(status==='pending'){
+    /* 2026-09-28 稽核 B6：狀態看「這個孩子」的兌換紀錄，不再用全家共用的 r.status。
+       原本哥哥申請中，妹妹就不能換同一個獎勵；發放過一次後要按「清除領取紀錄」才能再換 */
+    const mine=(state.redemptions||[]).filter(x=>x.rewardId===r.id && x.childId===c.id);
+    const pend=mine.find(x=>x.status==='pending');
+    const doneToday=mine.filter(x=>x.status==='approved' && x.decidedAt && dateKeyOf(new Date(x.decidedAt))===dateKey()).length;
+    if(pend){
       div.innerHTML=`<div><div class="nm">🎁 ${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost" style="color:#e08e0b;">⏳ 申請中，請找爸媽確認發放</div></div>`;
     } else {
       const can = c.sun>=r.cost;
-      div.innerHTML=`<div><div class="nm">${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${escapeHtml(r.cost)} 陽光</div></div>
+      div.innerHTML=`<div><div class="nm">${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${escapeHtml(r.cost)} 陽光${doneToday?'・今天已發放 '+doneToday+' 次':''}</div></div>
         <button class="next-btn" ${can?'':'disabled'}>兌換</button>`;
       const btn=div.querySelector('button');
       if(can) btn.onclick=()=>{
-        c.sun-=r.cost; r.status='pending'; save();
+        c.sun-=r.cost; save();
         state.redemptions=state.redemptions||[];
         state.redemptions.push({id:'rl'+Date.now()+Math.floor(Math.random()*1000), rewardId:r.id, childId:c.id, childName:c.name||'孩子', rewardName:r.name, cost:r.cost, tier:r.tier||rewardTier(r.cost), requestedAt:Date.now(), status:'pending', decidedAt:null});
         save();
@@ -7795,23 +7883,21 @@ function renderParent(){
   const totalSec=Object.values(c.timeByDate).reduce((x,y)=>x+y,0);
   const learned=Object.keys(c.known).length;
   const rewardText = state.rewards.length
-    ? state.rewards.map(r=>{ const st = r.status==='approved'?'已發放':r.status==='pending'?'待確認':'未兌換'; return `${escapeHtml(r.name)}（${escapeHtml(r.cost)}陽光·${st}）`; }).join('；')
+    ? state.rewards.map(r=>{ const np=(state.redemptions||[]).filter(x=>x.rewardId===r.id&&x.status==='pending').length; return `${escapeHtml(r.name)}（${escapeHtml(r.cost)}陽光${np?'·待確認 '+np+' 筆':''}）`; }).join('；')
     : '（尚無獎勵）';
 
-  let rewardMgmt='<div style="margin-top:8px;">';
+  /* 2026-09-28 稽核 B6：待確認的兌換一筆一筆列、寫清楚是哪個孩子；退回的陽光還給申請的那個孩子 */
+  const pendingReds=(state.redemptions||[]).filter(x=>x.status==='pending').sort((a,b)=>a.requestedAt-b.requestedAt);
+  let rewardMgmt = pendingReds.length ? `<h3 style="font-size:16px;margin:8px 0 6px;">待確認的兌換（${pendingReds.length}）</h3>`+pendingReds.map(x=>`
+    <div class="reward"><div><div class="nm">${escapeHtml(x.childName||'孩子')}：${escapeHtml(x.rewardName)}</div><div class="cost">💰 ${escapeHtml(x.cost)} 陽光（已先扣）· ${fmtDT(x.requestedAt)}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="next-btn" data-rdok="${escapeHtml(x.id)}" style="padding:8px 12px;font-size:14px;">✅ 確認發放</button><button class="reset-btn" data-rdno="${escapeHtml(x.id)}">↩ 退回</button></div></div>`).join('') : '';
+  rewardMgmt+='<h3 style="font-size:16px;margin:12px 0 6px;">獎勵清單</h3><div style="margin-top:8px;">';
   state.rewards.forEach(r=>{
-    const st = r.status||'none';
-    const badge = st==='approved' ? '· 已發放' : st==='pending' ? '· 待確認' : '';
-    rewardMgmt+=`<div class="reward"><div><div class="nm">${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${escapeHtml(r.cost)} 陽光 ${badge}</div></div>`;
-    if(st==='pending'){
-      rewardMgmt+=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="next-btn" id="appr${r.id}" style="padding:8px 12px;font-size:14px;">✅ 確認發放</button>
-        <button class="reset-btn" id="rej${r.id}">↩ 退回</button></div>`;
-    }else{
-      rewardMgmt+=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
+    const np=pendingReds.filter(x=>x.rewardId===r.id).length;
+    rewardMgmt+=`<div class="reward"><div><div class="nm">${escapeHtml(r.name)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${escapeHtml(r.cost)} 陽光${np?' · 待確認 '+np+' 筆':''}</div></div>`;
+    rewardMgmt+=`<div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="reset-btn" id="edt${r.id}">✏️ 編輯</button>
         <button class="reset-btn" id="del${r.id}">🗑 刪除</button></div>`;
-    }
     rewardMgmt+=`</div>`;
   });
   rewardMgmt+=`</div>
@@ -7822,11 +7908,11 @@ function renderParent(){
       <button class="next-btn" id="addReward">${editingRewardId?'💾 更新獎勵':'➕ 新增獎勵'}</button>
     </div>
     ${editingRewardId?'<div style="margin-top:6px;"><button class="reset-btn" id="cancelEdit">✖ 取消編輯</button></div>':''}
-    ${state.rewards.some(r=>(r.status||'none')!=='none')?'<div style="margin-top:10px;"><button class="reset-btn" id="clearClaimed">清除領取紀錄</button></div>':''}`;
+`;
 
   /* 兌換紀錄：可回溯的歷史（不受「清除領取紀錄」影響） */
   const redemptions=(state.redemptions||[]).slice().sort((a,b)=>b.requestedAt-a.requestedAt).slice(0,30);
-  const redemStatusLabel={pending:'⏳ 待確認', approved:'✅ 已發放', rejected:'↩ 已退回'};
+  const redemStatusLabel={pending:'⏳ 待確認', approved:'✅ 已發放', rejected:'↩ 已退回', cancelled:'✖ 已取消（孩子檔案已刪除）'};
   let redemptionLogHTML = redemptions.length
     ? redemptions.map(r=>`<div class="reward"><div><div class="nm">${escapeHtml(r.rewardName)}${tierBadge(r.tier||rewardTier(r.cost))}</div><div class="cost">💰 ${escapeHtml(r.cost)} 陽光 · ${escapeHtml(r.childName||'')} · ${fmtDT(r.requestedAt)}${r.decidedAt?'（'+fmtDT(r.decidedAt)+' 處理）':''}</div></div><div class="cost">${redemStatusLabel[r.status]||r.status}</div></div>`).join('')
     : '<p style="color:#9a7b2e;">還沒有兌換紀錄。</p>';
@@ -7891,7 +7977,7 @@ function renderParent(){
   let childMgmt='<div style="margin-top:8px;">';
   state.children.forEach(ch=>{
     const isActive=ch.id===state.activeChildId;
-    childMgmt+=`<div class="reward"><div><div class="nm">👦 ${escapeHtml(ch.name||'孩子')}</div><div class="cost">☀️ ${ch.sun} 陽光 · ✅ ${hwListOf(ch).filter(it=>ch.homework[it.id]===true).length}/${hwListOf(ch).length}</div><div class="cost">🎚 年齡 <input id="age${ch.id}" type="number" min="3" max="15" value="${ch.age||7}" style="width:56px;padding:2px 4px;border-radius:6px;border:1px solid #cfe3b0;"> 歲 → ${DIFF_MAP[childLevel(ch)].name}</div></div>
+    childMgmt+=`<div class="reward"><div><div class="nm">👦 ${escapeHtml(ch.name||'孩子')}</div><div class="cost">☀️ ${ch.sun} 陽光 · ✅ ${hwDoneToday(ch, hwListOf(ch))}/${hwListOf(ch).length}</div><div class="cost">🎚 年齡 <input id="age${ch.id}" type="number" min="3" max="15" value="${ch.age||7}" style="width:56px;padding:2px 4px;border-radius:6px;border:1px solid #cfe3b0;"> 歲 → ${DIFF_MAP[childLevel(ch)].name}</div></div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
         <button class="next-btn" id="sw${ch.id}" style="padding:8px 12px;font-size:14px;${isActive?'opacity:.6;':''}" ${isActive?'disabled':''}>${isActive?'✔ 使用中':'切換'}</button>
         <button class="reset-btn" id="delch${ch.id}" ${state.children.length<=1?'disabled':''}>🗑 刪除</button>
@@ -8100,6 +8186,7 @@ function renderParent(){
     ${penaltyLogHTML}
 
     <h2 style="margin-top:18px;font-size:17px;">🎉 今天放假嗎？</h2>
+    ${TW_HOLIDAY_YEARS.includes(new Date().getFullYear())?'':'<p class="hint" style="color:var(--danger);">⚠️ 遊戲裡還沒有今年的國定假日表，拖延怪和讀書計劃不會自動跳過今年的假日。請更新遊戲，或先用下面的按鈕手動標記放假。</p>'}
     <div style="margin-top:8px;">
       <button class="next-btn" id="toggleHol">${isManualToday?'↩ 取消今天放假（改上課）':'✅ 標記今天放假（休息一天）'}</button>
       <span style="margin-left:8px;color:#2e7d32;font-weight:800;">目前：${holNow?holNow:'要上課'}</span>
@@ -8118,6 +8205,18 @@ function renderParent(){
   $$('.parent2 .pgroup').forEach(g=>{ g.hidden = g.dataset.cat!==parentCat; });
   $$('[data-pcat]').forEach(b=>b.onclick=()=>{ parentCat=b.dataset.pcat; renderParent(); window.scrollTo(0,0); });
   const pBackBtn=$('#pBack'); if(pBackBtn) pBackBtn.onclick=()=>{ parentCat=null; renderParent(); window.scrollTo(0,0); };
+  /* handlers：兌換（依每一筆紀錄處理；退回的陽光還給申請的孩子） */
+  $$('[data-rdok]').forEach(b=>b.onclick=()=>{
+    const x=(state.redemptions||[]).find(y=>y.id===b.dataset.rdok); if(!x||x.status!=='pending') return;
+    x.status='approved'; x.decidedAt=Date.now(); save(); goodSound(); toast('✅ 已確認發放：'+(x.childName||'孩子')+' 的「'+x.rewardName+'」'); renderParent();
+  });
+  $$('[data-rdno]').forEach(b=>b.onclick=()=>{
+    const x=(state.redemptions||[]).find(y=>y.id===b.dataset.rdno); if(!x||x.status!=='pending') return;
+    const ch=state.children.find(k=>k.id===x.childId);
+    if(ch) ch.sun=(ch.sun||0)+(Number(x.cost)||0);
+    x.status='rejected'; x.decidedAt=Date.now(); save(); refreshSunCount();
+    toast(ch ? '↩ 已退回，'+x.cost+' 陽光還給「'+(ch.name||'孩子')+'」' : '↩ 已退回（這個孩子的檔案已刪除，陽光無法歸還）'); renderParent();
+  });
   /* handlers：獎勵 */
   state.rewards.forEach(r=>{
     const d=$('#del'+r.id); if(d) d.onclick=()=>{ state.rewards=state.rewards.filter(x=>x.id!==r.id); save(); renderParent(); };
@@ -8161,7 +8260,8 @@ function renderParent(){
   };
   const crl=$('#clearRedemLog'); if(crl) crl.onclick=()=>{
     askConfirm('確定要永久清空兌換紀錄嗎？<br><span class="hint">此動作無法復原。</span>', ()=>{
-      state.redemptions=[]; save(); toast('🗑 已清空兌換紀錄'); renderParent();
+      /* 待確認的要留著：陽光已經先扣了，清掉就沒辦法發放或退回 */
+      state.redemptions=(state.redemptions||[]).filter(x=>x.status==='pending'); save(); toast('🗑 已清空兌換紀錄（待確認的保留）'); renderParent();
     });
   };
 
@@ -8257,6 +8357,7 @@ function renderParent(){
         sp.subjects=sp.subjects.filter(x=>x.childId!==ch.id);
         sp.exams=sp.exams.filter(x=>x.childId!==ch.id);
         state.penaltyLog=(state.penaltyLog||[]).filter(p=>p.childId!==ch.id);
+        (state.redemptions||[]).forEach(x=>{ if(x.childId===ch.id && x.status==='pending'){ x.status='cancelled'; x.decidedAt=Date.now(); } });
         if(state.activeChildId===ch.id){ state.activeChildId=state.children[0].id; planSubjectId=null; planMaterial=null; }
         save(); toast('🗑 已刪除「'+(ch.name||'孩子')+'」'); renderParent();
       });
