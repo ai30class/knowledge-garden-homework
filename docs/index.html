@@ -965,6 +965,27 @@
   .rv-q{flex:1;min-width:0;font-size:14px;line-height:1.4;word-break:break-all;}
   .rv-st{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--muted);}
   .rv-today{color:#2e7d32;}
+  /* 2026-09-28 稽核 D3：家長學習雷達 */
+  .rd-list{display:flex;flex-direction:column;gap:8px;margin:10px 0 6px;}
+  .rd-row{display:grid;grid-template-columns:minmax(84px,1.1fr) 2fr auto;grid-template-areas:"n b v" "s s s" "o o o";gap:4px 10px;align-items:center;padding:10px 12px;border:1px solid #e6e1cf;border-radius:12px;background:#fff;}
+  .rd-name{grid-area:n;display:flex;flex-direction:column;line-height:1.3;} .rd-name small{color:var(--muted);font-size:12px;}
+  .rd-bar{grid-area:b;height:10px;border-radius:999px;background:#eef0e8;overflow:hidden;} .rd-bar i{display:block;height:100%;background:#4caf50;border-radius:999px;}
+  .rd-val{grid-area:v;text-align:right;line-height:1.2;} .rd-val small{display:block;color:var(--muted);font-size:12px;}
+  .rd-st{grid-area:s;justify-self:start;font-size:12px;font-weight:700;padding:2px 10px;border-radius:999px;}
+  .rd-bar.rd-weak i{background:#e07a4e;} .rd-bar.rd-ok i{background:#4a8fd0;} .rd-bar.rd-few i{background:#b9b3a4;}
+  .rd-bar.rd-weak,.rd-bar.rd-ok,.rd-bar.rd-good,.rd-bar.rd-few{background:#eef0e8;}
+  .rd-weak{background:#fde7dc;color:#b4451f;} .rd-ok{background:#e3effa;color:#1f5f99;} .rd-good{background:#e2f3e3;color:#2e7d32;} .rd-few{background:#f1efe8;color:#7a7263;}
+  .rd-oth{grid-area:o;font-size:12px;color:var(--muted);}
+  .rd-h{font-size:15px;margin:16px 0 6px;}
+  .rd-weeks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .rd-wk{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border:1px solid #e6e1cf;border-radius:12px;background:#fff;font-size:13px;text-align:center;}
+  .rd-wk.now{border-color:#4caf50;}
+  .rd-wk small{color:var(--muted);font-size:11px;}
+  .rd-wkbar{width:22px;height:56px;background:#eef0e8;border-radius:6px;display:flex;align-items:flex-end;overflow:hidden;margin-bottom:4px;} .rd-wkbar i{display:block;width:100%;background:#4caf50;}
+  .rd-up{color:#2e7d32;font-weight:700;} .rd-down{color:#c0392b;font-weight:700;} .rd-flat{color:var(--muted);}
+  .rd-n{color:#b4451f;font-size:13px;}
+  .rd-all{margin:14px 0;border:1px solid #e6e1cf;border-radius:12px;padding:8px 12px;background:#fff;}
+  .rd-all summary{cursor:pointer;font-weight:700;}
 </style>
 </head>
 <body>
@@ -1515,12 +1536,13 @@ function scheduleReview(w, ok){
     item.due=reviewDueAt(REVIEW_GAP_DAYS[Math.min(item.streak, REVIEW_GAP_DAYS.length)-1]);
     save(); return 'next';
   }
+  radarMiss(item.module, item.q);
   item.streak=0; item.due=reviewDueAt(1); save(); return 'reset';
 }
 /* 錯題要能原樣重考：題型、圖表、文章、解說一起存（原本只存題目文字，
    有圖表／文章的題目複習時看不到圖，填空、排序題只剩一顆按鈕） */
 function wrongCtx(cfg){
-  const q=cfg.qObj||{}; const x={};
+  const q=cfg.qObj||{}; const x={}; if(cfg.statKey) x.sm=cfg.statKey;
   const type=q.type||cfg.qType||'choice';
   if(type!=='choice') x.type=type;
   if(q.stage) x.stage=String(q.stage);
@@ -1564,11 +1586,11 @@ function renderChoices(cfg){
       $$('.choice',box).forEach(x=>x.disabled=true);
       const ok=compare(o);
       if(ok){
-        b.classList.add('correct'); const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true);
+        b.classList.add('correct'); const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey);
         if(cfg.onRight) cfg.onRight();
         if(fb) fb.textContent = cfg.rightMsg || '🎉 答對了！';
       } else {
-        b.classList.add('wrong'); badSound(); record(cfg.moduleKey,false);
+        b.classList.add('wrong'); badSound(); record(cfg.moduleKey,false, cfg.statKey);
         if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:String(o), String(o), correctVal, arr, wrongCtx(cfg));
         if(cfg.onWrong) cfg.onWrong();
         $$('.choice',box).forEach(x=>{ if(compare(x.textContent)) x.classList.add('correct'); });
@@ -1611,7 +1633,7 @@ function startQTimer(onTimeout){
 }
 /* 超時＝當作答錯：記錄、進錯題本、走同一條結算流程 */
 function timeoutMiss(cfg, correctVal, opts){
-  record(cfg.moduleKey,false);
+  record(cfg.moduleKey,false, cfg.statKey);
   if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', '（超時未作答）', correctVal, opts||[], wrongCtx(cfg));
   if(cfg.fb){ cfg.fb.innerHTML = escapeHtml('⏰ 時間到！正確是：'+correctVal) + (cfg.explain? `<div class="q-explain">📖 ${escapeHtml(cfg.explain)}</div>` : ''); }
   if(cfg.onWrong) cfg.onWrong();
@@ -1641,9 +1663,9 @@ function renderFill(cfg){
     go.disabled=true; inp.disabled=true; clearQTimer();
     const ok=accept.includes(normAns(raw));
     inp.classList.add(ok?'ok':'ng');
-    if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true); if(cfg.onRight) cfg.onRight();
+    if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey); if(cfg.onRight) cfg.onRight();
       if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 完全正確！自己寫出來最厲害！'; }
-    else { badSound(); record(cfg.moduleKey,false);
+    else { badSound(); record(cfg.moduleKey,false, cfg.statKey);
       if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', String(raw), correctVal, [correctVal], wrongCtx(Object.assign({qType:'fill'},cfg)));
       if(cfg.onWrong) cfg.onWrong();
       if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確是：')+correctVal; }
@@ -1672,9 +1694,9 @@ function renderTF(cfg){
       const ok = pick===truth;
       b.classList.add(ok?'correct':'wrong');
       if(!ok) btns.forEach(x=>{ if((x.dataset.v==='1')===truth) x.classList.add('correct'); });
-      if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true); if(cfg.onRight) cfg.onRight();
+      if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey); if(cfg.onRight) cfg.onRight();
         if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 判斷正確！'; }
-      else { badSound(); record(cfg.moduleKey,false);
+      else { badSound(); record(cfg.moduleKey,false, cfg.statKey);
         if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', label(pick), label(truth), ['⭕ 對','❌ 錯'], wrongCtx(Object.assign({qType:'tf'},cfg)));
         if(cfg.onWrong) cfg.onWrong();
         if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確是：')+label(truth)+(cfg.why?('　'+cfg.why):''); }
@@ -1705,9 +1727,9 @@ function renderOrder(cfg){
     slots.classList.add(ok?'ok':'ng');
     [...poolEl.children].forEach(el=>el.classList.add('picked'));
     const undo=box.querySelector('#ordUndo'); if(undo) undo.style.display='none';
-    if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true); if(cfg.onRight) cfg.onRight();
+    if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey); if(cfg.onRight) cfg.onRight();
       if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 順序完全正確！'; }
-    else { badSound(); record(cfg.moduleKey,false);
+    else { badSound(); record(cfg.moduleKey,false, cfg.statKey);
       if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', picked.join(' → '), correctVal, [correctVal], wrongCtx(Object.assign({qType:'order'},cfg)));
       if(cfg.onWrong) cfg.onWrong();
       if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確順序是：')+correctVal; }
@@ -1726,6 +1748,7 @@ function renderOrder(cfg){
 /* ---- 統一分派：把一個題目物件畫到指定容器 ---- */
 function renderQ(q, cfg){
   const base=Object.assign({}, cfg, {qText:q.q, correct:q.ans, qObj:q});
+  if(q.word){ const d0=cfg.onDone; base.onDone=(ok)=>{ markWord(q.word, ok); if(d0) d0(ok); else if(!quizCount(ok)) renderQuizDone(quizSess); }; }
   const stage=document.getElementById(cfg.stageId||'');
   if(stage) stage.innerHTML = q.stage ? `<div class="count-stage">${q.stage}</div>` : '';
   const hintEl=document.getElementById(cfg.hintId||'');
@@ -1798,7 +1821,7 @@ function renderReviewDrill(viaCareless){
       <div class="feedback" id="rvf"></div>
       <button class="next-btn" id="rvNext" style="display:none;">${i+1<queue.length?'下一題 ▶':'看結果 ▶'}</button>
     </div>`;
-    renderQ(reviewQObj(w), { box:$('#rvbox'), moduleKey:'review', sun:2, fb:$('#rvf'), timed:false, noLog:true, qText:w.q,
+    renderQ(reviewQObj(w), { box:$('#rvbox'), moduleKey:'review', statKey:w.module, sun:2, fb:$('#rvf'), timed:false, noLog:true, qText:w.q,
       rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
       onDone:(ok)=>{
         const r=scheduleReview(w, ok); const fb=$('#rvf');
@@ -1896,7 +1919,7 @@ function openManual(){
     </div>
     <div class="man-sec">
       <h3>👨‍👩‍👧 家長後台（右上角齒輪 →「進入家長後台」）</h3>
-      <p>分成六類：功課簽名、真實獎勵、孩子與功課、作息與家規、學習紀錄、密碼與備份。離開後台或 5 分鐘沒操作會自動上鎖。<br>
+      <p>分成六類：功課簽名、真實獎勵、孩子與功課、作息與家規、學習紀錄與雷達（看孩子哪一科需要加強、最常錯哪幾題）、密碼與備份。離開後台或 5 分鐘沒操作會自動上鎖。<br>
       🔐 預設密碼 <b>1234</b>，第一次進去請先改掉。<br>
       ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。</p>
     </div>
@@ -2178,17 +2201,42 @@ function toast(msg, ms){
   const t=$('#toast'); t.textContent=msg; t.classList.add('show');
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'), ms||2000);
 }
-function record(module, correct){
+/* statModule：學習雷達要算在哪一科（每日小考、錯題複習的題目要算回原本的科目）；沒給就用 module */
+function record(module, correct, statModule){
   const c=C();
   c.answers[ correct?'right':'wrong' ]++;
   const m = c.byModule[module] || (c.byModule[module]={right:0,wrong:0});
   m[ correct?'right':'wrong' ]++;
+  try{ radarRecord(c, statModule||module, !!correct); }catch(e){}
   // 自適應難度：保留最近 20 次作答的滾動答對率
   c.accWin = c.accWin || [];
   c.accWin.push(!!correct);
   if(c.accWin.length>20) c.accWin.shift();
   save();
 }
+/* ---------- 家長學習雷達（2026-09-28 稽核 D3） ----------
+   原本後台只有各科「累計」答對率，看不出最近有沒有進步、卡在哪一級。多記三樣東西（都存在各個孩子身上）：
+   radarLv[科目][程度] = [對, 錯]      → 各科各級精熟度
+   radarDay[日期][科目] = [對, 錯]     → 近 4 週趨勢（只留 70 天）
+   missLog[科目␁題目] = {q,m,n,t}      → 最常錯的題目（只留最近 200 題） */
+const RADAR_SKIP={review:1, dailyquiz:1};
+function radarRecord(c, mod, ok){
+  if(!mod || RADAR_SKIP[mod]) return;
+  const li=subjectIdx(mod, c);
+  c.radarLv=c.radarLv||{}; const lv=c.radarLv[mod]||(c.radarLv[mod]={}); const a=lv[li]||(lv[li]=[0,0]); a[ok?0:1]++;
+  c.radarDay=c.radarDay||{}; const dk=dateKey(); const d=c.radarDay[dk]||(c.radarDay[dk]={}); const b=d[mod]||(d[mod]=[0,0]); b[ok?0:1]++;
+  if(!c.radarSince) c.radarSince=dk;
+  const keys=Object.keys(c.radarDay); if(keys.length>70){ keys.sort().slice(0, keys.length-70).forEach(k=>delete c.radarDay[k]); }
+}
+function radarMiss(mod, q){
+  if(!mod || RADAR_SKIP[mod] || !q) return;
+  const c=C(); c.missLog=c.missLog||{};
+  const k=mod+'\u0001'+q; const e=c.missLog[k]||(c.missLog[k]={q:String(q), m:mod, n:0, t:0}); e.n++; e.t=Date.now();
+  const ks=Object.keys(c.missLog); if(ks.length>200){ ks.sort((x,y)=>c.missLog[x].t-c.missLog[y].t).slice(0, ks.length-200).forEach(x=>delete c.missLog[x]); }
+}
+/* 詞語卡：連續答對 2 次算「學會」，答錯歸零（原本 c.known 從來沒被寫入，後台「學會詞」永遠是 0） */
+function markWord(ch, ok){ if(!ch) return; const c=C(); c.known=c.known||{}; c.known[ch]= ok ? (c.known[ch]||0)+1 : 0; }
+function learnedWordCount(c){ return Object.keys(c.known||{}).filter(k=>(c.known[k]||0)>=2 && WORDS.some(w=>w.ch===k)).length; }
 /* 自適應難度：在「年齡基準難度」上，依最近答對率做溫和微調（表現好→加難，表現弱→變簡單）。
    只有累積 >=5 次作答才啟動，避免一兩題失誤就劇烈波動。顯示用的 diff()/diffLabel() 仍回傳年齡基準。 */
 function liveDiff(){
@@ -4460,6 +4508,7 @@ function logWrong(moduleKey, qText, yourAns, correct, opts, ctx){
   const c=C();
   c.wrongQuestions=c.wrongQuestions||[];
   const exist=c.wrongQuestions.find(w=>w.q===qText && w.module===moduleKey);
+  radarMiss((ctx&&ctx.sm)||moduleKey, qText); if(ctx) delete ctx.sm;
   if(!exist) c.wrongQuestions.push({q:qText, correct:String(correct), opts:(opts||[]).map(String), module:moduleKey, ts:Date.now(), due:0, streak:0, x:ctx||{}});
   else { exist.opts=(opts||[]).map(String); exist.correct=String(correct); exist.ts=Date.now(); exist.due=0; exist.streak=0; if(ctx) exist.x=ctx; }
   screenShake('.battle, .lawn-battle'); flashRed('.battle, .lawn-battle'); onWrong(); save();
@@ -6637,7 +6686,7 @@ function examQuestion(){
   const r=Math.random();
   if(r<0.3 && WORDS.length){
     const w=WORDS[Math.floor(Math.random()*WORDS.length)];
-    return {q:'「'+w.ch+'」怎麼拼注音？', opts:uniqOpts(w.zh, WORDS.map(x=>x.zh)), ans:w.zh};
+    return {q:'「'+w.ch+'」怎麼拼注音？', opts:uniqOpts(w.zh, WORDS.map(x=>x.zh)), ans:w.zh, word:w.ch};
   }
   if(r<0.6){
     const M=LD.mathMax; const hM=Math.max(2,Math.ceil(M*0.5));
@@ -6677,7 +6726,8 @@ function examRound(){
   $('#eq2').textContent=q.q;
   $('#ef2').textContent=''; $('#ef2').className='feedback';
   renderChoices({ box:$('#ec2'), opts:q.opts, correct:q.ans, moduleKey:'exam', sun:5, fb:$('#ef2'),
-    qText:q.q, rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：' });
+    qText:q.q, rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
+    onRight:()=>markWord(q.word,true), onWrong:()=>markWord(q.word,false) });
 }
 
 /* 自訂題庫：解析題目文字（支援 | / 逗號CSV / Tab 三種分隔） */
@@ -7022,7 +7072,7 @@ function zhuyinL3(){
   if(r<0.7){
     const correct=w.m;
     const pool=all.filter(x=>x!==correct);
-    return {type:'choice', q:'「'+w.ch+'」這個詞的意思是？', opts:kOpts(correct, pool, 3), ans:correct, hint:'想想例句：'+w.ex};
+    return {type:'choice', q:'「'+w.ch+'」這個詞的意思是？', opts:kOpts(correct, pool, 3), ans:correct, hint:'想想例句：'+w.ex, word:w.ch};
   }
   const t=kPick([
     {ch:'珍惜',m:'愛護不浪費',ok:true},
@@ -7705,9 +7755,9 @@ function renderDailyQuiz(){
   for(let i=0;i<total;i++){
     let q=null;
     for(let t=0;t<6;t++){
-      if(Math.random()<0.6){ const subj=kPick(KNOW_SUBJECTS); q=genKnowledgeQ(subj, subjectIdx(subj)); }
-      else if(typeof examQuestion==='function'){ const e=examQuestion(); q={type:'choice', q:e.q, opts:e.opts, ans:e.ans}; }
-      else { q=genKnowledgeQ('num', li); }
+      if(Math.random()<0.6){ const subj=kPick(KNOW_SUBJECTS); q=genKnowledgeQ(subj, subjectIdx(subj)); q._sm=subj; }
+      else if(typeof examQuestion==='function'){ const e=examQuestion(); q={type:'choice', q:e.q, opts:e.opts, ans:e.ans, word:e.word, _sm:'exam'}; }
+      else { q=genKnowledgeQ('num', li); q._sm='num'; }
       if(!seenQ.has(q.q)){ seenQ.add(q.q); break; }
     }
     pool.push(q);
@@ -7738,7 +7788,7 @@ function renderDailyQuiz(){
     const q=pool[idx]; const rv=q._rv;
     $('#dqq').textContent=q.q;
     renderQ(q, { box:$('#dqbox'), moduleKey:'dailyquiz', sun:2, fb:$('#dqf'),
-      stageId:'dqstage', hintId:'dqhint', gradeId:'dqgrade', qText:q.q, noLog:!!rv,
+      stageId:'dqstage', hintId:'dqhint', gradeId:'dqgrade', qText:q.q, noLog:!!rv, statKey: rv ? rv.module : q._sm,
       rightMsg:'🎉 答對！', wrongPrefix:'💡 正確是：',
       onDone:(ok)=>{ if(rv){ const r=scheduleReview(rv, ok); if(ok) $('#dqf').textContent=reviewAfterMsg(r, rv); else $('#dqf').insertAdjacentHTML('beforeend', reviewExplainHTML(rv)); }
         if(ok) right++; $('#dqprog').textContent='第 '+(idx+1)+' / '+total+' 題　✅ '+right; const dm=$('#dqmon'); if(dm) dm.innerHTML=monsterTrack(idx+1,total); $('#dqnext').style.display='inline-block'; } });
@@ -7967,7 +8017,8 @@ function renderParent(){
   for(let i=6;i>=0;i--){ const k=dateKey(-i); const sec=c.timeByDate[k]||0; weekHtml+=`<span class="stat">${k.slice(5)}：${sec?fmt(sec):'0 分 00 秒'}</span>`; }
   const todaySec=c.timeByDate[dateKey()]||0;
   const totalSec=Object.values(c.timeByDate).reduce((x,y)=>x+y,0);
-  const learned=Object.keys(c.known).length;
+  const learned=learnedWordCount(c);
+  const radar=radarData(c);
   const rewardText = state.rewards.length
     ? state.rewards.map(r=>{ const np=(state.redemptions||[]).filter(x=>x.rewardId===r.id&&x.status==='pending').length; return `${escapeHtml(r.name)}（${escapeHtml(r.cost)}陽光${np?'·待確認 '+np+' 筆':''}）`; }).join('；')
     : '（尚無獎勵）';
@@ -8127,6 +8178,9 @@ function renderParent(){
 今日功課：${finished}/${allHW().length} 完成（需家長簽名）
 總答題：${total}（答對 ${a.right} / 答錯 ${a.wrong}） 正確率 ${acc}%
 練習時間：今日 ${fmt(todaySec)} / 累計 ${fmt(totalSec)}
+學習雷達（目前程度的答對率）：${radar.rows.filter(r=>r.n).map(r=>reviewModName(r.mod)+' '+r.rate+'%（'+r.n+' 題，'+({weak:'需要加強',ok:'穩定',good:'很熟了',few:'題數不夠'})[r.st]+'）').join('、')||'還沒有資料'}
+最常錯：${radar.miss.slice(0,5).map(e=>e.q+'（錯 '+e.n+' 次）').join('、')||'沒有'}
+學會詞：${learned}/${WORDS.length}
 各單元：${JSON.stringify(c.byModule)}
 獎勵：${rewardText}
 每週作息：平日 起床 ${state.weekRoutine[0].wake} → 睡覺 ${state.weekRoutine[0].sleep}；週末 起床 ${state.weekRoutine[5].wake} → 睡覺 ${state.weekRoutine[5].sleep}`;
@@ -8136,7 +8190,7 @@ function renderParent(){
     {k:'rewards', t:'真實獎勵與兌換', d: (()=>{ const n=(state.redemptions||[]).filter(r=>r.status==='pending').length; return n?'申請中 '+n+' 件':'設定獎勵、處理兌換'; })(), warn: (state.redemptions||[]).some(r=>r.status==='pending')},
     {k:'setup', t:'孩子、功課與題庫', d: state.children.length+' 位孩子・今日功課 '+allHW().length+' 項'},
     {k:'rules', t:'作息與家規', d:'每週作息、超時扣分、自訂扣分項、放假'},
-    {k:'stats', t:'學習紀錄', d:'正確率 '+acc+'%・今天練習 '+fmt(todaySec)},
+    {k:'stats', t:'學習紀錄與雷達', d:(radar.weak.length?(radar.weak.length+' 科需要加強・'):'')+'正確率 '+acc+'%・今天練習 '+fmt(todaySec), warn: radar.weak.length>0},
     {k:'security', t:'密碼、安全與備份', d: state.parentPIN==='1234'?'還在用預設密碼，建議修改':'睡覺鎖'+(state.sleepLock?'開':'關')+'・護眼鎖'+(state.eyeRestOn?'開':'關'), warn: state.parentPIN==='1234'}
   ];
   if(parentCat && !PCATS.some(p=>p.k===parentCat)) parentCat=null;
@@ -8155,14 +8209,17 @@ function renderParent(){
     <div style="margin:6px 0;"><span class="stat">👦 孩子：${escapeHtml(c.name||'（未命名）')}</span>
       <span class="stat">📝 今日功課：${finished}/${allHW().length}</span>
       <span class="stat">☀️ 陽光：${c.sun}</span></div>
+    ${radarHTML(c, radar)}
+    <details class="rd-all"><summary>全部累計（從開始玩到現在）</summary>
     <div style="text-align:center;margin:10px 0;">
       <div class="big-num">${acc}%</div><div>總答題正確率（共 ${total} 題）</div>
     </div>
     <div style="margin:14px 0;">
       ${Object.keys(HW_TYPES).map(t=>{ const m=c.byModule[t]||{right:0,wrong:0}; const tt=m.right+m.wrong; const rr=tt?Math.round(m.right/tt*100):0; const lbl=HW_TYPES[t].label; return `<div class="mod-row"><div>${lbl}：答對 ${m.right} ／ 答錯 ${m.wrong}（正確率 ${tt?rr+'%':'—'}）</div><div class="bar"><i style="width:${rr}%"></i></div></div>`; }).join('')}
     </div>
+    </details>
     <div style="margin:10px 0;">
-      <span class="stat">🌟 學會詞：${learned}/${WORDS.length}</span>
+      <span class="stat" title="詞語卡連續答對 2 次才算學會">🌟 學會詞：${learned}/${WORDS.length}</span>
       <span class="stat">⏱️ 今日：${fmt(todaySec)}</span>
       <span class="stat">⏱️ 累計：${fmt(totalSec)}</span>
     </div>
@@ -8602,6 +8659,63 @@ function renderParent(){
 }
 
 /* 近 7 天練習時間 SVG 圖表 */
+/* ---------- 學習雷達：資料整理與畫面 ---------- */
+function radarLevelName(mod, li){
+  if(mod==='english'){ const k=(C().subjectDiff||{}).english; const o=EN_CERT.find(x=>x.k===k && x.k); if(o) return o.t; }
+  const key=LEVEL_ORDER[li]; return key+' '+((DIFF_MAP[key]||{}).name||'');
+}
+function radarData(c){
+  const lv=c.radarLv||{}; const rows=[];
+  Object.keys(lv).forEach(mod=>{
+    const cur=subjectIdx(mod, c); const a=lv[mod][cur]||[0,0]; const n=a[0]+a[1]; const rate=n?Math.round(a[0]/n*100):0;
+    let st='few'; if(n>=10){ st = rate>=85 && n>=20 ? 'good' : rate>=70 ? 'ok' : 'weak'; }
+    const others=Object.keys(lv[mod]).map(Number).filter(i=>i!==cur).sort().map(i=>{ const b=lv[mod][i]; const m=b[0]+b[1]; return {li:i, n:m, rate:m?Math.round(b[0]/m*100):0}; }).filter(o=>o.n);
+    rows.push({mod, cur, n, rate, st, others});
+  });
+  const ORD={weak:0, ok:1, good:2, few:3};
+  rows.sort((x,y)=>ORD[x.st]-ORD[y.st] || y.n-x.n);
+  /* 近 4 週（週一到週日），本週算到今天 */
+  const day=c.radarDay||{}; const t=new Date(); const mon=new Date(t.getFullYear(), t.getMonth(), t.getDate()-((t.getDay()+6)%7));
+  const weeks=[];
+  for(let w=3; w>=0; w--){
+    const st=new Date(mon); st.setDate(mon.getDate()-7*w); let r=0, wr=0, days=0;
+    for(let i=0;i<7;i++){ const d=new Date(st); d.setDate(st.getDate()+i); const e=day[dateKeyOf(d)]; if(!e) continue; let any=0; Object.keys(e).forEach(m=>{ r+=e[m][0]; wr+=e[m][1]; any+=e[m][0]+e[m][1]; }); if(any) days++; }
+    const en=new Date(st); en.setDate(st.getDate()+6);
+    weeks.push({label:(st.getMonth()+1)+'/'+st.getDate()+'–'+(en.getMonth()+1)+'/'+en.getDate(), n:r+wr, rate:(r+wr)?Math.round(r/(r+wr)*100):null, days, now:w===0});
+  }
+  const miss=Object.values(c.missLog||{}).filter(e=>e.n>=2).sort((a,b)=>b.n-a.n || b.t-a.t).slice(0,10);
+  return {rows, weak:rows.filter(r=>r.st==='weak'), weeks, miss};
+}
+function radarHTML(c, R){
+  R=R||radarData(c);
+  const ST={weak:['需要加強','rd-weak'], ok:['穩定','rd-ok'], good:['很熟了，可以試下一級','rd-good'], few:['題數還不夠判斷','rd-few']};
+  const since=c.radarSince? ('從 '+c.radarSince.slice(5).replace('-','/')+' 開始記錄') : '孩子開始練習後就會有資料';
+  const rowsH = R.rows.length ? R.rows.map(r=>`<div class="rd-row">
+      <div class="rd-name"><b>${escapeHtml(reviewModName(r.mod))}</b><small>${escapeHtml(radarLevelName(r.mod, r.cur))}</small></div>
+      <div class="rd-bar ${ST[r.st][1]}"><i style="width:${r.n?r.rate:0}%"></i></div>
+      <div class="rd-val"><b>${r.n?r.rate+'%':'—'}</b><small>${r.n} 題</small></div>
+      <span class="rd-st ${ST[r.st][1]}">${ST[r.st][0]}</span>
+      ${r.others.length?`<div class="rd-oth">其他程度：${r.others.map(o=>escapeHtml(radarLevelName(r.mod,o.li))+' '+o.rate+'%（'+o.n+' 題）').join('・')}</div>`:''}
+    </div>`).join('') : '<p class="hint">還沒有練習紀錄。</p>';
+  const maxN=Math.max(1, ...R.weeks.map(w=>w.n));
+  const weeksH = R.weeks.map((w,i)=>{ const prev=i?R.weeks[i-1]:null; let tr='';
+      if(prev && prev.rate!=null && w.rate!=null){ const d=w.rate-prev.rate; tr = d>=3?`<span class="rd-up">↑${d}</span>`:d<=-3?`<span class="rd-down">↓${-d}</span>`:'<span class="rd-flat">持平</span>'; }
+      return `<div class="rd-wk${w.now?' now':''}"><div class="rd-wkbar"><i style="height:${Math.round(w.n/maxN*100)}%"></i></div>
+        <b>${w.n} 題</b><span>${w.rate==null?'—':'正確率 '+w.rate+'%'} ${tr}</span><small>練 ${w.days} 天</small><small>${w.now?'本週':w.label}</small></div>`; }).join('');
+  const missH = R.miss.length ? R.miss.map(e=>{ const inBook=(c.wrongQuestions||[]).find(w=>w.q===e.q);
+      return `<div class="rv-row"><span class="q-grade">${escapeHtml(reviewModName(e.m))}</span><span class="rv-q">${escapeHtml(e.q.length>46?e.q.slice(0,46)+'…':e.q)}</span><span class="rv-st"><b class="rd-n">錯 ${e.n} 次</b><small>${inBook?streakDots(inBook):'已不在錯題本'}</small></span></div>`; }).join('')
+    : '<p class="hint">還沒有答錯 2 次以上的題目。</p>';
+  return `<div class="radar">
+    <h2 style="font-size:17px;margin:14px 0 2px;">🎯 學習雷達</h2>
+    <p class="hint">${since}。看的是孩子<b>目前這個程度</b>的答對率：答對 85% 以上（至少 20 題）＝很熟了，70～84%＝穩定，70% 以下＝需要加強；不到 10 題先不判斷。</p>
+    <div class="rd-list">${rowsH}</div>
+    <h3 class="rd-h">📈 近 4 週</h3>
+    <div class="rd-weeks">${weeksH}</div>
+    <h3 class="rd-h">🔁 最常錯的題目</h3>
+    <p class="hint">答錯 2 次以上的題目，最多 10 題。圓點是錯題複習的進度（連對 3 次畢業）。</p>
+    <div class="rv-list">${missH}</div>
+  </div>`;
+}
 function weekChartSVG(c){
   const days=[]; let max=1;
   for(let i=6;i>=0;i--){ const k=dateKey(-i); const sec=c.timeByDate[k]||0; const min=Math.round(sec/60); days.push({k:k.slice(5),min}); if(min>max) max=min; }
