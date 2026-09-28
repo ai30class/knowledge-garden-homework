@@ -986,6 +986,9 @@
   .rd-n{color:#b4451f;font-size:13px;}
   .rd-all{margin:14px 0;border:1px solid #e6e1cf;border-radius:12px;padding:8px 12px;background:#fff;}
   .rd-all summary{cursor:pointer;font-weight:700;}
+  /* 2026-09-28 稽核 D4：考前錯題複習入口 */
+  .cram-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;margin:6px 0 8px;padding:12px 14px;border:1.5px solid #e07a4e;border-radius:14px;background:#fff6f0;color:inherit;font:inherit;cursor:pointer;}
+  .cram-row span{display:flex;flex-direction:column;gap:2px;} .cram-row small{color:var(--muted);font-size:12px;}
 </style>
 </head>
 <body>
@@ -1831,6 +1834,141 @@ function renderReviewDrill(viaCareless){
       } });
   };
   renderOne();
+}
+/* ---------- 讀書計劃打勾 → 練 5 題（2026-09-28 稽核 D4） ----------
+   只對「數學」科目的課名做關鍵字對應：題庫裡其他科每個主題只有 1～2 題，撐不起一回合。
+   題目從現有題庫（數感心算）依主題篩出來，加減乘除另外依程度隨機出；湊不到 3 種不同的題目就不顯示 */
+function arithQ(op, li){
+  const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+  let a,b,ans,q,ex;
+  if(op==='+'||op==='-'){
+    const hi = li<=1?20 : li===2?100 : 1000;
+    a=R(Math.ceil(hi*0.2),hi-1); b=R(1, op==='-'?a-1:hi-a);
+    ans= op==='+'?a+b:a-b; q=a+(op==='+'?' ＋ ':' － ')+b+' ＝ ?'; ex=a+(op==='+'?' ＋ ':' － ')+b+' ＝ '+ans;
+  } else if(op==='×'){
+    if(li<=2){ a=R(2,9); b=R(2,9); } else if(li===3){ a=R(11,99); b=R(2,9); } else { a=R(11,99); b=R(11,99); }
+    ans=a*b; q=a+' × '+b+' ＝ ?'; ex=a+' × '+b+' ＝ '+ans;
+  } else {
+    b = li<=2? R(2,9) : R(2,19); ans = li<=2? R(2,9) : R(2,49); a=ans*b;
+    q=a+' ÷ '+b+' ＝ ?'; ex=ans+' × '+b+' ＝ '+a+'，所以 '+a+' ÷ '+b+' ＝ '+ans;
+  }
+  return {type:'choice', q, opts:kOpts(ans,[ans+1,ans-1,ans+2,Math.max(0,ans-2),ans+10,Math.max(0,ans-10)],4), ans:String(ans), explain:ex};
+}
+const FRAC_RE=/[½¼¾⅓⅔]|分之|\d\/\d/;
+const TOPIC_DRILLS=[
+  {k:'分數',     re:/分數/,                               test:q=>FRAC_RE.test(q.q+' '+(q.opts||[]).join(' '))},
+  {k:'統計圖表', re:/統計|長條圖|折線圖|圓形圖|表格|報讀/,  test:q=>/d-table|bar-chart|pie-wrap/.test(q.stage||'')},
+  {k:'周長與面積', re:/周長|面積/,                          test:q=>/周長|面積/.test(q.q)},
+  {k:'小數',     re:/小數/,                               test:q=>/\d\.\d/.test(q.q)},
+  {k:'可能性',   re:/可能性|機率/,                        test:q=>/可能性|比較容易抽到/.test(q.q)},
+  {k:'比與百分率', re:/比與比值|比值|比例|百分率|百分比|折扣/, test:q=>/:|%/.test(q.q)},
+  {k:'代數',     re:/方程式|代數|未知數|一元一次/,         test:q=>/x/.test(q.q)},
+  {k:'圓',       re:/圓/,                                 test:q=>/圓/.test(q.q)},
+  {k:'數列規律', re:/規律|數列/,                          test:q=>/, \?/.test(q.q)},
+  {k:'乘法',     re:/乘/,  op:'×'},
+  {k:'除法',     re:/除/,  op:'÷'},
+  {k:'加減',     re:/加|減|進位|退位/, op:'+-'}
+];
+function topicForItem(it){
+  if(!it || it.extra) return null;
+  const sub=studySubjectById(it.subjectId); if(!sub || !/數學/.test(sub.name||'')) return null;
+  const name=String(it.lessonName||''); if(!name) return null;
+  return TOPIC_DRILLS.find(t=>t.re.test(name))||null;
+}
+/* 依主題湊題目：回傳最多 n 題、題目文字不重複 */
+function topicQuestions(t, n){
+  const li=subjectIdx('num'); const out=[]; const seen=new Set();
+  if(t.op){ for(let i=0;i<60 && out.length<n;i++){ const op=t.op.length>1? t.op[i%2] : t.op; const q=arithQ(op, li); if(!seen.has(q.q)){ seen.add(q.q); out.push(q); } } return out; }
+  const lis=[li, li-1, li+1].filter(x=>x>=0 && x<=4);
+  for(const L of lis){ for(let i=0;i<300 && out.length<n;i++){ const q=genKnowledgeQ('num', L); if(q && t.test(q) && !seen.has(q.q)){ seen.add(q.q); out.push(q); } } if(out.length>=n) break; }
+  return out;
+}
+function offerTopicDrill(it){
+  const t=topicForItem(it); if(!t) return;
+  const qs=topicQuestions(t, 5); if(qs.length<3) return;
+  if(document.querySelector('.modal-ov')) return;
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal"><h3>📚 讀完了！</h3>
+    <p style="line-height:1.8;margin:10px 0 0;">「${escapeHtml(studyItemLabel(it))}」讀完了。要不要馬上練 ${qs.length} 題「${escapeHtml(t.k)}」，確定真的學會？</p>
+    <div style="display:flex;gap:10px;margin-top:16px;"><button class="next-btn" id="tdGo" style="flex:1;">✏️ 練 ${qs.length} 題</button><button class="reset-btn" id="tdNo" style="flex:1;">等一下再說</button></div></div>`;
+  document.body.appendChild(ov);
+  ov.querySelector('#tdNo').onclick=()=>ov.remove();
+  ov.querySelector('#tdGo').onclick=()=>{ ov.remove(); renderTopicDrill(t, qs, studyItemLabel(it)); };
+}
+function renderTopicDrill(t, qs, label){
+  let i=0, right=0;
+  const one=()=>{
+    if(i>=qs.length){
+      const good=right>=Math.ceil(qs.length*0.8);
+      app.innerHTML=`<div class="panel" style="text-align:center;"><h2>${good?'🎉 這一課學會了！':'💪 再練練就會了'}</h2>
+        <p style="font-size:18px;font-weight:800;">「${escapeHtml(t.k)}」${qs.length} 題，答對 ${right} 題</p>
+        <p class="hint">${good?'讀完又答得出來，才是真的學會。':'答錯的題目已經收進錯題本，明天複習時會再出現。'}</p>
+        <button class="next-btn" id="tdBack">📅 回讀書計劃</button></div>`;
+      $('#tdBack').onclick=()=>showTab('plan'); return;
+    }
+    const q=qs[i];
+    app.innerHTML=`<div class="panel">
+      <h2>✏️ ${escapeHtml(t.k)}・練習（${i+1}/${qs.length}）</h2>
+      <p class="hint">${escapeHtml(label)}</p>
+      <div class="q-row"><span class="q-text">${escapeHtml(q.q)}</span></div>
+      <div id="tdstage"></div><div id="tdbox"></div><div class="feedback" id="tdf"></div>
+      <button class="next-btn" id="tdNext" style="display:none;">${i+1<qs.length?'下一題 ▶':'看結果 ▶'}</button>
+    </div>`;
+    renderQ(q, { box:$('#tdbox'), moduleKey:'num', sun:2, fb:$('#tdf'), stageId:'tdstage', timed:false, qText:q.q, explain:q.explain,
+      rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
+      onDone:(ok)=>{ if(ok) right++; const nb=$('#tdNext'); nb.style.display='inline-block'; nb.onclick=()=>{ i++; one(); }; } });
+  };
+  one();
+}
+/* ---------- 考前 3 天：把這次考試範圍的錯題再練一遍（2026-09-28 稽核 D4） ----------
+   讀書計劃的科目名稱對應到遊戲的練習種類；對不到的科目就不篩（全部錯題） */
+const EXAM_MOD_MAP=[
+  [/數學/, ['math','num','exam']], [/國語|國文|注音/, ['zhuyin','chinese','readtest']],
+  [/自然/, ['science','nature','facts']], [/社會/, ['social','life','facts']], [/英文|英語/, ['english','enword','engrammar','enreading']]
+];
+function examCramInfo(c){
+  const ex=examsOf(c.id).filter(e=>{ const d=examCountdown(e); return d>=1 && d<=3; }).sort((a,b)=>examCountdown(a)-examCountdown(b))[0];
+  if(!ex) return null;
+  let mods=null;
+  (ex.scopes||[]).forEach(sc=>{ const sub=studySubjectById(sc.subjectId); const m=EXAM_MOD_MAP.find(([re])=>re.test(sub?sub.name:'')); if(m){ mods=mods||new Set(); m[1].forEach(x=>mods.add(x)); } });
+  const pool=(c.wrongQuestions||[]).filter(w=>!mods || mods.has((w.x&&w.x.sm)||w.module));
+  return pool.length ? {exam:ex, days:examCountdown(ex), pool} : null;
+}
+function renderExamCram(){
+  const info=examCramInfo(C()); if(!info){ showTab('plan'); return; }
+  const queue=info.pool.slice().sort((a,b)=>(a.streak||0)-(b.streak||0) || (b.ts||0)-(a.ts||0)).slice(0,15).sort(()=>Math.random()-.5);
+  let i=0, right=0;
+  const one=()=>{
+    if(i>=queue.length){
+      app.innerHTML=`<div class="panel" style="text-align:center;"><h2>🎯 考前複習完成！</h2>
+        <p style="font-size:18px;font-weight:800;">${queue.length} 題，答對 ${right} 題</p>
+        <p class="hint">${escapeHtml(info.exam.name)}還有 ${info.days} 天，加油！</p>
+        <button class="next-btn" id="ecBack">📅 回讀書計劃</button></div>`;
+      $('#ecBack').onclick=()=>showTab('plan'); return;
+    }
+    const w=queue[i]; const isDue=(w.due||0)<=Date.now();
+    app.innerHTML=`<div class="panel">
+      <h2>🎯 考前錯題複習（${i+1}/${queue.length}）</h2>
+      <p class="hint">${escapeHtml(info.exam.name)}・還有 ${info.days} 天</p>
+      <div class="rv-meta"><span class="q-grade">${escapeHtml(reviewModName((w.x&&w.x.sm)||w.module))}</span>${streakDots(w)}</div>
+      ${reviewCtxHTML(w,'p')}
+      <div class="q-row"><span class="q-text" style="white-space:pre-line;">${escapeHtml(w.q)}</span></div>
+      ${reviewCtxHTML(w,'stage')}
+      <div id="ecbox"></div><div class="feedback" id="ecf"></div>
+      <button class="next-btn" id="ecNext" style="display:none;">${i+1<queue.length?'下一題 ▶':'看結果 ▶'}</button>
+    </div>`;
+    renderQ(reviewQObj(w), { box:$('#ecbox'), moduleKey:'review', statKey:(w.x&&w.x.sm)||w.module, sun:2, fb:$('#ecf'), timed:false, noLog:true, qText:w.q,
+      rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
+      onDone:(ok)=>{
+        /* 還沒到複習日的題目答對不提前畢業（照原本的間隔）；答錯一樣從頭算 */
+        const r = (isDue || !ok) ? scheduleReview(w, ok) : 'early';
+        const fb=$('#ecf');
+        if(ok){ right++; if(r!=='early') fb.textContent=reviewAfterMsg(r, w); }
+        else fb.insertAdjacentHTML('beforeend', reviewExplainHTML(w));
+        const nb=$('#ecNext'); nb.style.display='inline-block'; nb.onclick=()=>{ i++; one(); };
+      } });
+  };
+  one();
 }
 function hintLine(txt){ return liveDiff().hint ? `<div class="q-hint">💡 提示：${txt}</div>` : ''; }
 function openDiffModal(){
@@ -2782,6 +2920,7 @@ function toggleStudyItem(id){
     goodSound(); pushZombie(0.06);
     toast('📚 完成「'+studyItemLabel(it)+'」'+(got?'+'+got+' 陽光！':'！')
       + (got<gain ? '（今天陽光已到上限 '+SUN_DAILY_CAP+'）' : gain<STUDY_ITEM_SUN ? '（今天已完成 '+(n+1)+' 項，之後每項 '+STUDY_ITEM_SUN_LOW+' 陽光）' : ''));
+    setTimeout(()=>offerTopicDrill(it), 0);   /* 2026-09-28 稽核 D4：讀完帶出「練 5 題」 */
   }
   save();
 }
@@ -4508,7 +4647,7 @@ function logWrong(moduleKey, qText, yourAns, correct, opts, ctx){
   const c=C();
   c.wrongQuestions=c.wrongQuestions||[];
   const exist=c.wrongQuestions.find(w=>w.q===qText && w.module===moduleKey);
-  radarMiss((ctx&&ctx.sm)||moduleKey, qText); if(ctx) delete ctx.sm;
+  radarMiss((ctx&&ctx.sm)||moduleKey, qText);
   if(!exist) c.wrongQuestions.push({q:qText, correct:String(correct), opts:(opts||[]).map(String), module:moduleKey, ts:Date.now(), due:0, streak:0, x:ctx||{}});
   else { exist.opts=(opts||[]).map(String); exist.correct=String(correct); exist.ts=Date.now(); exist.due=0; exist.streak=0; if(ctx) exist.x=ctx; }
   screenShake('.battle, .lawn-battle'); flashRed('.battle, .lawn-battle'); onWrong(); save();
@@ -5049,6 +5188,7 @@ function renderStudyPlan(){
     return {key, n:'一二三四五六日'[i], total:items.length, left:items.length-done};
   });
   const due=studyDueToday(c.id);
+  const cram=examCramInfo(c);
   const td=new Date();
   const kidHTML=`
     <div class="greet"><h1>讀書計劃</h1><p>${ne?escapeHtml(ne.name)+'・'+(examCountdown(ne)===0?'就是今天':'還有 '+examCountdown(ne)+' 天'):'還沒設定考試。爸媽可以在下方新增考試，系統會排好每天要讀的進度。'}</p></div>
@@ -5056,6 +5196,7 @@ function renderStudyPlan(){
       <div class="card-head"><h2>本週</h2><span class="pill">${ico('checkCircle')}已完成 ${doneCount}/${mine.length}</span></div>
       <div class="wk2">${week.map(d=>`<div class="wd${d.key===today?' today':''}${d.total&&!d.left?' done':''}"><span class="wd-n">${d.n}</span><span class="wd-c">${!d.total?'<span class="wd-none">·</span>':!d.left?ico('checkCircle'):d.left}</span></div>`).join('')}</div>
       <h3 class="today-h">今天・${td.getMonth()+1} 月 ${td.getDate()} 日</h3>
+      ${cram?`<button class="cram-row" id="cramGo" type="button"><span><b>🎯 ${escapeHtml(cram.exam.name)}還有 ${cram.days} 天：把錯題再練一遍</b><small>這次考試範圍的錯題 ${cram.pool.length} 題${cram.pool.length>15?'，一次練 15 題':''}</small></span>${ico('chevron','chev')}</button>`:''}
       ${due.length?due.map(it=>`<label class="plan-row2${it.due<today?' late':''}"><input type="checkbox" data-hsid="${it.id}"><span class="pr2-t">${escapeHtml(studyItemLabel(it))}</span><small>${it.due<today?'逾期・':''}+${studyNextSun()} 陽光</small></label>`).join(''):'<p class="muted2">今天沒有要讀的項目。</p>'}
     </section>
     <h2 class="sec2">考試與科目設定（爸媽）</h2>`;
@@ -5079,6 +5220,7 @@ function renderStudyPlan(){
   </div>`;
   paintExamZone();
   $$('.plan-row2 input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderStudyPlan(); }; });
+  const cg=$('#cramGo'); if(cg) cg.onclick=renderExamCram;
   $$('.plan-tab').forEach(b=> b.onclick=()=>{ planView=b.dataset.pv; renderStudyPlan(); });
   if(planView==='week') paintPlanWeek(); else paintPlanSubject();
 }
