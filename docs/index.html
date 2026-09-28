@@ -954,6 +954,17 @@
   .in, .name-input, .modal input[type=text], .modal input[type=password], .modal input[type=number], .modal input:not([type]), .modal textarea, .modal select, #pin{
     border:1.5px solid var(--line) !important; border-radius:14px !important; min-height:44px; background:var(--surface); color:var(--ink); box-shadow:none; }
   .in:focus, .name-input:focus, .modal input:focus, .modal textarea:focus, #pin:focus{ outline:none; border-color:var(--green) !important; box-shadow:0 0 0 3px var(--green-soft); }
+  /* 2026-09-28 稽核 D1：錯題本總覽、錯題複習 */
+  .rv-meta{display:flex;align-items:center;gap:10px;margin:4px 0 8px;}
+  .rv-dots{color:#2e7d32;letter-spacing:2px;font-size:15px;}
+  .rv-passage{white-space:pre-line;font-size:15px;line-height:1.8;max-height:320px;overflow:auto;}
+  .rv-sum{font-size:16px;margin:4px 0;}
+  .rv-list{margin-top:14px;display:flex;flex-direction:column;gap:6px;}
+  .rv-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #e6e1cf;border-radius:12px;background:#fff;}
+  .rv-row .q-grade{flex-shrink:0;}
+  .rv-q{flex:1;min-width:0;font-size:14px;line-height:1.4;word-break:break-all;}
+  .rv-st{flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;font-size:12px;color:var(--muted);}
+  .rv-today{color:#2e7d32;}
 </style>
 </head>
 <body>
@@ -1481,17 +1492,59 @@ function deepClean(o){
   return o;
 }
 function shuffleOpts(opts, correct){ const arr=(opts&&opts.length?opts.slice():[correct]).slice(); if(!arr.includes(correct)) arr.push(correct); for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
-function dueReviews(){
-  const c=C(); const list=c.wrongQuestions||[]; const now=Date.now();
-  const due=list.filter(w=> (w.due||0) <= now);
-  return due.length ? due : list.slice();
+/* 2026-09-28 稽核 D1：原本沒有到期的錯題時會把「全部」錯題丟回來，間隔等於沒作用；錯題也永遠不會畢業。
+   改成：剛答錯的題目馬上可以複習；複習答對一次，隔 1 天再考，再對隔 3 天，連對 3 次就畢業（從錯題本移除）。
+   複習時答錯就從頭算、明天再考。日期照「起床前 3 小時」當一天開頭算，晚上做的複習隔天放學就會到期 */
+const REVIEW_GAP_DAYS=[1,3];   /* 第 1、2 次答對後隔幾天 */
+const REVIEW_GRAD=3;           /* 連對幾次畢業 */
+const REVIEW_BATCH=10;         /* 一次複習最多幾題 */
+function dueReviews(){ const now=Date.now(); return (C().wrongQuestions||[]).filter(w=>(w.due||0)<=now); }
+function reviewDueAt(days){
+  const d=new Date(); const fs=dayFrameStart();
+  const base=new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if(d.getHours()*60+d.getMinutes() < fs) base.setDate(base.getDate()-1);   /* 半夜還算前一天 */
+  base.setDate(base.getDate()+days);
+  return base.getTime()+fs*60000;
 }
+/* 回傳 'grad'（畢業）、'next'（排下一次）、'reset'（答錯重來） */
 function scheduleReview(w, ok){
-  const c=C(); const list=c.wrongQuestions||[]; const item=list.find(x=>x.q===w.q && x.module===w.module); if(!item) return;
-  const intervals=[0,1,3,7,14,30];
-  if(ok){ item.reps=(item.reps||0)+1; const d=intervals[Math.min(item.reps, intervals.length-1)]; item.due=Date.now()+d*86400000; }
-  else { item.reps=0; item.due=0; }
-  save();
+  const c=C(); const list=c.wrongQuestions||[]; const item=list.find(x=>x.q===w.q && x.module===w.module); if(!item) return '';
+  if(ok){
+    item.streak=(item.streak||0)+1;
+    if(item.streak>=REVIEW_GRAD){ c.wrongQuestions=list.filter(x=>x!==item); c.wrongGraduated=(c.wrongGraduated||0)+1; save(); return 'grad'; }
+    item.due=reviewDueAt(REVIEW_GAP_DAYS[Math.min(item.streak, REVIEW_GAP_DAYS.length)-1]);
+    save(); return 'next';
+  }
+  item.streak=0; item.due=reviewDueAt(1); save(); return 'reset';
+}
+/* 錯題要能原樣重考：題型、圖表、文章、解說一起存（原本只存題目文字，
+   有圖表／文章的題目複習時看不到圖，填空、排序題只剩一顆按鈕） */
+function wrongCtx(cfg){
+  const q=cfg.qObj||{}; const x={};
+  const type=q.type||cfg.qType||'choice';
+  if(type!=='choice') x.type=type;
+  if(q.stage) x.stage=String(q.stage);
+  const p=cfg.passage||q.p; if(p) x.p=String(p).slice(0,4000);
+  const ex=cfg.explain||q.why||q.explain; if(ex) x.ex=String(ex);
+  if(type==='fill'){ if(q.numeric||cfg.numeric) x.numeric=true; if(q.unit||cfg.unit) x.unit=q.unit||cfg.unit; const acc=q.accept||cfg.accept; if(acc) x.accept=acc.map(String); }
+  if(type==='order' && (q.order||cfg.order)) x.order=(q.order||cfg.order).map(String);
+  if(type==='tf') x.tf=(q.ans===true||q.ans==='⭕'||cfg.correct===true);
+  return x;
+}
+/* 錯題存的圖表（數數、表格、長條圖、圓形圖）存檔時 < > 會被轉成全形；顯示前轉回來，
+   只放行這幾種標籤、class 和不含網址的 style，備份檔就算被改過也組不出會執行的程式碼 */
+const STAGE_TAGS=new Set(['TABLE','TBODY','THEAD','TR','TH','TD','DIV','SPAN','B','BR']);
+function safeStageHtml(src){
+  const html=String(src||'').replace(/＜/g,'<').replace(/＞/g,'>');
+  const doc=new DOMParser().parseFromString('<div>'+html+'</div>','text/html');
+  const root=doc.body.firstElementChild; if(!root) return '';
+  const walk=el=>{ [...el.children].forEach(ch=>{
+    if(!STAGE_TAGS.has(ch.tagName)){ ch.replaceWith(doc.createTextNode(ch.textContent||'')); return; }
+    [...ch.attributes].forEach(a=>{ const n=a.name.toLowerCase(), v=a.value;
+      const okAttr = (n==='class' && /^[\w\s-]*$/.test(v)) || (n==='style' && /^[\w\s:;%#.,()-]*$/.test(v) && !/url|expression|import/i.test(v));
+      if(!okAttr) ch.removeAttribute(a.name); });
+    walk(ch); }); };
+  walk(root); return root.innerHTML;
 }
 /* 共用選項渲染器：六類練習（注音/算術/英文/測驗/自訂）的「出題→作答→對錯→計分→錯題本→回合結算」統一由這裡處理，消除重複邏輯。
    cfg = { box, opts, correct, moduleKey, sun, fb, qText, rightMsg, wrongPrefix, compare, onRight, onWrong }
@@ -1516,7 +1569,7 @@ function renderChoices(cfg){
         if(fb) fb.textContent = cfg.rightMsg || '🎉 答對了！';
       } else {
         b.classList.add('wrong'); badSound(); record(cfg.moduleKey,false);
-        logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:String(o), String(o), correctVal, arr);
+        if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:String(o), String(o), correctVal, arr, wrongCtx(cfg));
         if(cfg.onWrong) cfg.onWrong();
         $$('.choice',box).forEach(x=>{ if(compare(x.textContent)) x.classList.add('correct'); });
         if(fb) fb.innerHTML = escapeHtml((cfg.wrongPrefix||'💡 正確是：') + correctVal) + (cfg.explain? `<div class="q-explain">📖 ${escapeHtml(cfg.explain)}</div>` : '');
@@ -1559,7 +1612,7 @@ function startQTimer(onTimeout){
 /* 超時＝當作答錯：記錄、進錯題本、走同一條結算流程 */
 function timeoutMiss(cfg, correctVal, opts){
   record(cfg.moduleKey,false);
-  logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', '（超時未作答）', correctVal, opts||[]);
+  if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', '（超時未作答）', correctVal, opts||[], wrongCtx(cfg));
   if(cfg.fb){ cfg.fb.innerHTML = escapeHtml('⏰ 時間到！正確是：'+correctVal) + (cfg.explain? `<div class="q-explain">📖 ${escapeHtml(cfg.explain)}</div>` : ''); }
   if(cfg.onWrong) cfg.onWrong();
   if(cfg.onDone) cfg.onDone(false);
@@ -1591,7 +1644,7 @@ function renderFill(cfg){
     if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true); if(cfg.onRight) cfg.onRight();
       if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 完全正確！自己寫出來最厲害！'; }
     else { badSound(); record(cfg.moduleKey,false);
-      logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', String(raw), correctVal, [correctVal]);
+      if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', String(raw), correctVal, [correctVal], wrongCtx(Object.assign({qType:'fill'},cfg)));
       if(cfg.onWrong) cfg.onWrong();
       if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確是：')+correctVal; }
     if(cfg.onDone) cfg.onDone(ok);
@@ -1622,7 +1675,7 @@ function renderTF(cfg){
       if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true); if(cfg.onRight) cfg.onRight();
         if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 判斷正確！'; }
       else { badSound(); record(cfg.moduleKey,false);
-        logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', label(pick), label(truth), ['⭕ 對','❌ 錯']);
+        if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', label(pick), label(truth), ['⭕ 對','❌ 錯'], wrongCtx(Object.assign({qType:'tf'},cfg)));
         if(cfg.onWrong) cfg.onWrong();
         if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確是：')+label(truth)+(cfg.why?('　'+cfg.why):''); }
       if(cfg.onDone) cfg.onDone(ok);
@@ -1655,7 +1708,7 @@ function renderOrder(cfg){
     if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true); if(cfg.onRight) cfg.onRight();
       if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 順序完全正確！'; }
     else { badSound(); record(cfg.moduleKey,false);
-      logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', picked.join(' → '), correctVal, [correctVal]);
+      if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', picked.join(' → '), correctVal, [correctVal], wrongCtx(Object.assign({qType:'order'},cfg)));
       if(cfg.onWrong) cfg.onWrong();
       if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確順序是：')+correctVal; }
     if(cfg.onDone) cfg.onDone(ok);
@@ -1672,7 +1725,7 @@ function renderOrder(cfg){
 }
 /* ---- 統一分派：把一個題目物件畫到指定容器 ---- */
 function renderQ(q, cfg){
-  const base=Object.assign({}, cfg, {qText:q.q, correct:q.ans});
+  const base=Object.assign({}, cfg, {qText:q.q, correct:q.ans, qObj:q});
   const stage=document.getElementById(cfg.stageId||'');
   if(stage) stage.innerHTML = q.stage ? `<div class="count-stage">${q.stage}</div>` : '';
   const hintEl=document.getElementById(cfg.hintId||'');
@@ -1684,38 +1737,75 @@ function renderQ(q, cfg){
   if(q.type==='order') return renderOrder(Object.assign(base,{order:q.order}));
   return renderChoices(Object.assign(base,{opts:q.opts}));
 }
+/* 把錯題還原成題目物件。舊存檔沒存題型時，用答案的樣子猜：有「→」＝排序、只有一個選項＝填空 */
+function reviewQObj(w){
+  const x=w.x||{}; const opts=(w.opts||[]).map(String); const ans=String(w.correct);
+  let type=x.type;
+  if(!type){ if(ans.includes(' → ')) type='order'; else if(opts.length<=1) type='fill'; else type='choice'; }
+  const q={type, q:w.q, ans};
+  if(type==='choice') q.opts=opts;
+  else if(type==='fill'){ q.accept=(x.accept&&x.accept.length)? x.accept : [ans]; q.numeric=!!x.numeric || /^-?\d+(\.\d+)?$/.test(ans); if(x.unit) q.unit=x.unit; }
+  else if(type==='order') q.order=(x.order&&x.order.length)? x.order : ans.split(' → ');
+  else if(type==='tf') q.ans=(x.tf!=null)? !!x.tf : /⭕/.test(ans);
+  return q;
+}
+/* 錯題附帶的文章、圖表；part 給 'p' 或 'stage' 只拿其中一種（跟一般練習一樣：文章在題目上、圖表在題目下） */
+function reviewCtxHTML(w, part){
+  const x=(w&&w.x)||{}; let h='';
+  if(x.p && part!=='stage') h+=`<div class="story rv-passage">${escapeHtml(x.p)}</div>`;
+  if(x.stage && part!=='p') h+=`<div class="count-stage">${safeStageHtml(x.stage)}</div>`;
+  return h;
+}
+function reviewModName(k){
+  const extra={dailyquiz:'每日小考',enword:'英文單字',engrammar:'英文文法',enreading:'英文閱讀',review:'錯題複習'};
+  return extra[k] || subjectName(k);
+}
+function streakDots(w){ const n=Math.min(REVIEW_GRAD, w.streak||0); return `<span class="rv-dots" title="已連對 ${n} 次，連對 ${REVIEW_GRAD} 次畢業">${'●'.repeat(n)}${'○'.repeat(REVIEW_GRAD-n)}</span>`; }
+function reviewAfterMsg(r, w){
+  if(r==='grad') return `🎓 連續答對 ${REVIEW_GRAD} 次，這題畢業了！`;
+  if(r==='next'){ const left=REVIEW_GRAD-(w.streak||0); const gap=REVIEW_GAP_DAYS[Math.min(w.streak||1, REVIEW_GAP_DAYS.length)-1]; return `🎉 答對了！再答對 ${left} 次就畢業，${gap} 天後再考你。`; }
+  return '';
+}
+function reviewExplainHTML(w){ const x=(w&&w.x)||{}; return (x.ex? `<div class="q-explain">📖 ${escapeHtml(x.ex)}</div>` : '') + '<div class="hint">沒關係，明天會再考你一次。</div>'; }
+/* 錯題複習（2026-09-28 稽核 D1 重寫）：只出到期的題目、用原本的題型、帶回圖表和文章、答錯附解說 */
 function renderReviewDrill(viaCareless){
-  const c=C(); const pool=dueReviews();  if(!pool.length){ app.innerHTML=`<div class="panel"><h2>🔁 錯題複習</h2><p class="hint">目前沒有錯題可以複習，你超棒！🎉</p><button class="next-btn" id="rvBack">⬅ 回首頁</button></div>`; $('#rvBack').onclick=renderHome; return; }
-  const queue=pool.slice().sort(()=>Math.random()-.5);
-  let i=0, right=0;
+  let pool=dueReviews();
+  if(!pool.length){ showTab('review'); return; }
+  pool = viaCareless ? pool.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,5)
+                     : pool.slice().sort((a,b)=>((a.due||0)-(b.due||0)) || ((a.ts||0)-(b.ts||0))).slice(0,REVIEW_BATCH);
+  const queue=pool.sort(()=>Math.random()-.5);
+  let i=0, right=0, grads=0;
   const carelessNote=viaCareless?'<div class="hint" style="color:#c0392b;display:flex;align-items:center;gap:8px;"><img src="assets/monsters/粗心大王/粗心大王_頭像.png" alt="粗心大王" style="width:40px;height:40px;object-fit:contain;flex-shrink:0;"><span>粗心大王出現：連續答錯 2 題，先把剛剛的題目複習一遍再繼續！</span></div>':'';
   const renderOne=()=>{
     if(i>=queue.length){
-      app.innerHTML=`<div class="panel" style="text-align:center;"><h2>🎉 複習完成！</h2><p style="font-size:18px;font-weight:800;">共 ${queue.length} 題，答對 ${right} 題</p><button class="next-btn" id="rvBack">⬅ 回首頁</button></div>`;
-      $('#rvBack').onclick=renderHome; return;
+      const left=dueReviews().length;
+      app.innerHTML=`<div class="panel" style="text-align:center;"><h2>🎉 複習完成！</h2>
+        <p style="font-size:18px;font-weight:800;">共 ${queue.length} 題，答對 ${right} 題</p>
+        ${grads?`<p style="font-weight:800;color:#2e7d32;">🎓 有 ${grads} 題練到畢業，離開錯題本了！</p>`:''}
+        <p class="hint">${left?('今天還有 '+left+' 題可以複習。'):'今天的錯題都複習完了，明天再來！'}</p>
+        <button class="next-btn" id="rvBook">📕 看錯題本</button> <button class="reset-btn" id="rvBack">🌻 回小花園</button></div>`;
+      $('#rvBook').onclick=()=>showTab('review'); $('#rvBack').onclick=()=>showTab('home'); return;
     }
     const w=queue[i];
-    const opts=shuffleOpts(w.opts, w.correct);
     app.innerHTML=`<div class="panel">
       <h2>🔁 錯題複習（${i+1}/${queue.length}）</h2>
       ${carelessNote}
-      <div class="q-row"><span class="q-text">${escapeHtml(w.q)}</span></div>
-      <div class="choices" id="rvc"></div>
+      <div class="rv-meta"><span class="q-grade">${escapeHtml(reviewModName(w.module))}</span>${streakDots(w)}</div>
+      ${reviewCtxHTML(w,'p')}
+      <div class="q-row"><span class="q-text" style="white-space:pre-line;">${escapeHtml(w.q)}</span></div>
+      ${reviewCtxHTML(w,'stage')}
+      <div id="rvbox"></div>
       <div class="feedback" id="rvf"></div>
+      <button class="next-btn" id="rvNext" style="display:none;">${i+1<queue.length?'下一題 ▶':'看結果 ▶'}</button>
     </div>`;
-    const box=$('#rvc');
-    opts.forEach(o=>{
-      const b=document.createElement('button'); b.className='choice'; b.textContent=o;
-      b.onclick=()=>{
-        $$('.choice',box).forEach(x=>x.disabled=true);
-        const ok=o===w.correct;
-        if(ok){ b.classList.add('correct'); const ps=practiceSun(2,'review'); goodSound(); addSun(ps); onCorrect(ps); right++; scheduleReview(w,true); }
-        else{ b.classList.add('wrong'); badSound(); $$('.choice',box).forEach(x=>{ if(x.textContent===w.correct) x.classList.add('correct'); }); scheduleReview(w,false); }
-        $('#rvf').textContent = ok?'🎉 答對了，下次會晚一點再考你！' : '💡 正確是：'+escapeHtml(w.correct);
-        i++; setTimeout(renderOne, 950);
-      };
-      box.appendChild(b);
-    });
+    renderQ(reviewQObj(w), { box:$('#rvbox'), moduleKey:'review', sun:2, fb:$('#rvf'), timed:false, noLog:true, qText:w.q,
+      rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
+      onDone:(ok)=>{
+        const r=scheduleReview(w, ok); const fb=$('#rvf');
+        if(ok){ right++; if(r==='grad') grads++; award('fixwrong'); fb.textContent=reviewAfterMsg(r, w); }
+        else fb.insertAdjacentHTML('beforeend', reviewExplainHTML(w));
+        const nb=$('#rvNext'); nb.style.display='inline-block'; nb.onclick=()=>{ i++; renderOne(); };
+      } });
   };
   renderOne();
 }
@@ -4366,12 +4456,12 @@ function setHeartbeat(pos){
 }
 
 /* 錯題收集 */
-function logWrong(moduleKey, qText, yourAns, correct, opts){
+function logWrong(moduleKey, qText, yourAns, correct, opts, ctx){
   const c=C();
   c.wrongQuestions=c.wrongQuestions||[];
   const exist=c.wrongQuestions.find(w=>w.q===qText && w.module===moduleKey);
-  if(!exist) c.wrongQuestions.push({q:qText, correct, opts:(opts||[]).slice(), module:moduleKey, ts:Date.now(), due:0, reps:0});
-  else { exist.opts=(opts||[]).slice(); }
+  if(!exist) c.wrongQuestions.push({q:qText, correct:String(correct), opts:(opts||[]).map(String), module:moduleKey, ts:Date.now(), due:0, streak:0, x:ctx||{}});
+  else { exist.opts=(opts||[]).map(String); exist.correct=String(correct); exist.ts=Date.now(); exist.due=0; exist.streak=0; if(ctx) exist.x=ctx; }
   screenShake('.battle, .lawn-battle'); flashRed('.battle, .lawn-battle'); onWrong(); save();
   // 粗心大王：連續答錯 2 題就跳轉錯題複習，讓孩子冷靜下來重練
   c.wrongStreak=(c.wrongStreak||0)+1;
@@ -4576,7 +4666,7 @@ const BADGES=[
   {id:'combo3',emoji:'🔥',name:'連擊新手',desc:'連續答對 3 題'},
   {id:'combo6',emoji:'⚡',name:'連擊大師',desc:'連續答對 6 題'},
   {id:'streak3',emoji:'📅',name:'持之以恆',desc:'連續 3 天完成功課'},
-  {id:'fixwrong',emoji:'🩹',name:'錯題剋星',desc:'在錯題本答對一次'},
+  {id:'fixwrong',emoji:'🩹',name:'錯題剋星',desc:'在錯題複習答對一次'},
   {id:'bean',emoji:'🌱',name:'能量爆發',desc:'使用一次能量豆'},
   {id:'custom',emoji:'📚',name:'自學達人',desc:'完成一份自訂題庫'},
   {id:'quiz1',emoji:'⭐',name:'小考初體驗',desc:'完成第一次每日小考'},
@@ -4854,13 +4944,13 @@ function renderPracticeHub(){
     </section>
     ${grpHTML}
     <div class="quick2">
-      <button id="phRv" type="button">${ico('refresh')}<span>複習錯題<small>${reviewCount?reviewCount+' 題':'沒有錯題'}</small></span></button>
+      <button id="phRv" type="button">${ico('refresh')}<span>複習錯題<small>${reviewCount?('今天 '+reviewCount+' 題'):((C().wrongQuestions||[]).length?'今天複習完了':'沒有錯題')}</small></span></button>
       <button id="phEx" type="button">${ico('pencil')}<span>測驗卷<small>混合測驗</small></span></button>
     </div>
   </div>`;
   $$('.pbtn[data-tab]').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
   $('#phDq').onclick=renderDailyQuiz;
-  $('#phRv').onclick=()=>{ if(!dueReviews().length){ toast('🎉 目前沒有錯題要複習！'); } else renderReviewDrill(); };
+  $('#phRv').onclick=()=>showTab('review');
   $('#phEx').onclick=()=>showTab('exam');
 }
 
@@ -5454,7 +5544,7 @@ function renderWordTest(itemId){
         inp.classList.add('ng'); badSound();
         /* logWrong 的第 5 個參數是「選項陣列」，而且它內部已經會呼叫 onWrong()，
            不要再自己呼叫一次，也不要傳物件進去（會在 .slice() 拋錯） */
-        logWrong('enword', (w.zh||w.en)+' 的英文', val||'（空白）', w.en, [w.en]);
+        logWrong('enword', (w.zh||w.en)+' 的英文', val||'（空白）', w.en, [w.en], {type:'fill', accept:[String(w.en)]});
       }
       $('#wdGo').textContent='下一題 ▶';
       $('#wdGo').onclick=()=>{ i++; paint(); };
@@ -6123,7 +6213,7 @@ function renderHome(){
   const hdb=$('#homeDiffBtn'); if(hdb) hdb.onclick=openDiffModal;
   const hmb=$('#homeManualBtn'); if(hmb) hmb.onclick=openManual;
   const hab=$('#homeAboutBtn'); if(hab) hab.onclick=openAbout;
-  const rvb=$('#reviewBtn'); if(rvb) rvb.onclick=()=>{ if(!dueReviews().length){ toast('🎉 目前沒有錯題要複習，你超棒！'); } else renderReviewDrill(); };
+  const rvb=$('#reviewBtn'); if(rvb) rvb.onclick=()=>showTab('review');
   const bbm=$('#bgmBtn'); if(bbm) bbm.onclick=toggleBgm;
   const dqb=$('#dailyQuizBtn'); if(dqb) dqb.onclick=renderDailyQuiz;
   const dqs=$('#dqStatusBtn'); if(dqs) dqs.onclick=renderDailyQuiz;
@@ -6312,7 +6402,7 @@ function renderReadInto(boxId,subjectKey,stories){
       b.onclick=()=>{
         $$('.choice',ch).forEach(x=>x.disabled=true);
         if(dispIdx===newCorrect){ b.classList.add('correct'); const ps=practiceSun(5, subjectKey); goodSound(); addSun(ps); onCorrect(ps); record(subjectKey,true); }
-        else{ b.classList.add('wrong'); badSound(); logWrong(subjectKey,item.q,ans,item.a[item.c],item.a); record(subjectKey,false);
+        else{ b.classList.add('wrong'); badSound(); logWrong(subjectKey,item.q,ans,item.a[item.c],item.a,{p:plainText(String(s.text)).slice(0,4000)}); record(subjectKey,false);
           $$('.choice',ch).forEach(x=>{ if(x.textContent===item.a[item.c]) x.classList.add('correct'); }); }
       };
       ch.appendChild(b);
@@ -6424,7 +6514,10 @@ const EN_READING=[
 ];
 function enWordQuestion(li){
   li=li||0;
-  const pool=ENGLISH.slice(0, Math.max(6, 10+li*4));
+  /* 2026-09-28 稽核 D2：原本最多只抽前 26 個字，後面 32 個（umbrella、library…）永遠抽不到。
+     字表是由淺到深排的：幼幼抽前 22 個（顏色、家人、動物），低年級前 38 個，中年級以上全部 */
+  const EN_WORD_TIER=[22, 38];
+  const pool=ENGLISH.slice(0, li<EN_WORD_TIER.length ? Math.min(ENGLISH.length, EN_WORD_TIER[li]) : ENGLISH.length);
   const w=kPick(pool);
   if(li<=0 || (li===1 && Math.random()<0.6)){
     const correct=w.zh; const opts=new Set([correct]);
@@ -6469,6 +6562,7 @@ function renderEnglish(mode){
     <p class="hint">題目難度會依年齡自動調整，也可以在下方的「英文檢定程度」手動設定（對應劍橋 YLE / 全民英檢）。答對 +3 陽光。</p>
     <div class="diff-sel" id="enDiffSel"></div>
     <div class="cert-detail" id="enCertDetail"></div>
+    <p class="hint en-cert-note">※ 難度參考各級檢定，題量是日常練習用，不能取代檢定準備。</p>
     <div class="q-row"><div class="en-passage" id="epassage" style="background:#f5f7ff;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:15px;line-height:1.6;"></div><span class="q-text" id="eq"></span></div>
     <div id="eHint"></div>
     ${timerHTML()}
@@ -6529,7 +6623,7 @@ function englishRound(){
   if(hint) hint.innerHTML = hintLine((q.en?('點 🔊 聽「'+q.en+'」'):(q.hint||'想一想！')));
   $('#ef').textContent=''; $('#ef').className='feedback';
   renderChoices({ box:$('#ec'), opts:q.opts, correct:q.ans, moduleKey:'english', sun:3, fb:$('#ef'),
-    qText:q.q, rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：', explain:q.hint });
+    qText:q.q, passage:q.p, rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：', explain:q.hint });
 }
 
 /* 假日測驗卷（混合測驗） */
@@ -7618,6 +7712,10 @@ function renderDailyQuiz(){
     }
     pool.push(q);
   }
+  /* 2026-09-28 稽核 D1：混 2～3 題到期的錯題進來（取代原本的題目，總題數不變），答完照錯題規則排下一次 */
+  dueReviews().slice().sort((a,b)=>(a.due||0)-(b.due||0)).slice(0, total>=8?3:2).forEach((w,k)=>{
+    const rq=reviewQObj(w); rq._rv=w; pool[Math.max(0, total-1-k*3)]=rq;
+  });
   let idx=0, right=0;
   app.innerHTML=`
   <div class="panel">
@@ -7637,12 +7735,14 @@ function renderDailyQuiz(){
   const renderOne=()=>{
     $('#dqf').textContent=''; $('#dqf').className='feedback';
     $('#dqnext').style.display='none';
-    const q=pool[idx];
+    const q=pool[idx]; const rv=q._rv;
     $('#dqq').textContent=q.q;
     renderQ(q, { box:$('#dqbox'), moduleKey:'dailyquiz', sun:2, fb:$('#dqf'),
-      stageId:'dqstage', hintId:'dqhint', gradeId:'dqgrade', qText:q.q,
+      stageId:'dqstage', hintId:'dqhint', gradeId:'dqgrade', qText:q.q, noLog:!!rv,
       rightMsg:'🎉 答對！', wrongPrefix:'💡 正確是：',
-      onDone:(ok)=>{ if(ok) right++; $('#dqprog').textContent='第 '+(idx+1)+' / '+total+' 題　✅ '+right; const dm=$('#dqmon'); if(dm) dm.innerHTML=monsterTrack(idx+1,total); $('#dqnext').style.display='inline-block'; } });
+      onDone:(ok)=>{ if(rv){ const r=scheduleReview(rv, ok); if(ok) $('#dqf').textContent=reviewAfterMsg(r, rv); else $('#dqf').insertAdjacentHTML('beforeend', reviewExplainHTML(rv)); }
+        if(ok) right++; $('#dqprog').textContent='第 '+(idx+1)+' / '+total+' 題　✅ '+right; const dm=$('#dqmon'); if(dm) dm.innerHTML=monsterTrack(idx+1,total); $('#dqnext').style.display='inline-block'; } });
+    if(rv){ const st=$('#dqstage'); if(st) st.innerHTML=reviewCtxHTML(rv); const g=$('#dqgrade'); if(g) g.innerHTML='<span class="q-grade">🔁 之前答錯的題目</span>'; }
     $('#dqprog').textContent='第 '+(idx+1)+' / '+total+' 題　✅ '+right;
     const dm0=$('#dqmon'); if(dm0) dm0.innerHTML=monsterTrack(idx,total);
   };
@@ -7729,47 +7829,31 @@ function renderCustomList(){
   });
 }
 
-/* 錯題本 */
+/* 錯題本（2026-09-28 稽核 D1：原本沒有任何按鈕通到這頁，而且答對一次就刪、跟錯題複習是兩套規則。
+   改成總覽：今天要複習幾題、每題連對幾次、下次什麼時候考，從這裡開始複習） */
 function renderReview(){
-  const c=C(); const wrong=c.wrongQuestions||[];
-  if(!wrong.length){
-    app.innerHTML=`<div class="panel"><h2>📕 錯題本</h2>
-      <div class="story" style="border-left-color:#2e7d32;text-align:center;padding:30px;">🎉 目前沒有錯題，你太厲害了！<br>答錯的題目會自動出現這裡，練到答對就能剋服它。</div>
-      <div style="text-align:center;margin-top:12px;"><button class="next-btn" onclick="showTab('home')">🌻 回小花園</button></div></div>`;
-    return;
+  const c=C(); const all=(c.wrongQuestions||[]).slice(); const due=dueReviews(); const grad=c.wrongGraduated||0;
+  const rule=`<p class="hint">答錯的題目會先收進這裡。複習時答對一次，隔 1 天再考；再答對，隔 3 天再考；<b>連續答對 3 次就畢業</b>。複習時答錯就從頭算，明天再考。</p>`;
+  if(!all.length){
+    app.innerHTML=`<div class="panel"><h2>📕 錯題本</h2>${rule}
+      <div class="story" style="border-left-color:#2e7d32;text-align:center;padding:30px;">🎉 目前沒有錯題，你太厲害了！${grad?('<br>已經有 '+grad+' 題練到畢業。'):''}</div>
+      <div style="text-align:center;margin-top:12px;"><button class="next-btn" id="rvHome">🌻 回小花園</button></div></div>`;
+    $('#rvHome').onclick=()=>showTab('home'); return;
   }
-  const idx=(c._reviewIdx=(c._reviewIdx||0))%wrong.length;
-  const item=wrong[idx];
-  const opts=(item.opts&&item.opts.length?item.opts.slice():[item.correct]).slice();
-  if(!opts.includes(item.correct)) opts.push(item.correct);
-  for(let i=opts.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [opts[i],opts[j]]=[opts[j],opts[i]]; }
-  app.innerHTML=`
-  <div class="panel">
-    <h2>📕 錯題本（${wrong.length} 題待練）</h2>
-    <p class="hint">把之前的錯題練到答對，就能把它從錯題本刪除，還能解鎖「錯題剋星」徽章！答對 +5 陽光。</p>
-    <div class="q-row"><span class="q-text">${escapeHtml(item.q)}</span></div>
-    <div class="choices" id="rv"></div>
-    <div class="feedback" id="rvF"></div>
-    <button class="next-btn" id="rvN">下一題 ▶（${idx+1}/${wrong.length}）</button>
-  </div>`;
-  const box=$('#rv');
-  opts.forEach(o=>{
-    const b=document.createElement('button'); b.className='choice'; b.textContent=o;
-    b.onclick=()=>{
-      $$('.choice',box).forEach(x=>x.disabled=true);
-      if(o===item.correct){
-        const ps=practiceSun(5,'review'); b.classList.add('correct'); goodSound(); addSun(ps); onCorrect(ps); record('review',true); award('fixwrong');
-        c.wrongQuestions=c.wrongQuestions.filter(w=>w!==item); save();
-        $('#rvF').textContent='🎉 答對了！這題已從錯題本移除。';
-      } else {
-        b.classList.add('wrong'); badSound(); logWrong(item.module,item.q,o,item.correct,opts); record('review',false);
-        $$('.choice',box).forEach(x=>{ if(x.textContent===item.correct) x.classList.add('correct'); });
-        $('#rvF').textContent='💡 正確是：'+item.correct;
-      }
-    };
-    box.appendChild(b);
-  });
-  $('#rvN').onclick=()=>{ c._reviewIdx=(c._reviewIdx||0)+1; save(); renderReview(); };
+  const now=Date.now();
+  const list=all.sort((a,b)=>((a.due||0)-(b.due||0)) || ((b.ts||0)-(a.ts||0)));
+  const when=w=>{ if((w.due||0)<=now) return '<b class="rv-today">今天</b>'; const d=new Date(w.due); return (d.getMonth()+1)+'/'+d.getDate(); };
+  const SHOW=60;
+  const rows=list.slice(0,SHOW).map(w=>`<div class="rv-row"><span class="q-grade">${escapeHtml(reviewModName(w.module))}</span><span class="rv-q">${escapeHtml(w.q.length>42? w.q.slice(0,42)+'…' : w.q)}</span><span class="rv-st">${streakDots(w)}<small>${when(w)}</small></span></div>`).join('');
+  app.innerHTML=`<div class="panel"><h2>📕 錯題本</h2>
+    <p class="rv-sum">今天要複習 <b>${due.length}</b> 題 · 錯題本共 <b>${all.length}</b> 題 · 已畢業 <b>${grad}</b> 題</p>
+    ${rule}
+    ${due.length? `<button class="next-btn" id="rvStart">🔁 開始複習（${Math.min(due.length,REVIEW_BATCH)} 題）</button>` : `<div class="story" style="border-left-color:#2e7d32;">今天的錯題都複習完了，明天再來！</div>`}
+    <div class="rv-list">${rows}</div>
+    ${list.length>SHOW?`<p class="hint">還有 ${list.length-SHOW} 題沒列出來。</p>`:''}
+    <div style="text-align:center;margin-top:12px;"><button class="reset-btn" id="rvHome">🌻 回小花園</button></div></div>`;
+  if(due.length) $('#rvStart').onclick=()=>renderReviewDrill();
+  $('#rvHome').onclick=()=>showTab('home');
 }
 
 /* 獎勵商店 */
