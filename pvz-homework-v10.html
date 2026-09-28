@@ -886,6 +886,74 @@
   .srow .sval ~ .chev{ margin-left:4px; }
   .srow.cur{ font-weight:700; }
   .srow.parent .ico{ color:var(--ink); }
+
+  /* ===== 2026-09-28 其餘頁面：舊元件統一換成新樣式（各科練習、每日小考、錯題、商店、題庫、今日功課、彈窗、睡覺鎖） =====
+     用覆蓋的方式改外觀、不動各頁程式，功能才不會跟著變 */
+  #app .panel{ background:var(--surface); border:1px solid var(--line); border-radius:20px; box-shadow:none; padding:16px; overflow:visible; margin-bottom:16px; }
+  #app .panel h2{ display:block; background:none; box-shadow:none; padding:0; border-radius:0; transform:none;
+    color:var(--ink); font-size:18px; font-weight:700; margin:16px 0 8px; }
+  #app .panel h2.title-sticker{ font-size:24px; margin:0 0 4px; }
+  #app .panel > h2:first-child{ margin-top:0; }
+  .hint{ color:var(--muted); }
+  .module-heading .hint{ display:none; }            /* 英文小標（EXTRA CREDIT、SHIELD BEAN…）對孩子沒有意義 */
+  #app .sun-box{ display:none !important; }         /* 頁面裡重複的陽光數字，頂列已經有了（有些寫了行內樣式，要 !important） */
+  #dqhome,#dqhome0,#khome,#khome2,#tkHome{ display:none !important; }   /* 重複的「回小花園」，底部導覽就能回去 */
+  .next-btn{ background:var(--green); color:#fff; border:none; border-radius:14px; box-shadow:0 3px 0 var(--green-pressed);
+    min-height:52px; padding:0 20px; font-size:16px; font-weight:700; }
+  .next-btn:hover{ transform:none; filter:none; background:var(--green); box-shadow:0 3px 0 var(--green-pressed); }
+  .next-btn:active{ background:var(--green-pressed); transform:translateY(1px); box-shadow:none; }
+  .next-btn:disabled, .next-btn[disabled]{ background:var(--disabled-bg); color:var(--disabled-text); box-shadow:none; transform:none; cursor:default; }
+  .reset-btn{ background:var(--surface); color:var(--green); border:1.5px solid var(--green); border-radius:14px; box-shadow:none;
+    min-height:44px; padding:0 14px; font-weight:600; }
+  .reset-btn:hover{ transform:none; background:var(--surface); box-shadow:none; }
+  .reset-btn:active{ background:var(--green-soft); color:var(--green-pressed); border-color:var(--green-pressed); transform:none; }
+  .q-text{ font-size:24px; font-weight:700; color:var(--ink); }
+  .q-text:hover{ color:var(--green); }
+  .q-hint{ color:var(--ink); background:var(--green-soft); border:none; border-radius:14px; font-weight:500; }
+  .choice{ background:var(--surface); color:var(--ink); border:1.5px solid var(--line); border-radius:14px; box-shadow:none;
+    min-height:52px; padding:10px 18px; font-size:17px; font-weight:600; }
+  .choice:hover{ transform:none; background:var(--surface); border-color:var(--green); }
+  .choice:active{ transform:translateY(1px); box-shadow:none; background:var(--green-soft); }
+  /* 對錯不只靠顏色：前面加 ✓ ✗ */
+  .choice.correct{ background:var(--green-soft); border-color:var(--green); color:var(--green-pressed); box-shadow:none; }
+  .choice.correct::before{ content:"✓ "; font-weight:700; }
+  .choice.wrong{ background:var(--peach-soft); border-color:var(--danger); color:var(--danger); box-shadow:none; }
+  .choice.wrong::before{ content:"✗ "; font-weight:700; }
+  .feedback.good{ color:var(--green); } .feedback.bad{ color:var(--danger); }
+  .hw-card{ background:var(--surface); border:1.5px solid var(--line); border-radius:16px; box-shadow:none; }
+  .hw-card:hover{ transform:none; box-shadow:none; border-color:var(--green); }
+  .hw-card.done{ background:var(--green-soft); border-color:var(--green); color:var(--green-pressed); box-shadow:none; }
+  .hw-card.pending{ background:var(--honey-soft); border-color:var(--honey); color:var(--ink); box-shadow:none; }
+  .quiz-hero{ background:var(--honey-soft); box-shadow:none; border-radius:16px; }
+  .quiz-hero h3{ color:var(--ink); } .quiz-hero p{ color:var(--muted); }
+  .reward{ background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:none; }
+  .reward:hover{ transform:none; }
+  .stat{ background:var(--surface); border:1px solid var(--line); border-radius:999px; box-shadow:none; color:var(--ink); }
+  .lock-ovl{ background:var(--ink); border-radius:20px; box-shadow:none; }
+  #app .panel .lock-ovl h2{ color:#fff; font-size:20px; }
+  .modal-ov{ background:rgba(37,58,54,.45); }
+  .modal{ background:var(--surface); border-radius:20px; box-shadow:0 16px 40px rgba(37,58,54,.25); }
+  .modal h3{ color:var(--ink); font-size:18px; font-weight:700; }
+  .pot{ background:var(--surface); border:1.5px solid var(--line); border-radius:16px; box-shadow:none; color:var(--ink); }
+  .pot .nm{ color:var(--ink); font-size:13px; }
+  .pot .g-tag{ color:var(--muted); font-size:13px; }
+  .pot.locked .nm{ color:var(--muted); }
+  .pot.owned{ border-color:var(--green); background:var(--green-soft); box-shadow:none; }
+  .pot.buyable{ border-color:var(--honey); background:var(--honey-soft); box-shadow:none; animation:none; transform:none; }
+  .pot.collected{ box-shadow:none; }
+  .pot.next-routine{ border-color:var(--honey); box-shadow:none; transform:none; }
+  .rt-btn{ background:var(--surface); color:var(--green); border:1.5px solid var(--green); border-radius:12px; min-height:36px; padding:4px 10px; font-size:13px; font-weight:700; }
+  .bonus-btn{ background:var(--honey-soft); color:var(--ink); border:1.5px solid var(--honey); box-shadow:none; min-height:48px; }
+  .bonus-btn:active{ box-shadow:none; }
+  .bonus-btn:disabled{ background:var(--disabled-bg); color:var(--disabled-text); border-color:transparent; box-shadow:none; }
+  .lawn{ background:var(--green-soft); border:1px solid var(--line); border-radius:16px; }
+  .plant-big{ background:var(--surface); border:1px solid var(--line); box-shadow:none; }
+  .plant-big .pb-nm{ color:var(--ink); }
+  .battle{ background:linear-gradient(180deg,#d9eef0 0%,#eef7ea 60%,#a3d383 60%,#8cc56d 100%) !important; border:none; border-radius:16px; box-shadow:inset 0 0 0 1px var(--line); }
+  #app .home-module{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:none; }
+  .in, .name-input, .modal input[type=text], .modal input[type=password], .modal input[type=number], .modal input:not([type]), .modal textarea, .modal select, #pin{
+    border:1.5px solid var(--line) !important; border-radius:14px !important; min-height:44px; background:var(--surface); color:var(--ink); box-shadow:none; }
+  .in:focus, .name-input:focus, .modal input:focus, .modal textarea:focus, #pin:focus{ outline:none; border-color:var(--green) !important; box-shadow:0 0 0 3px var(--green-soft); }
 </style>
 </head>
 <body>
@@ -5022,7 +5090,7 @@ function askConfirm(msg, onYes, yesLabel){
     <h3>請確認</h3>
     <p style="line-height:1.8;margin:10px 0 0;">${msg}</p>
     <div style="display:flex;gap:10px;margin-top:16px;">
-      <button class="next-btn" id="acYes" style="flex:1;">${yesLabel||'確定刪除'}</button>
+      <button class="${/刪除|清空|清除|歸零/.test(yesLabel||'確定刪除')?'btn-danger':'next-btn'}" id="acYes" style="flex:1;">${yesLabel||'確定刪除'}</button>
       <button class="reset-btn" id="acNo" style="flex:1;">取消</button>
     </div>
   </div>`;
