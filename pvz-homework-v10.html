@@ -6567,7 +6567,7 @@ function wordProblemQ(li){
       if(c>100||c<0) return {q:'三次小考分別是 80、90、100 分，平均幾分？', ans:90, steps:'(80 ＋ 90 ＋ 100) ÷ 3 ＝ 270 ÷ 3 ＝ 90'};
       return {q:who+'三次小考分別是 '+a+'、'+b+'、'+c+' 分，平均幾分？', ans:avg, steps:'('+a+' ＋ '+b+' ＋ '+c+') ÷ 3 ＝ '+(a+b+c)+' ÷ 3 ＝ '+avg}; },
     ()=>{ const w=rInt(3,12), n=rInt(4,15), eat=rInt(1,w*n-1);
-      return {q:'每箱蘋果 '+w+' 公斤，買了 '+n+' 箱，吃掉 '+eat+' 公斤，還剩幾公斤？', ans:w*n-eat, steps:w+' × '+n+' ＝ '+(w*n)+' 公斤；'+(w*n)+' － '+eat+' ＝ '+(w*n-eat)+' 公斤'}; },
+      return {q:'水果店每箱蘋果 '+w+' 公斤，進了 '+n+' 箱，賣掉 '+eat+' 公斤，還剩幾公斤？', ans:w*n-eat, steps:w+' × '+n+' ＝ '+(w*n)+' 公斤；'+(w*n)+' － '+eat+' ＝ '+(w*n-eat)+' 公斤'}; },
     ()=>{ const a=rInt(3,12), b=rInt(2,8), k=rInt(2,6);
       return {q:'長方形花圃長 '+a+' 公尺、寬 '+b+' 公尺，每平方公尺種 '+k+' 棵花，一共要種幾棵？', ans:a*b*k, steps:'面積 '+a+' × '+b+' ＝ '+(a*b)+' 平方公尺；'+(a*b)+' × '+k+' ＝ '+(a*b*k)+' 棵'}; },
     ()=>{ const each=rInt(15,60), n=rInt(3,9), money=each*n+rInt(0,each-1);
@@ -6586,21 +6586,22 @@ function wordProblemQ(li){
 }
 function algebraQ(){
   const T=[
-    ()=>{ let a=rInt(2,9), x=rInt(-9,12); if(x===0) x=3; const b=rInt(-20,20), c=a*x+b;
+    ()=>{ let a=rInt(2,9), x=rInt(-9,12); if(x===0) x=3; const b=rInt(-20,20)||7, c=a*x+b;
       return {q:'解方程式：'+a+'x '+(b<0?'－ '+(-b):'＋ '+b)+' ＝ '+c+'，x ＝ ?', ans:x, steps:a+'x ＝ '+c+' '+(b<0?'＋ '+(-b):'－ '+b)+' ＝ '+(c-b)+'，x ＝ '+(c-b)+' ÷ '+a+' ＝ '+x}; },
-    ()=>{ const x=rInt(-6,10); let a=rInt(3,9), c=rInt(1,a-1); const b=rInt(-10,10); const d=a*x+b-c*x;
-      return {q:'解方程式：'+cx(a)+' '+(b<0?'－ '+(-b):'＋ '+b)+' ＝ '+cx(c)+' '+(d<0?'－ '+(-d):'＋ '+d)+'，x ＝ ?', ans:x, steps:'把 x 移到左邊、數字移到右邊：('+a+' － '+c+')x ＝ '+d+' － '+signed(b)+' → '+(a-c)+'x ＝ '+(d-b)+' → x ＝ '+x}; },
-    ()=>{ const a=rInt(2,15), b=rInt(2,9), c=rInt(-20,20);
+    ()=>{ const x=rInt(-6,10); let a=rInt(3,9), c=rInt(1,a-1); const b=rInt(-10,10)||4; const d=a*x+b-c*x;
+      const term=v=> v===0 ? '' : ' '+(v<0?'－ '+(-v):'＋ '+v);
+      return {q:'解方程式：'+cx(a)+term(b)+' ＝ '+cx(c)+term(d)+'，x ＝ ?', ans:x, steps:'把 x 移到左邊、數字移到右邊：('+a+' － '+c+')x ＝ '+d+' － '+signed(b)+' → '+(a-c===1?'x':(a-c)+'x')+' ＝ '+(d-b)+(a-c===1?'':' → x ＝ '+x)}; },
+    ()=>{ const a=rInt(2,15), b=rInt(2,9), c=rInt(-20,20)||6;
       return {q:'(－'+a+') × '+b+' '+(c<0?'－ '+(-c):'＋ '+c)+' ＝ ?', ans:-a*b+c, steps:'先乘：(－'+a+') × '+b+' ＝ '+(-a*b)+'；再'+(c<0?'減 '+(-c):'加 '+c)+'：'+(-a*b+c)}; },
     ()=>{ const a=rInt(3,30), b=rInt(3,30);
       return {q:a+' － (－'+b+') ＝ ?', ans:a+b, steps:'減一個負數＝加上它的相反數：'+a+' ＋ '+b+' ＝ '+(a+b)}; },
-    ()=>{ const x=rInt(-4,4)||2, a=rInt(1,4), b=rInt(-6,6)||3, c=rInt(-9,9);
+    ()=>{ const x=rInt(-4,4)||2, a=rInt(1,4), b=rInt(-6,6)||3, c=rInt(-9,9)||5;
       return {q:'當 x ＝ '+x+' 時，'+(a===1?'':a)+'x² '+(b<0?'－ '+cx(-b):'＋ '+cx(b))+' '+(c<0?'－ '+(-c):'＋ '+c)+' 的值是多少？', ans:a*x*x+b*x+c, steps:a+' × '+signed(x)+'² ＝ '+(a*x*x)+'；'+b+' × '+signed(x)+' ＝ '+(b*x)+'；'+(a*x*x)+' ＋ '+signed(b*x)+' ＋ '+signed(c)+' ＝ '+(a*x*x+b*x+c)}; },
     ()=>{ const base=kPick([-3,-2,2,3]), e=kPick(base<0?[2,3]:[2,3,4]); const v=Math.pow(base,e);
       return {q:signed(base)+(e===2?'²':e===3?'³':'⁴')+' ＝ ?', ans:v, steps:Array(e).fill(signed(base)).join(' × ')+' ＝ '+v+(base<0?'（負數乘奇數次是負的、乘偶數次是正的）':'')}; },
     ()=>{ const a=rInt(2,9), b=rInt(2,9), k=rInt(2,8);
       return {q:'比例式 '+a+' : '+b+' ＝ '+(a*k)+' : x，x ＝ ?', ans:b*k, steps:(a*k)+' ÷ '+a+' ＝ '+k+'（前項放大 '+k+' 倍），x ＝ '+b+' × '+k+' ＝ '+(b*k)}; },
-    ()=>{ const x=rInt(-5,12), y=rInt(-5,12);
+    ()=>{ const x=rInt(-5,12)||2, y=rInt(-5,12)||3;
       return {q:'二元一次聯立：x ＋ y ＝ '+(x+y)+'，x － y ＝ '+(x-y)+'，x ＝ ?', ans:x, steps:'兩式相加：2x ＝ '+(x+y)+' ＋ '+signed(x-y)+' ＝ '+(2*x)+'，x ＝ '+x}; }
   ];
   const r=kPick(T)(); r.alg=true; return r;
