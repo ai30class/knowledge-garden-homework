@@ -641,26 +641,431 @@
   .kind-routine{background:#e3f2fd;color:#1565c0;}
   .kind-hw{background:#fff3e0;color:#e65100;}
   .kind-custom{background:#f3e5f5;color:#7b1fa2;}
+
+  /* ===== 2026-09-28 UI 改版「花園守護基地」：設計規格見 Obsidian《知識小花園作業守護台》§UI 改版 ===== */
+  :root{
+    --bg:#fffdf7; --surface:#ffffff; --ink:#253a36; --muted:#5f6f69;
+    --green:#2f6f4e; --green-pressed:#20533a; --green-soft:#eaf3eb;
+    --peach:#e98568; --peach-soft:#ffe6de; --honey:#f2b83f; --honey-soft:#fff3ca;
+    --line:#c7d5cd; --disabled-bg:#d8dfd8; --disabled-text:#65716b; --danger:#b94f3b;
+  }
+  body{ background:var(--bg); font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Microsoft JhengHei",sans-serif; }
+  body::before{ display:none; }
+  .ico{ display:inline-block; width:24px; height:24px; vertical-align:middle; flex:none; }
+  .ico svg, [data-icon] > svg{ display:block; width:100%; height:100%; }
+
+  header.basebar{
+    height:56px; padding:0 8px 0 16px; padding-top:env(safe-area-inset-top);
+    box-sizing:content-box; display:flex; align-items:center; gap:8px; flex-wrap:nowrap;
+    background:var(--surface); box-shadow:none; border-bottom:1px solid var(--line);
+  }
+  .bb-brand{ display:flex; align-items:center; gap:8px; font-size:18px; font-weight:700; color:var(--ink); min-width:0; }
+  .bb-logo{ width:28px; height:28px; color:var(--green); flex:none; }
+  .bb-name{ white-space:nowrap; }
+  header.basebar .sun-box{
+    margin-left:auto; min-height:40px; padding:4px 14px 4px 6px; gap:6px;
+    background:var(--honey-soft); border:1.5px solid var(--honey); border-radius:999px; box-shadow:none;
+    color:var(--ink); font-size:17px; font-weight:700; font-variant-numeric:tabular-nums;
+  }
+  .sun-token{ width:30px; height:30px; flex:none; }
+  .bb-gear{ width:44px; height:44px; border:none; background:none; border-radius:14px; color:var(--ink); padding:10px; cursor:pointer; flex:none; }
+  .bb-gear:active{ background:var(--green-soft); }
+
+  nav.tabs{
+    position:fixed; left:0; right:0; bottom:0; top:auto; z-index:30;
+    display:grid; grid-template-columns:repeat(4,1fr); gap:0; min-height:64px;
+    padding:4px max(8px, calc(50% - 320px)) calc(4px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--line); border-radius:0;
+    backdrop-filter:none; box-shadow:0 -2px 12px rgba(37,58,54,.08);
+  }
+  nav.tabs .tab-btn{
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    min-height:56px; padding:4px 2px; position:relative;
+    background:none; border:none; border-radius:14px; box-shadow:none; transform:none;
+    color:var(--muted); font-size:13px; font-weight:500;
+  }
+  nav.tabs .tab-btn:hover, nav.tabs .tab-btn:active{ transform:none; box-shadow:none; }
+  nav.tabs .tab-btn:active{ background:var(--green-soft); }
+  nav.tabs .tab-btn .ti{ width:24px; height:24px; }
+  nav.tabs .tab-btn.active{ background:none; color:var(--green); font-weight:700; box-shadow:none; }
+  nav.tabs .tab-btn.active::after{ content:""; position:absolute; bottom:3px; width:22px; height:3px; border-radius:999px; background:var(--green); }
+  main{ padding-bottom:calc(96px + env(safe-area-inset-bottom)); }
+
+  /* ---- 按鈕 ---- */
+  .btn-primary, .btn-secondary, .btn-danger{
+    display:flex; align-items:center; justify-content:center; gap:8px; width:100%;
+    min-height:52px; padding:0 18px; border-radius:14px; font:inherit; font-size:16px; font-weight:700; cursor:pointer;
+  }
+  .btn-primary{ background:var(--green); color:#fff; border:none; box-shadow:0 3px 0 var(--green-pressed); }
+  .btn-primary:active{ background:var(--green-pressed); transform:translateY(1px); box-shadow:none; }
+  .btn-secondary{ min-height:44px; background:var(--surface); color:var(--green); border:1.5px solid var(--green); }
+  .btn-secondary:active{ background:var(--green-soft); color:var(--green-pressed); border-color:var(--green-pressed); }
+  .btn-danger{ min-height:44px; background:#fff; color:var(--danger); border:1.5px solid var(--danger); }
+  .btn-primary:disabled, .btn-secondary:disabled{ background:var(--disabled-bg); color:var(--disabled-text); border-color:transparent; box-shadow:none; transform:none; cursor:default; }
+
+  /* ---- 首頁 ---- */
+  .home2{ display:flex; flex-direction:column; gap:16px; }
+  .home2 .greet h1{ font-size:24px; font-weight:700; margin:0; color:var(--ink); line-height:1.3; }
+  .home2 .greet p{ font-size:15px; color:var(--muted); margin:4px 0 0; }
+  .card2{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:16px; }
+  .quest{ background:var(--green-soft); border:none; border-radius:20px; }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+  .card-head h2{ all:unset; font-size:18px; font-weight:700; color:var(--ink); display:flex; align-items:center; gap:8px; }
+  .pill{ display:inline-flex; align-items:center; gap:4px; padding:2px 10px; border-radius:999px; font-size:13px; font-weight:600; background:var(--surface); color:var(--ink); white-space:nowrap; }
+  .pill .ico{ width:16px; height:16px; }
+  .qbar{ height:12px; border-radius:999px; background:#fff; overflow:hidden; border:1px solid var(--line); }
+  .qbar > i{ display:block; height:100%; background:var(--honey); border-radius:999px; transition:width .5s; }
+  .hw-chips{ display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; padding:0; list-style:none; }
+  .hw-chip{ display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:4px 12px 4px 8px; border-radius:999px;
+    background:var(--surface); border:1.5px solid var(--line); font-size:15px; color:var(--ink); cursor:pointer; font:inherit; }
+  .hw-chip .ico{ width:20px; height:20px; }
+  .hw-chip.done{ border-color:var(--green); color:var(--green); cursor:default; }
+  .hw-chip.pending{ border-color:var(--honey); background:var(--honey-soft); }
+  .hw-chip small{ font-size:13px; color:var(--muted); }
+  .next-step{ font-size:15px; color:var(--ink); margin:0 0 12px; display:flex; gap:6px; align-items:flex-start; }
+  .next-step b{ font-weight:700; }
+  .quest-foot{ display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+  .alert2{ display:flex; gap:12px; align-items:flex-start; background:var(--peach-soft); border-radius:16px; padding:12px 16px; color:var(--ink); font-size:15px; border:none; text-align:left; font:inherit; width:100%; }
+  .alert2 b{ display:block; font-weight:700; }
+  .alert2 .ico{ color:var(--danger); margin-top:2px; }
+  .alert2.holiday{ background:var(--green-soft); }
+  .alert2.holiday .ico{ color:var(--green); }
+  button.alert2{ cursor:pointer; }
+  .battle2 .battle-card, .battle2 > .home-sec{ margin:0; }
+  .battle2{ border-radius:20px; }
+  .battle2 .mon-avatar{ width:40px; height:40px; border-radius:50%; object-fit:cover; background:var(--peach-soft); }
+  .battle2 .reward-line{ display:flex; align-items:center; gap:8px; background:var(--honey-soft); border-radius:14px; padding:8px 12px; font-size:15px; margin-top:12px; }
+  .battle2 .reward-line .ico{ width:24px; height:24px; }
+  .battle2 details{ margin-top:12px; font-size:15px; }
+  .battle2 summary{ cursor:pointer; color:var(--green); font-weight:600; min-height:44px; display:flex; align-items:center; }
+  .quick2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .quick2 button{ display:flex; align-items:center; gap:10px; min-height:56px; padding:12px; border-radius:16px; border:1px solid var(--line); background:var(--surface); color:var(--ink); font:inherit; font-size:16px; font-weight:600; cursor:pointer; text-align:left; }
+  .quick2 button .ico{ color:var(--green); }
+  .quick2 button:active{ background:var(--green-soft); }
+  /* 首頁其餘區塊（作息、行程、花園…）先沿用原本內容，只把框線與英文小標收斂 */
+  .home2 .home-sec, .home2 .home-module{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:none; }
+  .home2 .module-heading .hint{ display:none; }
+  .home2 .panel-plain{ background:none; border:none; box-shadow:none; padding:0; overflow:visible; }
+
+
+  /* ---- 2026-09-28 戰場：天空＋草地、一條地面線，房子／植物／怪物都站在同一條線上 ---- */
+  .battle2 .lawn-battle{ height:170px; border:none; border-radius:16px; overflow:hidden; box-shadow:inset 0 0 0 1px var(--line);
+    background:linear-gradient(180deg,#d9eef0 0%,#eef7ea 60%,#a3d383 60%,#8cc56d 100%) !important; }
+  .battle2 .lawn-battle .lane{ inset:auto 0 0 0; height:40%; background:none; border-top:3px solid #74a957; }
+  .battle2 .lawn-battle .house{ left:4px; top:auto; bottom:30px; width:58px; height:58px; font-size:0; z-index:2; filter:drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
+  .battle2 .lawn-battle .house svg{ width:100%; height:100%; display:block; }
+  .battle2 .lawn-battle .defenders{ top:auto; bottom:30px; height:auto; padding:0; flex-wrap:nowrap; gap:0; align-items:flex-end; align-content:normal; justify-content:flex-end; overflow:visible; }
+  .battle2 .lawn-battle .defenders .lp{ flex:none; margin-left:-10px; }
+  .battle2 .lawn-battle .defenders .lp:first-child{ margin-left:0; }
+  .battle2 .lawn-battle .lp .p-svg{ width:40px; height:50px; }
+  .battle2 .lawn-battle .defenders.many .lp .p-svg{ width:34px; height:43px; }
+  .battle2 .lawn-battle .frontline{ display:none; }
+  .battle2 .lawn-battle .zombie{ bottom:30px; margin-left:-32px; }
+  .battle2 .lawn-battle .zombie.mega{ margin-left:-40px; }
+  .battle2 .zombie-wrap{ width:64px; height:64px; }
+  .battle2 .zombie.mega .zombie-wrap{ width:80px; height:80px; }
+  .battle2 .lawn-battle .zombie::after{ content:""; position:absolute; left:14%; right:14%; bottom:-3px; height:8px; border-radius:50%; background:rgba(40,70,40,.22); z-index:-1; }
+  .zombie.knocked .zombie-wrap{ animation:zKnock .8s ease-out; }
+  .zombie.knocked::before{ content:"哎喲！"; position:absolute; top:-20px; left:50%; transform:translateX(-50%); z-index:8;
+    font-size:13px; font-weight:700; color:var(--danger); background:#fff; border-radius:999px; padding:0 8px; white-space:nowrap; box-shadow:0 1px 3px rgba(0,0,0,.15); }
+  @keyframes zKnock{ 0%{ transform:none; } 25%{ transform:translateX(16px) rotate(10deg); } 55%{ transform:translateX(8px) rotate(-6deg); } 100%{ transform:none; } }
+  .pea{ position:absolute; width:12px; height:12px; border-radius:50%; z-index:6; pointer-events:none;
+    background:radial-gradient(circle at 35% 35%,#d6f7b0,#5cb85c 60%,#2e7d32); box-shadow:0 1px 2px rgba(0,0,0,.25); }
+  .battle2 .falling-sun{ width:34px; height:34px; font-size:0; }
+  .battle2 .falling-sun svg{ width:100%; height:100%; display:block; }
+
+  /* ---- 2026-09-28 四頁改版（收藏、練習場、讀書計劃、家長後台） ---- */
+  .page2{ display:flex; flex-direction:column; gap:16px; }
+  .page2 .greet h1{ font-size:24px; font-weight:700; margin:0; color:var(--ink); line-height:1.3; }
+  .page2 .greet p{ font-size:15px; color:var(--muted); margin:4px 0 0; }
+  .np-k{ font-size:13px; color:var(--muted); font-weight:600; }
+  .next-plant{ display:flex; gap:16px; align-items:center; }
+  .next-plant .np-art{ width:84px; height:96px; flex:none; display:grid; place-items:center; background:#fff; border-radius:16px; }
+  .next-plant .np-art .p-svg, .p2-art .p-svg{ width:100%; height:100%; }
+  .next-plant .np-txt{ flex:1; min-width:0; }
+  .next-plant h2, .challenge h2{ all:unset; display:block; font-size:18px; font-weight:700; color:var(--ink); margin:2px 0 4px; }
+  .next-plant p, .challenge p{ margin:0 0 10px; font-size:15px; color:var(--ink); }
+  .plant-grid2{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  @media (min-width:600px){ .plant-grid2{ grid-template-columns:repeat(4,1fr); } }
+  .plant2{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:10px 6px; border-radius:16px; border:1.5px solid var(--line);
+    background:var(--surface); font:inherit; color:var(--ink); cursor:pointer; min-height:132px; }
+  .plant2 .p2-art{ width:52px; height:64px; display:block; }
+  .plant2 .p2-nm{ font-size:15px; font-weight:600; }
+  .plant2 .p2-st{ font-size:13px; color:var(--muted); display:flex; align-items:center; gap:2px; text-align:center; line-height:1.3; }
+  .plant2 .p2-st .ico{ width:14px; height:14px; }
+  .plant2.on{ border-color:var(--green); background:var(--green-soft); }
+  .plant2.on .p2-st{ color:var(--green); font-weight:600; }
+  .plant2.locked .p2-art{ filter:grayscale(1) opacity(.45); }
+  .plant2.can{ border-color:var(--honey); background:var(--honey-soft); }
+  .plant2.can .p2-art{ filter:none; }
+  .plant2:active{ transform:translateY(1px); }
+  .badge-wall2{ display:flex; flex-wrap:wrap; justify-content:center; }
+  .rank2{ display:flex; align-items:center; gap:10px; min-height:44px; border-bottom:1px solid var(--line); font-size:15px; }
+  .rank2:last-child{ border-bottom:none; }
+  .rank2.me{ font-weight:700; }
+  .rank2 .rk-n{ width:24px; height:24px; border-radius:999px; background:var(--honey-soft); display:grid; place-items:center; font-size:13px; font-weight:700; }
+  .rank2 .rk-nm{ flex:1; }
+  .rank2 .rk-v{ display:inline-flex; align-items:center; gap:4px; font-size:13px; color:var(--muted); }
+  .rank2 .rk-v .ico{ width:18px; height:18px; }
+  .entry2{ display:flex; align-items:center; gap:12px; width:100%; min-height:60px; padding:12px 16px; border-radius:16px; border:1px solid var(--line);
+    background:var(--surface); font:inherit; color:var(--ink); text-align:left; cursor:pointer; }
+  .entry2 .ico{ color:var(--green); }
+  .entry2 b{ display:block; font-size:16px; font-weight:600; }
+  .entry2 small{ font-size:13px; color:var(--muted); }
+  .entry2 .chev{ margin-left:auto; color:var(--muted); width:20px; height:20px; }
+  .challenge{ background:var(--peach-soft); }
+  .challenge .ch-row{ display:flex; gap:12px; align-items:flex-start; justify-content:space-between; }
+  .challenge .ch-mon{ width:64px; height:64px; border-radius:50%; object-fit:cover; background:#fff; flex:none; }
+  .challenge .stars{ color:#b27a00; letter-spacing:1px; }
+  .pgrp .card-head{ margin-bottom:10px; }
+  .sub2{ font-size:13px; color:var(--muted); }
+  .pbtns{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .pbtn{ display:flex; align-items:center; gap:8px; min-height:48px; padding:8px 12px; border-radius:14px; border:1.5px solid var(--line);
+    background:var(--surface); font:inherit; font-size:15px; font-weight:600; color:var(--ink); cursor:pointer; text-align:left; }
+  .pbtn .pb-ic{ font-size:20px; line-height:1; }
+  .pbtn:active{ background:var(--green-soft); border-color:var(--green); }
+  .quick2 button small{ display:block; font-size:13px; color:var(--muted); font-weight:400; }
+  .wk2{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:12px; }
+  .wd{ display:flex; flex-direction:column; align-items:center; gap:4px; padding:6px 0; border-radius:12px; background:#fff; font-size:13px; color:var(--muted); }
+  .wd .wd-c{ min-height:22px; display:grid; place-items:center; font-weight:700; color:var(--ink); font-size:15px; }
+  .wd .wd-c .ico{ width:22px; height:22px; color:var(--green); }
+  .wd .wd-none{ color:var(--line); }
+  .wd.today{ outline:2px solid var(--green); color:var(--green); font-weight:700; }
+  .today-h{ font-size:16px; font-weight:600; margin:4px 0 8px; color:var(--ink); }
+  .plan-row2{ display:flex; align-items:center; gap:10px; min-height:48px; padding:6px 10px; margin-bottom:6px; border-radius:14px; background:#fff; font-size:15px; cursor:pointer; }
+  .plan-row2 input{ width:22px; height:22px; accent-color:var(--green); flex:none; }
+  .plan-row2 .pr2-t{ flex:1; }
+  .plan-row2 small{ font-size:13px; color:var(--muted); white-space:nowrap; }
+  .plan-row2.late small{ color:var(--danger); }
+  .muted2{ color:var(--muted); font-size:15px; margin:0; }
+  .sec2{ font-size:18px; font-weight:700; color:var(--ink); margin:8px 0 -4px; }
+  /* 家長後台：深墨綠頂區，一眼看出是大人的操作區 */
+  .parent-hero{ background:var(--ink); color:#fff; border-radius:20px; padding:16px; }
+  .parent-hero h2{ all:unset; display:block; font-size:22px; font-weight:700; margin:10px 0 4px; }
+  .parent-hero p{ margin:0; font-size:15px; color:#d6e4dc; }
+  .ph-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .ph-tag{ display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--honey); }
+  .ph-tag .ico{ width:18px; height:18px; }
+  .ph-btn{ display:inline-flex; align-items:center; gap:6px; min-height:40px; padding:0 14px; border-radius:14px; border:1.5px solid rgba(255,255,255,.5);
+    background:transparent; color:#fff; font:inherit; font-size:15px; font-weight:600; cursor:pointer; }
+  .ph-btn .ico{ width:18px; height:18px; }
+  .phub{ display:flex; flex-direction:column; gap:10px; }
+  .phub[hidden]{ display:none; }
+  .pcard{ display:flex; align-items:center; gap:12px; width:100%; min-height:64px; padding:12px 16px; border-radius:16px; border:1px solid var(--line);
+    background:var(--surface); font:inherit; color:var(--ink); text-align:left; cursor:pointer; }
+  .pcard b{ display:block; font-size:16px; font-weight:600; }
+  .pcard small{ font-size:13px; color:var(--muted); }
+  .pcard.warn{ background:var(--honey-soft); border-color:var(--honey); }
+  .pcard.warn small{ color:var(--ink); font-weight:600; }
+  .pcard .chev{ margin-left:auto; width:20px; height:20px; color:var(--muted); }
+  .pgroup{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:4px 16px 16px; }
+  .pgroup > h2{ font-size:18px !important; font-weight:700; color:var(--ink); margin:16px 0 6px !important; }
+  .pgroup[hidden]{ display:none !important; }
+  /* 舊元件在新頁面裡的收斂：按鈕照規格、卡片去掉貼紙白邊 */
+  .page2 .next-btn{ background:var(--green); color:#fff; border:none; border-radius:14px; box-shadow:0 3px 0 var(--green-pressed); min-height:44px; font-weight:700; }
+  .page2 .next-btn:disabled{ background:var(--disabled-bg); color:var(--disabled-text); box-shadow:none; }
+  .page2 .reset-btn{ background:var(--surface); color:var(--green); border:1.5px solid var(--green); border-radius:14px; box-shadow:none; min-height:44px; font-weight:600; }
+  .page2 .reward{ border:1px solid var(--line); box-shadow:none; border-radius:14px; }
+  .page2 .reward:hover{ transform:none; }
+  .page2 .stat{ border:1px solid var(--line); box-shadow:none; border-radius:999px; }
+  .page2 .module-heading .hint{ display:none; }
+  .plan2 .exam-zone, .plan2 .plan-toolbar, .plan2 #planBody{ background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:12px; }
+  /* ---- 設定選單（底部抽屜） ---- */
+  .sheet-ov{ position:fixed; inset:0; z-index:1000; background:rgba(37,58,54,.45); display:flex; align-items:flex-end; justify-content:center; }
+  .sheet{ width:100%; max-width:560px; max-height:86vh; overflow:auto; background:var(--surface); border-radius:20px 20px 0 0;
+    padding:8px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .sheet .grip{ width:40px; height:4px; border-radius:999px; background:var(--line); margin:4px auto 8px; }
+  .sheet h3{ font-size:18px; font-weight:700; margin:4px 0 8px; color:var(--ink); }
+  .sheet .grp{ font-size:13px; color:var(--muted); margin:16px 0 4px; }
+  .srow{ display:flex; align-items:center; gap:12px; width:100%; min-height:52px; padding:0 8px; border:none; background:none;
+    border-bottom:1px solid var(--line); font:inherit; font-size:16px; color:var(--ink); text-align:left; cursor:pointer; }
+  .srow:active{ background:var(--green-soft); }
+  .srow .ico{ color:var(--green); }
+  .srow .sval{ margin-left:auto; font-size:13px; color:var(--muted); }
+  .srow .chev{ width:20px; height:20px; color:var(--muted); margin-left:auto; }
+  .srow .sval ~ .chev{ margin-left:4px; }
+  .srow.cur{ font-weight:700; }
+  .srow.parent .ico{ color:var(--ink); }
+
+  /* ===== 2026-09-28 其餘頁面：舊元件統一換成新樣式（各科練習、每日小考、錯題、商店、題庫、今日功課、彈窗、睡覺鎖） =====
+     用覆蓋的方式改外觀、不動各頁程式，功能才不會跟著變 */
+  #app .panel{ background:var(--surface); border:1px solid var(--line); border-radius:20px; box-shadow:none; padding:16px; overflow:visible; margin-bottom:16px; }
+  #app .panel h2{ display:block; background:none; box-shadow:none; padding:0; border-radius:0; transform:none;
+    color:var(--ink); font-size:18px; font-weight:700; margin:16px 0 8px; }
+  #app .panel h2.title-sticker{ font-size:24px; margin:0 0 4px; }
+  #app .panel > h2:first-child{ margin-top:0; }
+  .hint{ color:var(--muted); }
+  .module-heading .hint{ display:none; }            /* 英文小標（EXTRA CREDIT、SHIELD BEAN…）對孩子沒有意義 */
+  #app .sun-box{ display:none !important; }         /* 頁面裡重複的陽光數字，頂列已經有了（有些寫了行內樣式，要 !important） */
+  #dqhome,#dqhome0,#khome,#khome2,#tkHome{ display:none !important; }   /* 重複的「回小花園」，底部導覽就能回去 */
+  .next-btn{ background:var(--green); color:#fff; border:none; border-radius:14px; box-shadow:0 3px 0 var(--green-pressed);
+    min-height:52px; padding:0 20px; font-size:16px; font-weight:700; }
+  .next-btn:hover{ transform:none; filter:none; background:var(--green); box-shadow:0 3px 0 var(--green-pressed); }
+  .next-btn:active{ background:var(--green-pressed); transform:translateY(1px); box-shadow:none; }
+  .next-btn:disabled, .next-btn[disabled]{ background:var(--disabled-bg); color:var(--disabled-text); box-shadow:none; transform:none; cursor:default; }
+  .reset-btn{ background:var(--surface); color:var(--green); border:1.5px solid var(--green); border-radius:14px; box-shadow:none;
+    min-height:44px; padding:0 14px; font-weight:600; }
+  .reset-btn:hover{ transform:none; background:var(--surface); box-shadow:none; }
+  .reset-btn:active{ background:var(--green-soft); color:var(--green-pressed); border-color:var(--green-pressed); transform:none; }
+  .q-text{ font-size:24px; font-weight:700; color:var(--ink); }
+  .q-text:hover{ color:var(--green); }
+  .q-hint{ color:var(--ink); background:var(--green-soft); border:none; border-radius:14px; font-weight:500; }
+  .choice{ background:var(--surface); color:var(--ink); border:1.5px solid var(--line); border-radius:14px; box-shadow:none;
+    min-height:52px; padding:10px 18px; font-size:17px; font-weight:600; }
+  .choice:hover{ transform:none; background:var(--surface); border-color:var(--green); }
+  .choice:active{ transform:translateY(1px); box-shadow:none; background:var(--green-soft); }
+  /* 對錯不只靠顏色：前面加 ✓ ✗ */
+  .choice.correct{ background:var(--green-soft); border-color:var(--green); color:var(--green-pressed); box-shadow:none; }
+  .choice.correct::before{ content:"✓ "; font-weight:700; }
+  .choice.wrong{ background:var(--peach-soft); border-color:var(--danger); color:var(--danger); box-shadow:none; }
+  .choice.wrong::before{ content:"✗ "; font-weight:700; }
+  .feedback.good{ color:var(--green); } .feedback.bad{ color:var(--danger); }
+  .hw-card{ background:var(--surface); border:1.5px solid var(--line); border-radius:16px; box-shadow:none; }
+  .hw-card:hover{ transform:none; box-shadow:none; border-color:var(--green); }
+  .hw-card.done{ background:var(--green-soft); border-color:var(--green); color:var(--green-pressed); box-shadow:none; }
+  .hw-card.pending{ background:var(--honey-soft); border-color:var(--honey); color:var(--ink); box-shadow:none; }
+  .quiz-hero{ background:var(--honey-soft); box-shadow:none; border-radius:16px; }
+  .quiz-hero h3{ color:var(--ink); } .quiz-hero p{ color:var(--muted); }
+  .reward{ background:var(--surface); border:1px solid var(--line); border-radius:14px; box-shadow:none; }
+  .reward:hover{ transform:none; }
+  .stat{ background:var(--surface); border:1px solid var(--line); border-radius:999px; box-shadow:none; color:var(--ink); }
+  .lock-ovl{ background:var(--ink); border-radius:20px; box-shadow:none; }
+  #app .panel .lock-ovl h2{ color:#fff; font-size:20px; }
+  .modal-ov{ background:rgba(37,58,54,.45); }
+  .modal{ background:var(--surface); border-radius:20px; box-shadow:0 16px 40px rgba(37,58,54,.25); }
+  .modal h3{ color:var(--ink); font-size:18px; font-weight:700; }
+  .pot{ background:var(--surface); border:1.5px solid var(--line); border-radius:16px; box-shadow:none; color:var(--ink); }
+  .pot .nm{ color:var(--ink); font-size:13px; }
+  .pot .g-tag{ color:var(--muted); font-size:13px; }
+  .pot.locked .nm{ color:var(--muted); }
+  .pot.owned{ border-color:var(--green); background:var(--green-soft); box-shadow:none; }
+  .pot.buyable{ border-color:var(--honey); background:var(--honey-soft); box-shadow:none; animation:none; transform:none; }
+  .pot.collected{ box-shadow:none; }
+  .pot.next-routine{ border-color:var(--honey); box-shadow:none; transform:none; }
+  .rt-btn{ background:var(--surface); color:var(--green); border:1.5px solid var(--green); border-radius:12px; min-height:36px; padding:4px 10px; font-size:13px; font-weight:700; }
+  .bonus-btn{ background:var(--honey-soft); color:var(--ink); border:1.5px solid var(--honey); box-shadow:none; min-height:48px; }
+  .bonus-btn:active{ box-shadow:none; }
+  .bonus-btn:disabled{ background:var(--disabled-bg); color:var(--disabled-text); border-color:transparent; box-shadow:none; }
+  .lawn{ background:var(--green-soft); border:1px solid var(--line); border-radius:16px; }
+  .plant-big{ background:var(--surface); border:1px solid var(--line); box-shadow:none; }
+  .plant-big .pb-nm{ color:var(--ink); }
+  .battle{ background:linear-gradient(180deg,#d9eef0 0%,#eef7ea 60%,#a3d383 60%,#8cc56d 100%) !important; border:none; border-radius:16px; box-shadow:inset 0 0 0 1px var(--line); }
+  #app .home-module{ background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:none; }
+  .in, .name-input, .modal input[type=text], .modal input[type=password], .modal input[type=number], .modal input:not([type]), .modal textarea, .modal select, #pin{
+    border:1.5px solid var(--line) !important; border-radius:14px !important; min-height:44px; background:var(--surface); color:var(--ink); box-shadow:none; }
+  .in:focus, .name-input:focus, .modal input:focus, .modal textarea:focus, #pin:focus{ outline:none; border-color:var(--green) !important; box-shadow:0 0 0 3px var(--green-soft); }
 </style>
 </head>
 <body>
-<header>
-  <span style="font-size:30px">🌻</span>
-  <h1>知識小花園 · 作業守護台<br><span class="sub">邊玩邊學 · 守護你的知識花園</span></h1>
-  <div class="byline" id="homeByline"></div>
-  <div class="sun-box"><span class="sun-emoji">☀️</span><span id="sunCount" class="sunCount">0</span> 陽光</div>
+<!-- 2026-09-28 UI 改版「花園守護基地」：頂列只留品牌、陽光、設定；分頁改成固定底部導覽 -->
+<header class="basebar">
+  <div class="bb-brand"><span class="bb-logo" data-icon="flower"></span><span class="bb-name">知識小花園</span></div>
+  <div class="byline" id="homeByline" hidden></div>
+  <div class="sun-box" aria-label="目前陽光"><span class="sun-token" data-icon="sun"></span><span id="sunCount" class="sunCount">0</span></div>
+  <button class="bb-gear" id="settingsBtn" type="button" aria-label="設定" data-icon="gear"></button>
 </header>
 
-<nav class="tabs" id="tabs">
-  <button class="tab-btn active" data-tab="home">🌻 小花園</button>
-  <button class="tab-btn" data-tab="plan">📅 讀書計劃</button>
-  <button class="tab-btn" data-tab="practice">🎮 練習場</button>
-  <button class="tab-btn" data-tab="collection">🏆 收藏</button>
+<nav class="tabs" id="tabs" aria-label="主選單">
+  <button class="tab-btn active" data-tab="home"><span class="ti" data-icon="flower"></span><span class="tl">小花園</span></button>
+  <button class="tab-btn" data-tab="plan"><span class="ti" data-icon="calendar"></span><span class="tl">讀書計劃</span></button>
+  <button class="tab-btn" data-tab="practice"><span class="ti" data-icon="pencil"></span><span class="tl">練習場</span></button>
+  <button class="tab-btn" data-tab="collection"><span class="ti" data-icon="trophy"></span><span class="tl">收藏</span></button>
 </nav>
 
 <main id="app"></main>
 <div class="toast" id="toast"></div>
 
+<script>
+/* ---------- 2026-09-28 UI 改版：功能圖示（24px、2px 線寬、圓角線條，顏色跟著文字）＋陽光代幣 ----------
+   功能性的地方（底部導覽、設定、狀態）不用 emoji，不同手機才會長得一樣。內容裡的 emoji 暫時保留。 */
+const _L=p=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';
+const ICONS={
+  flower:_L('<path d="M12 21v-8"/><path d="M12 13c-3.3 0-5-2.4-5-6l2.5 1.6L12 5l2.5 3.6L17 7c0 3.6-1.7 6-5 6z"/><path d="M12 17.5c-1.6-1.7-3.6-2.2-5.5-1.8M12 19c1.5-1.5 3.3-1.9 5-1.5"/>'),
+  calendar:_L('<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/>'),
+  pencil:_L('<path d="M4 20l1-4.2L15.6 5.2a2.1 2.1 0 0 1 3 0l.2.2a2.1 2.1 0 0 1 0 3L8.2 19 4 20z"/><path d="M13.8 7l3.2 3.2"/>'),
+  trophy:_L('<path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 6H5.5a1.5 1.5 0 0 0 0 3.2c.5 1.8 1.5 2.8 2.9 3M16 6h2.5a1.5 1.5 0 0 1 0 3.2c-.5 1.8-1.5 2.8-2.9 3"/><path d="M12 13v4M8.5 20h7M9.5 17h5"/>'),
+  gear:_L('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'),
+  checkCircle:_L('<circle cx="12" cy="12" r="9"/><path d="M8 12.3l2.8 2.8L16.2 9.5"/>'),
+  clock:_L('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  circle:_L('<circle cx="12" cy="12" r="9"/>'),
+  key:_L('<circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3M16 7l3 3M14 9l2 2"/>'),
+  user:_L('<circle cx="12" cy="8" r="3.5"/><path d="M5 20c.7-3.6 3.5-5.8 7-5.8s6.3 2.2 7 5.8"/>'),
+  users:_L('<circle cx="9" cy="8" r="3.5"/><path d="M3 20c.6-3.4 3-5.5 6-5.5s5.4 2.1 6 5.5"/><path d="M16 4.6a3.2 3.2 0 0 1 0 6.3M18 14.8c1.8.7 3 2.5 3.4 5.2"/>'),
+  layout:_L('<rect x="3.5" y="4" width="17" height="16" rx="3"/><path d="M3.5 10h17M10 10v10"/>'),
+  help:_L('<circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6M12 17h.01"/>'),
+  info:_L('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5h.01"/>'),
+  sliders:_L('<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'),
+  music:_L('<path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>'),
+  speaker:_L('<path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
+  refresh:_L('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>'),
+  chevron:_L('<path d="M9 6l6 6-6 6"/>'),
+  book:_L('<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v15H5.5A1.5 1.5 0 0 0 4 20.5z"/><path d="M20 5.5A1.5 1.5 0 0 0 18.5 4H13v15h5.5a1.5 1.5 0 0 1 1.5 1.5z"/>'),
+  sprout:_L('<path d="M12 20v-8"/><path d="M12 12c0-4 2.5-6.5 7-6.5 0 4-2.5 6.5-7 6.5zM12 14c0-3.2-2-5.2-6-5.2 0 3.2 2 5.2 6 5.2z"/><path d="M8 20h8"/>'),
+  alert:_L('<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17h.01"/>'),
+  flag:_L('<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>'),
+  shield:_L('<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/>'),
+  flame:_L('<path d="M12 21c-3.6 0-6-2.5-6-5.8 0-3.4 2.6-5 3.4-8.2 2 1.3 2.7 3 2.7 4.6 1-.7 1.7-1.9 1.9-3.4 2 1.7 4 4.2 4 7 0 3.3-2.4 5.8-6 5.8z"/>'),
+  sun:'<svg viewBox="0 0 32 32" aria-hidden="true"><g stroke="#c98a16" stroke-width="2.2" stroke-linecap="round"><path d="M16 2.5v3.2M16 26.3v3.2M2.5 16h3.2M26.3 16h3.2M6.4 6.4l2.3 2.3M23.3 23.3l2.3 2.3M6.4 25.6l2.3-2.3M23.3 8.7l2.3-2.3"/></g><circle cx="16" cy="16" r="8.6" fill="#f2b83f" stroke="#c98a16" stroke-width="1.8"/><path d="M11.8 13.2a4.6 4.6 0 0 1 3.4-2.6" fill="none" stroke="#fff3ca" stroke-width="1.8" stroke-linecap="round"/><path d="M12.8 17.6c.9 1.3 2 1.9 3.2 1.9s2.3-.6 3.2-1.9" fill="none" stroke="#7a4f00" stroke-width="1.6" stroke-linecap="round"/></svg>'
+};
+function ico(name, cls){ return '<span class="ico'+(cls?' '+cls:'')+'">'+(ICONS[name]||'')+'</span>'; }
+function paintIcons(root){ (root||document).querySelectorAll('[data-icon]').forEach(el=>{ if(!el.querySelector('svg')) el.innerHTML=ICONS[el.dataset.icon]||''; }); }
+
+/* 設定選單（底部抽屜）：頂列齒輪打開。家長相關只放入口，按了還是要輸入密碼 */
+function openSettings(){
+  document.querySelectorAll('.sheet-ov').forEach(o=>o.remove());
+  const kids=state.children.map(ch=>{ const cur=ch.id===state.activeChildId;
+    return `<button class="srow${cur?' cur':''}" data-kid="${escapeHtml(ch.id)}">${ico(cur?'checkCircle':'user')}<span>${escapeHtml(ch.name||'孩子')}</span><span class="sval">${cur?'目前':''}</span></button>`; }).join('');
+  const ov=document.createElement('div'); ov.className='sheet-ov';
+  ov.innerHTML=`<div class="sheet" role="dialog" aria-modal="true" aria-label="設定"><div class="grip"></div><h3>設定</h3>
+    <div class="grp">切換孩子</div>${kids}
+    <div class="grp">顯示與聲音</div>
+    <button class="srow" data-act="custom">${ico('layout')}<span>自訂首頁</span>${ico('chevron','chev')}</button>
+    <button class="srow" data-act="diff">${ico('sliders')}<span>功課難易度</span><span class="sval">${escapeHtml(diff().name)}</span>${ico('chevron','chev')}</button>
+    <button class="srow" data-act="bgm">${ico('music')}<span>背景音樂</span><span class="sval" id="svBgm">${state.bgm?'開':'關'}</span></button>
+    <button class="srow" data-act="tts">${ico('speaker')}<span>點讀</span><span class="sval" id="svTts">${state.tts?'開':'關'}</span></button>
+    <div class="grp">說明</div>
+    <button class="srow" data-act="manual">${ico('help')}<span>怎麼玩</span>${ico('chevron','chev')}</button>
+    <button class="srow" data-act="about">${ico('info')}<span>關於</span>${ico('chevron','chev')}</button>
+    <div class="grp">家長（需要密碼）</div>
+    <button class="srow parent" data-act="parent">${ico('key')}<span>進入家長後台</span>${ico('chevron','chev')}</button>
+    <button class="srow parent" data-act="parent">${ico('users')}<span>更改密碼與孩子資料</span>${ico('chevron','chev')}</button>
+    <div class="grp">其他</div>
+    <button class="srow" data-act="newday">${ico('refresh')}<span>開始新的一天（重設今天功課）</span></button>
+    <div style="margin-top:16px;"><button class="btn-secondary" data-act="close">關閉</button></div>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>{ ov.remove(); document.removeEventListener('keydown',esc); };
+  const esc=e=>{ if(e.key==='Escape') close(); };
+  document.addEventListener('keydown',esc);
+  ov.onclick=e=>{ if(e.target===ov) close(); };
+  ov.querySelectorAll('[data-kid]').forEach(b=>b.onclick=()=>{
+    close(); if(b.dataset.kid===state.activeChildId) return;
+    state.activeChildId=b.dataset.kid; dailyResetIfNeeded(); save();
+    showTab(currentTab==='parent'?'home':currentTab);
+  });
+  ov.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{
+    const a=b.dataset.act;
+    if(a==='bgm'){ toggleBgm(); const v=$('#svBgm'); if(v) v.textContent=state.bgm?'開':'關'; return; }
+    if(a==='tts'){ state.tts=!state.tts; save(); const v=$('#svTts'); if(v) v.textContent=state.tts?'開':'關'; if(currentTab==='home') renderHome(); return; }
+    close();
+    if(a==='custom') openHomeCustom();
+    else if(a==='diff') openDiffModal();
+    else if(a==='manual') openManual();
+    else if(a==='about') openAbout();
+    else if(a==='parent') showTab('parent');
+    else if(a==='newday') newDayReset();
+  });
+}
+/* 原本在首頁底部的「新的一天（重設功課）」，改版後收進設定選單 */
+function newDayReset(){
+  const c=C();
+  askConfirm('開始新的一天？<br><span class="hint">今日功課會重設為未完成。</span>', ()=>{
+    allHW().forEach(it=>c.homework[it.id]=false); c.homeworkDate=dateKey();
+    c.zombiePush=0; c.zombieDrift=0; c.plantHP=100; c.combo=0; c.routine={}; c.routineDate=dateKey(); save();
+    if(currentTab==='home') renderHome();
+  }, '開始新的一天');
+}
+</script>
 <script>
 /* ---------- 工具 ---------- */
 const $ = (s,r=document)=>r.querySelector(s);
@@ -839,7 +1244,7 @@ function flashSaved(){
   if(!_savedBadge){
     _savedBadge=document.createElement('div');
     _savedBadge.textContent='✅ 已儲存';
-    _savedBadge.style.cssText='position:fixed;right:12px;bottom:12px;z-index:99999;background:rgba(34,160,94,.94);color:#fff;font:600 13px/1.2 -apple-system,sans-serif;padding:7px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;pointer-events:none';
+    _savedBadge.style.cssText='position:fixed;right:12px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:99999;background:rgba(34,160,94,.94);color:#fff;font:600 13px/1.2 -apple-system,sans-serif;padding:7px 12px;border-radius:20px;box-shadow:0 3px 10px rgba(0,0,0,.25);opacity:0;transition:opacity .25s;pointer-events:none';
     document.body.appendChild(_savedBadge);
   }
   _savedBadge.style.opacity='1';
@@ -1354,13 +1759,18 @@ function openDiffModal(){
 let manualAutoShown=false; // 整個頁面生命週期內，說明書只自動彈一次（避免 hydrate 多次 renderHome 重複彈）
 /* 使用說明書 modal（新手引導 + 隨時查閱） */
 /* 說明書版本：內容有大改時 +1，老使用者會收到一次提醒 */
-const MANUAL_VER=2;
+const MANUAL_VER=3;   /* 3：2026-09-28 介面改版（分頁移到最下面、設定收進右上角齒輪） */
 function openManual(){
   if(document.querySelector('.modal-ov.manual-ov')) return; // 避免重複彈出
   const ov=document.createElement('div'); ov.className='modal-ov manual-ov';
   ov.innerHTML=`<div class="modal">
     <h2 style="text-align:center;margin:0 0 4px;">🌻 怎麼玩小花園？</h2>
     <p style="text-align:center;color:#8a7a55;font-size:13px;margin:0 0 12px;">3 分鐘搞懂，陪孩子一起守護植物！</p>
+    <div class="man-sec">
+      <h3>🧭 畫面在哪裡</h3>
+      <p>畫面<b>最下面</b>是四個分頁：小花園、讀書計劃、練習場、收藏。<br>
+      <b>右上角的齒輪</b>是設定：切換孩子、自訂首頁、功課難易度、音樂、怎麼玩、關於，還有「進入家長後台」。</p>
+    </div>
     <div class="man-sec">
       <h3>🎯 這款遊戲在幹嘛</h3>
       <p>把<b>寫功課</b>變成一場守護戰。孩子寫完真實的學校功課、請爸媽簽名，偷懶的拖延怪就會被打退，食蟲植物小花園平安長大。賺到的陽光可以解鎖植物、換真實獎勵。</p>
@@ -1374,8 +1784,8 @@ function openManual(){
     <div class="man-sec">
       <h3>🕹 每天這樣玩（3 步）</h3>
       <ol>
-        <li>在學校把功課寫完 → 首頁「今日功課」點該項 → 勾選確認項目 → 點「完成」申請簽名。</li>
-        <li>請爸媽打開「家長後台」→ 點「簽名完成」→ 立刻 <b>+30 陽光</b>、拖延怪後退！</li>
+        <li>在學校把功課寫完 → 首頁「今天的功課」點該項 → 勾選確認項目 → 點「完成」申請簽名。</li>
+        <li>請爸媽打開「家長後台」（首頁按「請家長簽名」，或右上角齒輪 →「進入家長後台」）→ 點「簽名完成」→ 立刻 <b>+30 陽光</b>、拖延怪後退！</li>
         <li>點戰場上任何一株植物 👉 發射露珠把拖延怪打退一點點，+1 互動陽光（隨手玩都行）。</li>
       </ol>
     </div>
@@ -1386,7 +1796,7 @@ function openManual(){
     <div class="man-sec">
       <h3>🎮 練習場 & 🏆 收藏</h3>
       <p>🎮 <b>練習場</b>：國語 / 數學 / 英文 / 知識答題，答對賺陽光；每天一場「每日小考」，星星越多拖延怪退越遠；答錯的題目會進「複習錯題」。<br>
-      🏆 <b>收藏</b>：花園圖鑑、徽章牆、家族排行榜，還有「獎勵商店」——用陽光兌換真實獎勵（如多看 10 分鐘動畫），兌換後請爸媽確認發放。</p>
+      🏆 <b>收藏</b>：植物圖鑑（點一下就能解鎖、上場）、徽章、家族排行榜、自訂題庫，還有「陽光兌換所」——用陽光兌換真實獎勵（如多看 10 分鐘動畫），兌換後請爸媽確認發放。</p>
     </div>
     <div class="man-sec">
       <h3>☀️ 陽光小提醒</h3>
@@ -1395,8 +1805,8 @@ function openManual(){
       • 連續每天完成功課有加碼；中斷會扣 10 陽光，先買一顆 🛡️ 護盾豆可以保住紀錄。</p>
     </div>
     <div class="man-sec">
-      <h3>👨‍👩‍👧 家長後台（在「🏆 收藏」裡）</h3>
-      <p>簽名功課、設定功課清單與每週作息、設定真實獎勵、訂家規扣分、看學習統計。<br>
+      <h3>👨‍👩‍👧 家長後台（右上角齒輪 →「進入家長後台」）</h3>
+      <p>分成六類：功課簽名、真實獎勵、孩子與功課、作息與家規、學習紀錄、密碼與備份。離開後台或 5 分鐘沒操作會自動上鎖。<br>
       🔐 預設密碼 <b>1234</b>，第一次進去請先改掉。<br>
       ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。</p>
     </div>
@@ -2594,7 +3004,7 @@ function toggleDeck(id){
     c.deck = deckIds(c).concat([id]);
     toast('🌿 '+p.nm+' 上場守護花園！');
   }
-  goodSound(); save(); renderHome();
+  goodSound(); save(); rerenderGardenView();
 }
 
 /* ================= 向量角色（取代 emoji）================= */
@@ -3629,7 +4039,7 @@ function updateZombie(unfinished){
   if(battle){ battle.querySelectorAll('.lp').forEach(d=>{ d.classList.remove('shake'); d.classList.remove('dead'); }); }
   const hol=isHolidayToday();
   if(hol){
-    z.style.left='94%'; z.style.right=''; z.className='zombie sleepy';
+    z.style.left='88%'; z.style.right=''; z.className='zombie sleepy';
     st.textContent='🎉 今天'+hol+'，拖延怪放假去囉！功課可以休息～'; st.style.color='#2e7d32';
     battle.classList.remove('danger','defeated');
     if(heartTimer){ clearTimeout(heartTimer); heartTimer=null; }
@@ -3638,7 +4048,7 @@ function updateZombie(unfinished){
     return;
   }
   if(c.plantHP<=0){
-    z.style.left='16%'; z.style.right=''; z.className='zombie mega';
+    z.style.left='30%'; z.style.right=''; z.className='zombie mega';
     st.textContent='💥 防線崩潰！植物被吃掉了…明天再戰！'; st.style.color='#c0392b';
     battle.classList.add('danger','defeated');
     battle.querySelectorAll('.lp').forEach(d=>{ d.classList.remove('shake'); d.classList.add('dead'); });
@@ -3649,7 +4059,7 @@ function updateZombie(unfinished){
     return;
   }
   if(unfinished===0){
-    z.style.left='94%'; z.style.right=''; z.className='zombie dazed';
+    z.style.left='88%'; z.style.right=''; z.className='zombie dazed';
     st.textContent='🎉 全部寫完！拖延怪被打退，植物安全！'; st.style.color='#2e7d32';
     battle.classList.remove('danger','defeated');
     if(heartTimer){ clearTimeout(heartTimer); heartTimer=null; }
@@ -3666,17 +4076,24 @@ function updateZombie(unfinished){
   const g = laneGeom();
   const pos = g.threat;                        // 0 = 完全跟上進度，1 = 時間用光卻沒做完
   c.zombieDrift = pos;                         // 保留欄位相容（現在由時間軸推導，不再自行累加）
-  z.style.left=g.zPct+'%'; z.style.right='';
+  /* 2026-09-28 戰場改版：植物防線跟著功課完成度往前推；拖延怪依時間壓力從右邊走過來，
+     走到防線的那一刻＝開始扣植物血（pos 0.55），之後停在防線前啃，不再穿過植物。
+     原本畫面上怪物要到 pos≈0.67 才碰到植物，但 0.55 就開始扣血，孩子看到植物掉血、怪物卻還很遠 */
+  const fP = 42 + g.doneR*20;
+  const approach = Math.min(1, pos/0.55);
+  const zVis = fP + 8 + (88 - fP - 8)*(1-approach);
+  z.style.left=zVis+'%'; z.style.right='';
   z.classList.toggle('mega', mega);
   z.classList.remove('dazed','sleepy');
-  // 防線：完成越多，植物陣線往外推得越遠（看得見的物理推進）
-  const defs=document.getElementById('homeDefenders'); if(defs) defs.style.width=g.fPct+'%';
-  const fl=document.getElementById('homeFront'); if(fl) fl.style.left=g.fPct+'%';
+  const defs=document.getElementById('homeDefenders'); if(defs){ defs.style.width=fP+'%'; defs.classList.toggle('many', defs.children.length>=4); }
+  const fl=document.getElementById('homeFront'); if(fl) fl.style.left=fP+'%';
+  if(_lastThreat!=null && pos < _lastThreat-0.04) knockbackZombie();
+  _lastThreat=pos;
   // 落後才會被啃：threat 超過 0.55 開始扣血，落後越多啃越兇（按真實秒數積分）
   if(pos>0.55){ c.plantHP=Math.max(0, c.plantHP-(pos-0.55)*(rushing?2.6:1.5)*(_dtSec/5)); }
   battle.classList.toggle('danger', pos>0.62);
   battle.classList.toggle('defeated', c.plantHP<=0);
-  const eatingNow = g.zPct <= g.fPct+4 && c.plantHP>0;
+  const eatingNow = pos>0.55 && c.plantHP>0;
   z.classList.toggle('eating', eatingNow);
   battle.querySelectorAll('.lp').forEach(d=> d.classList.toggle('shake', eatingNow));
   if(battleState!=='playing'){ battleState='playing'; battleDismissed=false; clearOverlay(); }
@@ -3732,19 +4149,25 @@ function renderTimeline(g){
     else { tag.className='lead-tag bad'; tag.textContent='⚠️ 落後 '+Math.abs(g.gapMin)+' 分鐘，拖延怪逼近中'; }
   }
 }
+let _lastThreat=null;
+function knockbackZombie(){
+  const z=$('#homeZombie'); if(!z) return;
+  for(let i=0;i<3;i++) setTimeout(shootPea, i*150);
+  setTimeout(()=>{ z.classList.add('knocked'); setTimeout(()=>z.classList.remove('knocked'),800); }, 380);
+}
 function pushZombie(amt){ const c=C(); c.zombiePush=Math.min(1.3,(c.zombiePush||0)+amt); save(); }
 function shootPea(){
   const battle=document.getElementById('homeBattle')||document.querySelector('.battle');
   if(!battle) return;
   const z=battle.querySelector('#homeZombie')||battle.querySelector('.zombie');
-  const plant=battle.querySelector('.lp')||battle.querySelector('.plant-def');
+  const lps=battle.querySelectorAll('.lp'); const plant=lps[lps.length-1]||battle.querySelector('.plant-def');
   if(!plant||!z) return;
-  const pea=document.createElement('div'); pea.textContent='🟢';
-  pea.style.cssText='position:absolute;font-size:20px;z-index:6;pointer-events:none;transition:left .35s linear,top .35s linear;';
+  const pea=document.createElement('div'); pea.className='pea';
+  pea.style.transition='left .35s linear,top .35s linear';
   battle.appendChild(pea);
   const br=battle.getBoundingClientRect(), pr=plant.getBoundingClientRect(), zr=z.getBoundingClientRect();
-  pea.style.left=(pr.left-br.left+12)+'px'; pea.style.top=(pr.top-br.top+14)+'px';
-  requestAnimationFrame(()=>{ pea.style.left=(zr.left-br.left+12)+'px'; pea.style.top=(zr.top-br.top+10)+'px'; });
+  pea.style.left=(pr.right-br.left-10)+'px'; pea.style.top=(pr.top-br.top+pr.height*0.3)+'px';
+  requestAnimationFrame(()=>{ pea.style.left=(zr.left-br.left+zr.width*0.35)+'px'; pea.style.top=(zr.top-br.top+zr.height*0.45)+'px'; });
   setTimeout(()=>pea.remove(),420);
 }
 /* 孩子主動操作瞬間：點防禦植物 → 發射露珠打退拖延怪（小額互動獎勵，受每日上限約束）。
@@ -3778,7 +4201,9 @@ function lawnPeaLoop(){
   const c=C();
   if(isHolidayToday() || c.plantHP<=0 || unfinishedCount()===0) return;
   const leftPct=parseFloat(z.style.left)||80;
-  if(leftPct<=14) return; // 已退到最左
+  const defs=document.getElementById('homeDefenders');
+  const frontPct=defs?(parseFloat(defs.style.width)||42):42;
+  if(leftPct-frontPct>30) return;   // 還沒走進射程，植物不會對著空氣發射
   shootPea();
   // 命中閃一下，但不自動推退（否則會抵消時間壓力）
   setTimeout(()=>{ const zz=document.getElementById('homeZombie'); if(zz){ zz.classList.add('hit'); setTimeout(()=>zz.classList.remove('hit'),200); } }, 380);
@@ -3787,7 +4212,7 @@ function lawnPeaLoop(){
 function lawnSunLoop(){
   const layer=document.getElementById('homeSunLayer'); if(!layer) return;
   if(layer.querySelectorAll('.falling-sun').length>=3) return;
-  const s=document.createElement('div'); s.className='falling-sun'; s.textContent='☀️';
+  const s=document.createElement('div'); s.className='falling-sun'; s.innerHTML=ICONS.sun;
   s.style.left=(10+Math.random()*78)+'%';
   s.onclick=()=>{
     addSun(5); goodSound();
@@ -4117,8 +4542,8 @@ function useEnergy(){
 function tickEnergy(){
   const b=$('#energyBtn'); if(!b) return;
   const left=Math.ceil((energyReadyAt-Date.now())/1000);
-  if(left>0){ b.disabled=true; b.textContent='💥 能量豆（'+left+'s）'; }
-  else { b.disabled=false; b.textContent='💥 能量豆大招'; }
+  if(left>0){ b.disabled=true; b.textContent='能量豆冷卻中（'+left+' 秒）'; }
+  else { b.disabled=false; b.textContent='能量豆大招：把拖延怪炸退一大段'; }
 }
 
 /* ---------- 睡覺後鎖定練習 ---------- */
@@ -4184,7 +4609,8 @@ function firstUnfinishedHW(){
 }
 function showTab(tab, hwId){
   /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
-  if(tab!=='parent') parentUnlocked=false;
+  if(tab!=='parent'){ parentUnlocked=false; parentCat=null; }
+  refreshSunCount();
   const _ec=C().eyeRestUntil;
   if(_ec && _ec>Date.now() && isEyeTab(tab)){ showEyeLock(_ec-Date.now()); return; }
   if(PRACTICE_TABS.includes(tab) && practiceLocked()){ renderLock(tab); return; }
@@ -4321,35 +4747,40 @@ function renderHomeworkCheck(hwId){
 
 /* 練習場入口（4 大類分組） */
 function renderPracticeHub(){
+  /* 2026-09-28 UI 改版：上面是今日挑戰（每日小考），下面四組科目，最後是複習錯題與測驗卷 */
+  const c=C(); const rec=(c.quizLog||{})[dateKey()];
   const groups=[
-    {title:'國語', icon:'📗', items:[['zhuyin','注音'],['readtest','閱讀測驗'],['social','社會'],['nature','自然']]},
-    {title:'數學', icon:'➕', items:[['math','數學'],['num','數感'],['logic','邏輯'],['coding','程式思維']]},
-    {title:'英文', icon:'🔤', items:[['enword','英文單字','🔤'],['engrammar','英文文法','📝'],['enreading','英文閱讀測驗','📖']]},
-    {title:'知識', icon:'🌍', items:[['life','生活常識'],['facts','百科'],['science','自然科學']]}
+    {title:'國語', sub:'注音、閱讀、社會自然', items:[['zhuyin','注音'],['readtest','閱讀測驗'],['social','社會'],['nature','自然']]},
+    {title:'數學', sub:'計算、數感與邏輯', items:[['math','數學'],['num','數感'],['logic','邏輯'],['coding','程式思維']]},
+    {title:'英文', sub:'單字、文法與閱讀', items:[['enword','英文單字','🔤'],['engrammar','英文文法','📝'],['enreading','英文閱讀','📖']]},
+    {title:'知識', sub:'生活、百科與科學', items:[['life','生活常識'],['facts','百科'],['science','自然科學']]}
   ];
-  let html='<div class="panel"><h2 class="title-sticker">🎮 練習場</h2><p class="hint">挑一個科目練習，答對賺陽光種植物！</p>';
-  groups.forEach(grp=>{
+  const grpHTML=groups.map(grp=>{
     const visible=grp.items.filter(([t])=>state.activeSubjects[t]!==false);
-    if(!visible.length) return;
-    html+=`<div class="home-sec home-module"><div class="module-heading"><div><p class="hint" style="margin:0;">${grp.title.toUpperCase()}</p><h2 style="font-size:17px;margin:2px 0 0;">${grp.icon} ${grp.title}</h2></div></div><div class="practice-grid">`;
-    visible.forEach(([t,n,ic])=>{
-      html+=`<button class="practice-card" data-tab="${t}"><div class="pc-ic">${ic||subjectIcon(t)}</div><div class="pc-nm">${escapeHtml(n||subjectName(t))}</div></button>`;
-    });
-    html+='</div></div>';
-  });
-  const reviewCount = dueReviews().length;
-  html+=`<div class="home-sec home-module bonus-group"><div class="module-heading"><div><p class="hint" style="margin:0;">EXTRA CREDIT</p><h2 style="font-size:17px;margin:2px 0 0;">⭐ 今日加分（有空再做）</h2></div></div><div class="practice-grid">
-    <button class="practice-card" id="phDq"><div class="pc-ic">⭐</div><div class="pc-nm">每日小考</div><div class="pc-tag">每天一回合</div></button>
-    <button class="practice-card" id="phRv"><div class="pc-ic">🔁</div><div class="pc-nm">複習錯題</div><div class="pc-tag">${reviewCount?reviewCount+' 題':'無錯題'}</div></button>
-    <button class="practice-card" id="phEx"><div class="pc-ic">📝</div><div class="pc-nm">測驗卷</div><div class="pc-tag">混合測驗</div></button>
-  </div></div>`;
-  html+='<div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="phHome">🌻 回小花園</button></div></div>';
-  app.innerHTML=html;
-  $$('.practice-card[data-tab]').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
-  const dq=$('#phDq'); if(dq) dq.onclick=renderDailyQuiz;
-  const rv=$('#phRv'); if(rv) rv.onclick=()=>{ if(!dueReviews().length){ toast('🎉 目前沒有錯題要複習！'); } else renderReviewDrill(); };
-  const ex=$('#phEx'); if(ex) ex.onclick=()=>showTab('exam');
-  const ph=$('#phHome'); if(ph) ph.onclick=()=>showTab('home');
+    if(!visible.length) return '';
+    return `<section class="card2 pgrp"><div class="card-head"><h2>${grp.title}</h2><span class="sub2">${grp.sub}</span></div>
+      <div class="pbtns">${visible.map(([t,n,ic])=>`<button class="pbtn" data-tab="${t}" type="button"><span class="pb-ic">${ic||subjectIcon(t)}</span><span>${escapeHtml(n||subjectName(t))}</span></button>`).join('')}</div></section>`;
+  }).join('');
+  const reviewCount=dueReviews().length;
+  app.innerHTML=`
+  <div class="page2">
+    <div class="greet"><h1>練習場</h1><p>挑一個科目練習，答對賺陽光種植物。</p></div>
+    <section class="card2 quest challenge">
+      <div class="ch-row"><div><div class="np-k">今日挑戰</div><h2>每日小考</h2>
+        <p>${rec?'今天拿到 <b class="stars">'+'★'.repeat(rec.stars||0)+'</b>（答對 '+rec.right+'/'+rec.total+'），可以再挑戰一次':'跨科混合 '+liveDiff().quiz+' 題，星星越多陽光越多'}</p></div>
+        <img class="ch-mon" src="assets/monsters/粗心大王/粗心大王_頭像.png" alt=""></div>
+      <button class="btn-primary" id="phDq" type="button">${rec?'再挑戰一次':'開始每日小考'}</button>
+    </section>
+    ${grpHTML}
+    <div class="quick2">
+      <button id="phRv" type="button">${ico('refresh')}<span>複習錯題<small>${reviewCount?reviewCount+' 題':'沒有錯題'}</small></span></button>
+      <button id="phEx" type="button">${ico('pencil')}<span>測驗卷<small>混合測驗</small></span></button>
+    </div>
+  </div>`;
+  $$('.pbtn[data-tab]').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
+  $('#phDq').onclick=renderDailyQuiz;
+  $('#phRv').onclick=()=>{ if(!dueReviews().length){ toast('🎉 目前沒有錯題要複習！'); } else renderReviewDrill(); };
+  $('#phEx').onclick=()=>showTab('exam');
 }
 
 /* 首頁「今日複習」：學校功課之外、今天到期（含逾期未補）的複習項目 */
@@ -4389,9 +4820,28 @@ function renderStudyPlan(){
   const doneCount=mine.filter(i=>i.done).length;
   const overdue=studyOverdue(c.id).length;
   const unsched=studyUnscheduled(c.id).length;
+  /* 2026-09-28 UI 改版：上半是孩子看的（考試倒數、本週打勾、今天清單），下半是爸媽的考試與科目設定 */
+  const today=dateKey();
+  const ne=examsOf(c.id).find(e=>examCountdown(e)>=0);
+  const dow=(new Date().getDay()+6)%7;
+  const week=[0,1,2,3,4,5,6].map(i=>{
+    const key=dateKey(i-dow); const items=mine.filter(it=>it.due===key); const done=items.filter(it=>it.done).length;
+    return {key, n:'一二三四五六日'[i], total:items.length, left:items.length-done};
+  });
+  const due=studyDueToday(c.id);
+  const td=new Date();
+  const kidHTML=`
+    <div class="greet"><h1>讀書計劃</h1><p>${ne?escapeHtml(ne.name)+'・'+(examCountdown(ne)===0?'就是今天':'還有 '+examCountdown(ne)+' 天'):'還沒設定考試。爸媽可以在下方新增考試，系統會排好每天要讀的進度。'}</p></div>
+    <section class="card2 quest">
+      <div class="card-head"><h2>本週</h2><span class="pill">${ico('checkCircle')}已完成 ${doneCount}/${mine.length}</span></div>
+      <div class="wk2">${week.map(d=>`<div class="wd${d.key===today?' today':''}${d.total&&!d.left?' done':''}"><span class="wd-n">${d.n}</span><span class="wd-c">${!d.total?'<span class="wd-none">·</span>':!d.left?ico('checkCircle'):d.left}</span></div>`).join('')}</div>
+      <h3 class="today-h">今天・${td.getMonth()+1} 月 ${td.getDate()} 日</h3>
+      ${due.length?due.map(it=>`<label class="plan-row2${it.due<today?' late':''}"><input type="checkbox" data-hsid="${it.id}"><span class="pr2-t">${escapeHtml(studyItemLabel(it))}</span><small>${it.due<today?'逾期・':''}+${studyNextSun()} 陽光</small></label>`).join(''):'<p class="muted2">今天沒有要讀的項目。</p>'}
+    </section>
+    <h2 class="sec2">考試與科目設定（爸媽）</h2>`;
   app.innerHTML=`
-  <div class="panel">
-    <h2 class="title-sticker">📅 ${escapeHtml(c.name||'我')}的讀書計劃</h2>
+  <div class="page2 plan2">
+    ${kidHTML}
     <p class="hint">學校功課以外的自修／測驗卷／評量進度。設定考試日期與範圍，系統會自動幫你往回推該哪天讀哪一課。做完一項 +${STUDY_ITEM_SUN} 陽光（每天前 ${STUDY_FULL_COUNT} 項全額，之後每項 ${STUDY_ITEM_SUN_LOW} 陽光）。</p>
     <div id="examZone"></div>
     <div class="plan-toolbar">
@@ -4408,6 +4858,7 @@ function renderStudyPlan(){
     <div id="planBody"></div>
   </div>`;
   paintExamZone();
+  $$('.plan-row2 input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderStudyPlan(); }; });
   $$('.plan-tab').forEach(b=> b.onclick=()=>{ planView=b.dataset.pv; renderStudyPlan(); });
   if(planView==='week') paintPlanWeek(); else paintPlanSubject();
 }
@@ -4644,7 +5095,7 @@ function askConfirm(msg, onYes, yesLabel){
     <h3>請確認</h3>
     <p style="line-height:1.8;margin:10px 0 0;">${msg}</p>
     <div style="display:flex;gap:10px;margin-top:16px;">
-      <button class="next-btn" id="acYes" style="flex:1;">${yesLabel||'確定刪除'}</button>
+      <button class="${/刪除|清空|清除|歸零/.test(yesLabel||'確定刪除')?'btn-danger':'next-btn'}" id="acYes" style="flex:1;">${yesLabel||'確定刪除'}</button>
       <button class="reset-btn" id="acNo" style="flex:1;">取消</button>
     </div>
   </div>`;
@@ -5235,40 +5686,71 @@ function openExamModal(examId){
   };
 }
 /* 收藏入口 */
+/* 2026-09-28 UI 改版：收藏頁直接顯示植物圖鑑（解鎖／上場），下面是徽章、家族排行榜、自訂題庫。
+   原本三個入口都是跳回首頁找對應區塊 */
+function leaderboardHTML(){
+  return state.children.slice().sort((a,b)=>b.sun-a.sun).map((ch,i)=>{
+    const list=hwListOf(ch).filter(it=> state.activeSubjects[it.type]===true );
+    const done=list.filter(it=>ch.homework[it.id]===true).length;
+    return `<div class="rank2${ch.id===state.activeChildId?' me':''}"><span class="rk-n">${i+1}</span><span class="rk-nm">${escapeHtml(ch.name||'孩子')}</span><span class="rk-v">${ico('sun')}${ch.sun}</span><span class="rk-v">${ico('checkCircle')}${done}/${list.length}</span></div>`;
+  }).join('');
+}
 function renderCollection(){
   const c=C();
   const owned=ownedPlantCount(c);
-  const badgeCount=BADGES.filter(b=>c.badges && c.badges[b.id]).length;
+  const next=GARDEN_PLANTS.find(p=>!c.garden[p.id]);
+  const badgeGot=BADGES.filter(b=>c.badges&&c.badges[b.id]).length;
+  const nextHTML = next ? `
+    <section class="card2 quest next-plant">
+      <div class="np-art">${plantSVG(next.id)}</div>
+      <div class="np-txt"><div class="np-k">下一株</div><h2>${escapeHtml(next.nm)}</h2>
+        <p>${c.sun>=next.need?'陽光夠了！點下面的「'+escapeHtml(next.nm)+'」就能解鎖':'再累積 <b>'+(next.need-c.sun)+'</b> 陽光就能解鎖（需要 '+next.need+'）'}</p>
+        <div class="qbar" role="progressbar" aria-label="解鎖進度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.min(100,Math.round(c.sun/next.need*100))}"><i style="width:${Math.min(100,Math.round(c.sun/next.need*100))}%"></i></div></div>
+    </section>` : `
+    <section class="card2 quest"><div class="card-head"><h2>8 種植物全部解鎖了！</h2></div><p style="margin:0;">從下面挑 ${MAX_PLANTS} 盆上場守護花園，其他的在溫室休息。</p></section>`;
+  const plants=GARDEN_PLANTS.map(p=>{
+    const own=!!c.garden[p.id], on=own&&inDeck(c,p.id), can=!own&&c.sun>=p.need;
+    const st=on?'守護中・點我回溫室':own?'在溫室・點我上場':can?'可以解鎖':p.need+' 陽光解鎖';
+    return `<button class="plant2 ${own?'own':'locked'}${on?' on':''}${can?' can':''}" data-pid="${p.id}"><span class="p2-art">${plantSVG(p.id)}</span><span class="p2-nm">${escapeHtml(p.nm)}</span><span class="p2-st">${on?ico('shield'):''}${st}</span></button>`;
+  }).join('');
   app.innerHTML=`
-  <div class="panel">
-    <h2 class="title-sticker">🏆 收藏</h2>
-    <p class="hint">看看你累積的成就與收藏！</p>
-    <div class="collect-grid">
-      <button class="collect-card" id="cGarden"><div class="cc-icon">🌿</div><div class="cc-title">花園圖鑑</div><div class="cc-sub">${owned}/${GARDEN_PLANTS.length} 解鎖</div></button>
-      <button class="collect-card" id="cBadge"><div class="cc-icon">🏅</div><div class="cc-title">徽章牆</div><div class="cc-sub">${badgeCount}/${BADGES.length} 收集</div></button>
-      <button class="collect-card" id="cRank"><div class="cc-icon">🏆</div><div class="cc-title">家族排行榜</div><div class="cc-sub">${state.children.length} 人競賽</div></button>
-      <button class="collect-card" id="cShop"><div class="cc-icon">🎁</div><div class="cc-title">獎勵商店</div><div class="cc-sub">花陽光換獎勵</div></button>
-      <button class="collect-card" id="cCustom"><div class="cc-icon">📚</div><div class="cc-title">自訂題庫</div><div class="cc-sub">家長專區</div></button>
-      <button class="collect-card" id="cParent"><div class="cc-icon">👨‍👩‍👧</div><div class="cc-title">家長後台</div><div class="cc-sub">設定與統計</div></button>
-    </div>
-    <div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="clHome">🌻 回小花園</button></div>
+  <div class="page2">
+    <div class="greet"><h1>我的食蟲植物</h1><p>已解鎖 ${owned}/${GARDEN_PLANTS.length} 種，上場守護 ${deckIds(c).length}/${MAX_PLANTS} 盆。</p></div>
+    ${nextHTML}
+    <div class="plant-grid2">${plants}</div>
+    <button class="btn-primary" id="goShop" type="button">前往陽光兌換所</button>
+    <section class="card2"><div class="card-head"><h2>我的徽章</h2><span class="pill">${badgeGot}/${BADGES.length}</span></div><div class="badge-wall2">${badgesHTML()}</div></section>
+    ${state.children.length>1?`<section class="card2"><div class="card-head"><h2>家族排行榜</h2></div>${leaderboardHTML()}</section>`:''}
+    <button class="entry2" id="goCustom" type="button">${ico('book')}<span><b>自訂題庫</b><small>爸媽出的練習題</small></span>${ico('chevron','chev')}</button>
   </div>`;
-  $('#cGarden').onclick=()=>{ homeFocus='garden'; showTab('home'); };
-  $('#cBadge').onclick=()=>{ homeFocus='badge'; showTab('home'); };
-  $('#cRank').onclick=()=>{ homeFocus='rank'; showTab('home'); };
-  $('#cShop').onclick=()=>showTab('shop');
-  $('#cCustom').onclick=()=>showTab('custom');
-  $('#cParent').onclick=()=>showTab('parent');
-  $('#clHome').onclick=()=>showTab('home');
+  $$('.plant2[data-pid]').forEach(b=>b.onclick=()=>gardenPlantClick(plantById(b.dataset.pid)));
+  $('#goShop').onclick=()=>showTab('shop');
+  $('#goCustom').onclick=()=>showTab('custom');
 }
+/* 植物圖鑑的點擊：沒解鎖就用陽光解鎖、已解鎖就上場／回溫室。首頁與收藏頁共用 */
+function gardenPlantClick(p){
+  if(!p) return;
+  const c=C();
+  if(c.garden[p.id]){ toggleDeck(p.id); return; }
+  if(c.sun>=p.need){
+    addSun(-p.need); c.garden[p.id]=true;
+    if(!Array.isArray(c.deck)) c.deck=[];
+    if(deckIds(c).length<MAX_PLANTS) c.deck=deckIds(c).concat([p.id]);   // 有空位就直接上場
+    save(); goodSound(); sunBurstAt(window.innerWidth/2, window.innerHeight*0.4);
+    toast('🌻 用 '+p.need+' 陽光解鎖了 '+p.nm+'！'); rerenderGardenView();
+  }
+  else { badSound(); toast('還需要 '+(p.need-c.sun)+' 陽光才能解鎖 '+p.nm); }
+}
+/* 在哪一頁操作植物就重畫哪一頁（原本一律重畫首頁，在收藏頁點會跳走） */
+function rerenderGardenView(){ refreshSunCount(); if(currentTab==='collection') renderCollection(); else renderHome(); }
 
 /* 開場引導：名字 → 4 張世界觀引導卡（含進度點） */
 function renderOnboarding(){
   const TOUR=[
     { e:'🌻', t:'這是你的小花園', b:'你種下的食蟲植物，會一起對抗想偷走專注力的「拖延怪」。把牠們打退，花園就長得越好！' },
     { e:'✍️', t:'寫功課 → 賺陽光', b:'完成今天的功課並請爸媽簽名，就能獲得陽光；簽名前，也可以點首頁的植物「發射露珠」把拖延怪打退！' },
-    { e:'🎁', t:'陽光換真獎勵', b:'把陽光存起來，到「獎勵商店」兌換爸媽設定的獎勵。小獎便宜、大獎要存很久——這就是存錢的樂趣！' },
-    { e:'🚀', t:'準備出發！', b:'隨時點首頁的「❓ 怎麼玩」都能再看說明書。現在，去種下你的第一朵花吧 🌱' }
+    { e:'🎁', t:'陽光換真獎勵', b:'把陽光存起來，到「收藏」的陽光兌換所換爸媽設定的獎勵。小獎便宜、大獎要存很久——這就是存錢的樂趣！' },
+    { e:'🚀', t:'準備出發！', b:'隨時點右上角的齒輪 →「怎麼玩」都能再看說明書。現在，去種下你的第一朵花吧 🌱' }
   ];
   let step = C().name ? 1 : 0;
   function paint(){
@@ -5313,13 +5795,16 @@ function renderOnboarding(){
 }
 
 /* 小花園首頁 */
+/* 頂列的陽光是全站唯一的陽光數字，換分頁、換孩子、重畫首頁都要更新（原本只在陽光變動時才更新，打開 App 會顯示 0） */
+function refreshSunCount(){ const c=C(); if(c) $$('.sunCount').forEach(e=>e.textContent=c.sun); }
 function renderHome(){
+  refreshSunCount();
   ensureSchedule();
   if(!manualAutoShown && !state.seenManual && !state.seenTour){ manualAutoShown=true; state.seenManual=true; state.manualSeenVer=MANUAL_VER; save(); setTimeout(()=>{ if(typeof openManual==='function') openManual(); },1000); }
   /* 說明書有大改版時提醒老使用者一次（首裝那次不提醒，因為剛看過） */
   else if(!manualAutoShown && state.seenManual && (state.manualSeenVer||1) < MANUAL_VER){
     manualAutoShown=true; state.manualSeenVer=MANUAL_VER; save();
-    setTimeout(()=>toast('📖 說明書更新了：新增讀書計劃、扣分項等內容，點首頁「❓ 怎麼玩」看看', 5000), 1200);
+    setTimeout(()=>toast('🌻 小花園換新介面了！分頁移到畫面最下面，設定、怎麼玩、家長後台都在右上角的齒輪裡', 6500), 1200);
   }
   const c=C();
   const finished = visibleHW().filter(it=>c.homework[it.id]===true).length;
@@ -5338,18 +5823,17 @@ function renderHome(){
       <span>☀️ ${ch.sun}</span><span>✅ ${done}/${list.length}</span></div>`;
   }).join('');
   const HM = state.homeModules;
+  const pendingN = visibleHW().filter(it=>c.homework[it.id]==='pending').length;
+  const nextSunText = pendingN ? '請爸媽簽名：每簽 1 項功課 +30 陽光，拖延怪大幅後退'
+    : unfinished ? '寫完功課、請爸媽簽名：每項 +30 陽光'
+    : '今天的功課都完成了！點植物發射露珠，每次 +1 陽光';
   const secZombie = HM.zombie ? `
-    <div class="home-sec battle-card" id="secZombieBox" style="animation-delay:.05s;">
-      <div class="module-heading">
-        <div><p class="hint" style="margin:0;">DAILY DEFENSE</p><h2 style="font-size:17px;margin:2px 0 0;">🛡 今日守護戰</h2></div>
-        <div class="battle-condition-row">
-          <span class="shield-badge">🛡 護盾豆 × ${c.streakShields||0}</span>
-          <span class="holiday-badge-sm">${hol?'🎉 假日模式':'📅 平日模式'}</span>
-        </div>
-      </div>
-      <div class="threat-label">⏰ 拖延怪倒數：每天 ${r.wake} 起床後出發，${r.sleep} 睡覺前寫完就能打退牠！你的植物會自動發射露珠保衛花園，點掉下來的 ☀️ 還能收集陽光！</div>
+    <section class="card2 battle2 battle-card" id="secZombieBox">
+      <div class="card-head"><h2><img class="mon-avatar" src="assets/monsters/拖延怪/拖延怪_頭像.png" alt="">拖延怪戰場</h2>
+        <span class="pill">${ico('shield')}護盾豆 ${c.streakShields||0}</span></div>
+      <p style="margin:0 0 8px;font-size:13px;color:var(--muted);">${hol?'今天放假，拖延怪不會前進。':'拖延怪 '+r.wake+' 出發，'+r.sleep+' 睡覺前寫完功課就能打退牠。點植物可以發射露珠。'}</p>
       <div class="battle lawn-battle" id="homeBattle">
-        <div class="house">🏠</div>
+        <div class="house"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="42" y="12" width="7" height="12" rx="1.5" fill="#b9573d"/><path d="M6 31L32 9l26 22" fill="#e98568" stroke="#b9573d" stroke-width="2.5" stroke-linejoin="round"/><rect x="12" y="29" width="40" height="29" rx="3" fill="#fff6e2" stroke="#c9a36a" stroke-width="2"/><rect x="27" y="40" width="11" height="18" rx="5" fill="#2f6f4e"/><circle cx="35" cy="50" r="1.2" fill="#f2b83f"/><rect x="16" y="35" width="8" height="8" rx="1.5" fill="#cfe8f3" stroke="#7aa7b8" stroke-width="1.5"/><rect x="42" y="35" width="7" height="8" rx="1.5" fill="#cfe8f3" stroke="#7aa7b8" stroke-width="1.5"/><ellipse cx="14" cy="58" rx="7" ry="4.5" fill="#6aa84f"/><ellipse cx="51" cy="58" rx="7" ry="4.5" fill="#6aa84f"/></svg></div>
         <div class="lane"></div>
         <div class="frontline" id="homeFront" style="left:46%;"></div>
         <div class="defenders" id="homeDefenders"></div>
@@ -5357,21 +5841,20 @@ function renderHome(){
         <div class="sun-layer" id="homeSunLayer"></div>
         <div class="battle-overlay" id="battleOverlay"></div>
       </div>
-      <div style="text-align:center;margin:4px 0 2px;color:#d98a00;font-weight:800;font-size:14px;">👆 點植物可以發射露珠，把拖延怪打退！</div>
       <div class="timeline" id="homeTimeline"></div>
-      <div style="text-align:center;margin-top:6px;"><span class="lead-tag warn" id="leadTag">⏱ 計算中…</span></div>
-      <div class="hp-wrap"><span>🌻 植物血量</span><div class="hp-bar"><i id="hpFill"></i></div></div>
-      <div style="text-align:center;margin-top:8px;"><button class="next-btn" id="energyBtn">💥 能量豆大招</button></div>
-      <div id="zStatus" style="font-weight:800;margin:8px 0;"></div>
-      <div class="monster-state-panel">
-        <div class="module-heading"><div><p class="hint" style="margin:0;">MONSTER STATUS</p><h2 style="font-size:15px;margin:2px 0 0;">敵人狀態</h2></div></div>
+      <div style="text-align:center;margin-top:6px;"><span class="lead-tag warn" id="leadTag">計算中…</span></div>
+      <div class="hp-wrap"><span>植物血量</span><div class="hp-bar"><i id="hpFill"></i></div></div>
+      <div id="zStatus" style="font-weight:600;margin:8px 0;font-size:15px;"></div>
+      <div class="reward-line">${ico('sun')}<span>${nextSunText}</span></div>
+      <div style="margin-top:12px;"><button class="btn-secondary" id="energyBtn">能量豆大招：把拖延怪炸退一大段</button></div>
+      <details><summary>認識三隻怪物</summary>
         <div class="monster-state-list">
           <div class="monster-state-item active"><img src="assets/monsters/拖延怪/拖延怪_頭像.png" alt="拖延怪"><div><strong>拖延怪</strong><span>日常逼近．被任務推退</span></div><b>目前</b></div>
           <div class="monster-state-item"><img src="assets/monsters/粗心大王/粗心大王_頭像.png" alt="粗心大王"><div><strong>粗心大王</strong><span>連續答錯 2 題時出現</span></div><b>答錯觸發</b></div>
           <div class="monster-state-item"><img src="assets/monsters/週末魔王/週末魔王_頭像.png" alt="週末魔王"><div><strong>週末魔王</strong><span>週六日限定．完成簽核可加碼</span></div><b>週末 Boss</b></div>
         </div>
-      </div>
-    </div>` : '';
+      </details>
+    </section>` : '';
   const secRoutine = HM.routine ? `
     <div class="home-sec home-module routine-card" id="secRoutineBox" style="animation-delay:.12s;">
       <div class="module-heading"><div><p class="hint" style="margin:0;">DAILY RHYTHM</p><h2 style="font-size:17px;margin:2px 0 0;">🕐 今日作息（${['星期一','星期二','星期三','星期四','星期五','星期六','星期日'][todayWeekdayIndex()]}）</h2></div></div>
@@ -5421,64 +5904,55 @@ function renderHome(){
      而那是首頁第 6 個區塊，要捲很久才看得到 */
   const overdueCount = studyOverdue(c.id).length;
   const overdueBanner = overdueCount ? `
-    <button class="overdue-banner" id="goOverdue">
-      <span style="font-size:24px;">⏰</span>
-      <span style="flex:1;"><b>有 ${overdueCount} 項讀書計劃還沒做</b>
-        <span>已經過了預定日期。點我去看，可以一鍵重新安排到考試前。</span></span>
-      <span class="ob-go">›</span>
+    <button class="alert2" id="goOverdue">${ico('clock')}
+      <span style="flex:1;"><b>有 ${overdueCount} 項讀書計劃還沒做</b>已經過了預定日期。點我去看，可以一鍵重新安排到考試前。</span>
+      ${ico('chevron')}
     </button>` : '';
   /* 被扣分要講清楚原因。陽光無聲無息變少，孩子只會以為是程式壞掉 */
   const pensToday = todayPenalties(c.id);
   const penaltyBanner = pensToday.length ? `
-    <div class="overdue-banner" style="cursor:default;">
-      <span style="font-size:24px;">⚠️</span>
+    <div class="alert2">${ico('alert')}
       <span style="flex:1;"><b>今天被扣了 ${pensToday.reduce((s,p)=>s+p.actual,0)} 陽光</b>
         <span>${pensToday.map(p=>escapeHtml((p.emoji||'⚠️')+' '+p.name+'（－'+p.actual+'）')).join('　')}</span></span>
     </div>` : '';
+  /* 2026-09-28 UI 改版：問候 → 提醒 → 主線任務（今天功課＋下一步＋一個主要按鈕）→ 戰場 → 快捷入口 → 其餘區塊 */
+  const total=visibleHW().length;
+  const nextHW=firstUnfinishedHW();
+  const hr=new Date().getHours();
+  const hello= hr<5?'晚安':hr<11?'早安':hr<18?'午安':'晚安';
+  const tip = hol ? '今天放假，功課可以休息，自由練習照樣能賺陽光。'
+    : total===0 ? '還沒有設定今天的功課，可以請爸媽到家長後台設定。'
+    : finished===total ? '今天的功課都完成了，拖延怪打不進來！'
+    : (!nextHW && pendingN) ? '功課都寫完了，請爸媽簽名就能打退拖延怪。'
+    : '還有 '+(total-finished-pendingN)+' 項功課沒寫'+(pendingN?'、'+pendingN+' 項等爸媽簽名':'')+'，全部簽完就能打退拖延怪。';
+  let ctaText, ctaAct, nextLine;
+  if(nextHW){ ctaText=(finished+pendingN===0)?'開始寫功課':'繼續完成作業'; ctaAct='tasks'; nextLine='下一步：<b>'+escapeHtml(displayHWName(nextHW))+'</b>'; }
+  else if(pendingN){ ctaText='請家長簽名（'+pendingN+' 項）'; ctaAct='sign'; nextLine='寫完的功課要請爸媽在家長後台簽名，才算完成。'; }
+  else if(studyDueCount){ ctaText='去做讀書計劃（'+studyDueCount+' 項）'; ctaAct='plan'; nextLine='功課都完成了，接著做今天的讀書計劃。'; }
+  else { ctaText='今天都完成了，去練習場'; ctaAct='practice'; nextLine='想多賺陽光，可以去練習場答題。'; }
+  const chips=visibleHW().map(it=>{
+    const v=c.homework[it.id]; const st=v===true?'done':v==='pending'?'pending':'todo';
+    return `<li><button class="hw-chip ${st}" data-hw="${escapeHtml(it.id)}" ${st==='done'?'disabled':''}>${ico(st==='done'?'checkCircle':st==='pending'?'clock':'circle')}<span>${escapeHtml(displayHWName(it))}</span><small>${st==='done'?'已完成':st==='pending'?'等簽名':'還沒寫'}</small></button></li>`;
+  }).join('');
   app.innerHTML = `
-  <div class="panel">
-    <h2 class="title-sticker">🌻 ${escapeHtml(name)} 的小花園</h2>
-    <p class="hint">把今天的功課都寫完（請爸媽簽名），拖延怪就會被打退，植物就安全囉！陽光會一直累積，除非超時或違規被扣。</p>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-      <div class="sun-box" style="position:static;display:inline-flex;margin:0;">
-        <span class="sun-emoji">☀️</span><span class="sunCount">${c.sun}</span> 陽光</div>
-      <span class="stat">👦 切換孩子</span>
-      <select id="profileSel" class="profile-sel">${profileOpts}</select>
-      <span class="stat" style="color:#2e7d32;font-weight:800;">🎚 ${diffLabel()}${liveDiffNote()}</span>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-      <button class="reset-btn" id="homeCustomBtn">⚙️ 自訂首頁顯示</button>
-      <button class="reset-btn" id="homeManualBtn">❓ 怎麼玩</button>
-      <button class="reset-btn" id="homeAboutBtn">ℹ️ 關於</button>
-      <button class="reset-btn" id="homeDiffBtn">🎚 功課難易度</button>
-      <button class="reset-btn" id="bgmBtn">${state.bgm?'🎵 音樂：開':'🎵 音樂：關'}</button>
-    </div>
-    ${banner}
+  <div class="home2">
+    <div class="greet"><h1>${escapeHtml(name)}，${hello}！</h1><p>${tip}</p></div>
+    ${hol?`<div class="alert2 holiday">${ico('flag')}<span style="flex:1;"><b>今天是「${escapeHtml(hol)}」</b>學校功課可以休息，自由練習照樣能賺陽光。</span></div>`:''}
     ${penaltyBanner}
     ${overdueBanner}
+    <section class="card2 quest" id="questCard">
+      <div class="card-head"><h2>今天的功課</h2><span class="pill">${ico('checkCircle')}已完成 ${finished}/${total}</span></div>
+      <div class="qbar" role="progressbar" aria-label="今天功課完成度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${hwPct}"><i style="width:${hwPct}%"></i></div>
+      <ul class="hw-chips">${chips}</ul>
+      <p class="next-step">${nextLine}</p>
+      <button class="btn-primary" id="ctaStart">${ctaText}</button>
+      <div class="quest-foot"><span class="pill">${ico('flame')}連續 ${c.streak||0} 天</span><span class="pill">${ico('sliders')}${escapeHtml(diff().name)}</span></div>
+      ${studyTodayHTML(c)}
+    </section>
     ${secZombie}
-    <div class="progress-card-row">
-      <div>
-        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;margin-bottom:5px;">
-          <span>📝 今日功課</span><span style="color:#2e8b40;">${finished}/${visibleHW().length} 完成</span>
-        </div>
-        <div style="height:12px;background:#ece0c4;border-radius:8px;overflow:hidden;">
-          <div style="height:100%;width:${hwPct}%;background:linear-gradient(90deg,#7dc855,#4ea63b);transition:width .5s;"></div>
-        </div>
-        <button class="cta-hero" id="ctaStart">${hasUnfinished?'⚔️ 開始打怪 ▶':(studyDueCount?'📚 功課寫完了，換讀書計劃 ▶':'🎉 今天都完成了，自由練習 ▶')}</button>
-        ${studyTodayHTML(c)}
-      </div>
-      <div class="home-module">
-        <div class="module-heading"><div><p class="hint" style="margin:0;">TODAY'S FOCUS</p></div></div>
-        <div style="text-align:center;">
-          <div style="font-size:30px;font-weight:900;color:var(--leaf-dark);">${hwPct}<small style="font-size:16px;">%</small></div>
-          <div style="font-size:12px;color:var(--muted);">今日完成度</div>
-        </div>
-        <div class="progress-resources">
-          <div class="resource-stat"><span class="resource-icon streak-icon">連</span><div><strong>${c.streak||0} 天</strong><small>目前連勝</small></div></div>
-          <div class="resource-stat"><span class="resource-icon shield-icon">盾</span><div><strong>${c.streakShields||0} 顆</strong><small>護盾豆</small></div></div>
-        </div>
-      </div>
+    <div class="quick2">
+      <button id="qkToday" type="button">${ico('book')}今天功課</button>
+      <button id="qkGarden" type="button">${ico('sprout')}花園收藏</button>
     </div>
     ${secGarden}
     <div class="home-module-grid">
@@ -5486,9 +5960,6 @@ function renderHome(){
       ${secBadge}
       ${secLeader}
       ${secSchedule}
-    </div>
-    <div class="home-sec" style="text-align:center;margin-top:14px;">
-      <button class="reset-btn" id="newDay">🔄 新的一天（重設功課）</button>
     </div>
   </div>`;
   if(HM.schedule) attachSchedule();
@@ -5523,17 +5994,7 @@ function renderHome(){
         : `<div class="g-tag">☀️ ${p.need} 解鎖</div>`;
       pot.innerHTML=`<div class="pl">${plantSVG(p.id)}</div><div class="nm">${p.nm}</div>${tag}`;
       if(!owned) pot.style.filter='grayscale(1) opacity(.55)';
-      pot.onclick=()=>{
-        if(owned){ toggleDeck(p.id); return; }
-        if(c.sun>=p.need){
-          addSun(-p.need); c.garden[p.id]=true;
-          if(!Array.isArray(c.deck)) c.deck=[];
-          if(deckIds(c).length<MAX_PLANTS) c.deck=deckIds(c).concat([p.id]);   // 有空位就直接上場
-          save(); goodSound(); sunBurstAt(window.innerWidth/2, window.innerHeight*0.4);
-          toast('🌻 用 '+p.need+' 陽光解鎖了 '+p.nm+'！'); renderHome();
-        }
-        else { badSound(); toast('還需要 '+(p.need-c.sun)+' 陽光才能解鎖 '+p.nm); }
-      };
+      pot.onclick=()=>gardenPlantClick(p);
       g.appendChild(pot);
     });
   }
@@ -5556,10 +6017,17 @@ function renderHome(){
   updateClock();
   /* 優先序：學校功課 → 讀書計劃 → 練習場（加分） */
   const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{
-    if(hasUnfinished) renderTodayTasks();
-    else if(studyDueCount) showTab('plan');
+    if(ctaAct==='tasks') renderTodayTasks();
+    else if(ctaAct==='sign'){ showTab('parent'); parentCat='sign'; }
+    else if(ctaAct==='plan') showTab('plan');
     else showTab('practice');
   };
+  $$('.hw-chip[data-hw]').forEach(b=>b.onclick=()=>{
+    const v=c.homework[b.dataset.hw]; if(v===true) return;
+    if(v==='pending') renderTodayTasks(); else renderHomeworkCheck(b.dataset.hw);
+  });
+  const qt=$('#qkToday'); if(qt) qt.onclick=renderTodayTasks;
+  const qg=$('#qkGarden'); if(qg) qg.onclick=()=>{ const el=$('#secGardenBox'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); else showTab('collection'); };
   $$('input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderHome(); }; });
   const gob=$('#goOverdue'); if(gob) gob.onclick=()=>showTab('plan');
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
@@ -7271,8 +7739,9 @@ function renderShop(){
 
 /* ---------- 家長後台 ---------- */
 let parentUnlocked=false, _parentLastAct=0;
+let parentCat=null;   /* 2026-09-28 UI 改版：家長後台先顯示分類卡片，點進去才看該類設定；null＝分類總覽 */
 const PARENT_IDLE_MS=5*60*1000;
-function lockParent(){ if(!parentUnlocked) return; parentUnlocked=false; if(currentTab==='parent') renderParent(); }
+function lockParent(){ if(!parentUnlocked) return; parentUnlocked=false; parentCat=null; if(currentTab==='parent') renderParent(); }
 ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{ if(parentUnlocked) _parentLastAct=Date.now(); },true));
 document.addEventListener('visibilitychange',()=>{ if(document.hidden) lockParent(); });
 setInterval(()=>{ if(parentUnlocked && Date.now()-_parentLastAct>PARENT_IDLE_MS) lockParent(); }, 30*1000);
@@ -7296,9 +7765,8 @@ function findPendingRedemption(rewardId){
 function renderParent(){
   if(!parentUnlocked){
     app.innerHTML = `
-    <div class="panel">
-      <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
-      <p class="hint">這裡記錄孩子的學習狀況、設定真實獎勵，需要家長密碼才能查看。</p>
+    <div class="page2 parent2">
+      <div class="parent-hero"><span class="ph-tag">${ico('key')}家長後台</span><h2>請輸入家長密碼</h2><p>這裡是大人的操作區：簽名、獎勵、家規與設定。</p></div>
       <div style="text-align:center;padding:14px 0;">
         <input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="請輸入密碼"
           style="font-size:24px;text-align:center;padding:12px;border-radius:12px;border:2px solid #c9b98a;width:200px;">
@@ -7491,10 +7959,27 @@ function renderParent(){
 獎勵：${rewardText}
 每週作息：平日 起床 ${state.weekRoutine[0].wake} → 睡覺 ${state.weekRoutine[0].sleep}；週末 起床 ${state.weekRoutine[5].wake} → 睡覺 ${state.weekRoutine[5].sleep}`;
 
+  const PCATS=[
+    {k:'sign', t:'今日功課與簽名', d: (()=>{ const n=allHW().filter(it=>c.homework[it.id]==='pending').length; return n?'待確認 '+n+' 件':'沒有待簽名的功課'; })(), warn: allHW().some(it=>c.homework[it.id]==='pending')},
+    {k:'rewards', t:'真實獎勵與兌換', d: (()=>{ const n=(state.redemptions||[]).filter(r=>r.status==='pending').length; return n?'申請中 '+n+' 件':'設定獎勵、處理兌換'; })(), warn: (state.redemptions||[]).some(r=>r.status==='pending')},
+    {k:'setup', t:'孩子、功課與題庫', d: state.children.length+' 位孩子・今日功課 '+allHW().length+' 項'},
+    {k:'rules', t:'作息與家規', d:'每週作息、超時扣分、自訂扣分項、放假'},
+    {k:'stats', t:'學習紀錄', d:'正確率 '+acc+'%・今天練習 '+fmt(todaySec)},
+    {k:'security', t:'密碼、安全與備份', d: state.parentPIN==='1234'?'還在用預設密碼，建議修改':'睡覺鎖'+(state.sleepLock?'開':'關')+'・護眼鎖'+(state.eyeRestOn?'開':'關'), warn: state.parentPIN==='1234'}
+  ];
+  if(parentCat && !PCATS.some(p=>p.k===parentCat)) parentCat=null;
+  const curCat=PCATS.find(p=>p.k===parentCat);
   app.innerHTML = `
-  <div class="panel">
-    <h2 class="title-sticker">👨‍👩‍👧 家長後台</h2>
-    <p class="hint">孩子的學習狀況與獎勵設定。資料只存在這台裝置，不會上傳。</p>
+  <div class="page2 parent2">
+    <div class="parent-hero">
+      <div class="ph-row">${curCat?`<button class="ph-btn" id="pBack" type="button">‹ 返回</button>`:`<span class="ph-tag">${ico('key')}家長後台</span>`}<button class="ph-btn" id="lockBtn" type="button">${ico('key')}鎖定</button></div>
+      <h2>${curCat?escapeHtml(curCat.t):escapeHtml(c.name||'孩子')+'的守護設定'}</h2>
+      <p>${curCat?'目前孩子：'+escapeHtml(c.name||'孩子'):'查看進度、確認簽名、設定獎勵。資料只存在這台裝置，不會上傳。'}</p>
+    </div>
+    <div class="phub"${curCat?' hidden':''}>
+      ${PCATS.map(p=>`<button class="pcard${p.warn?' warn':''}" data-pcat="${p.k}" type="button"><span><b>${p.t}</b><small>${escapeHtml(p.d)}</small></span>${ico('chevron','chev')}</button>`).join('')}
+    </div>
+    <div class="pgroup" data-cat="stats">
     <div style="margin:6px 0;"><span class="stat">👦 孩子：${escapeHtml(c.name||'（未命名）')}</span>
       <span class="stat">📝 今日功課：${finished}/${allHW().length}</span>
       <span class="stat">☀️ 陽光：${c.sun}</span></div>
@@ -7513,10 +7998,14 @@ function renderParent(){
     <div>${weekChartSVG(c)}</div>
     <div style="margin-top:6px;">${weekHtml}</div>
 
+    </div>
+    <div class="pgroup" data-cat="sign">
     <h2 style="margin-top:18px;font-size:17px;">✍️ 功課簽名（待確認）</h2>
     <p class="hint">孩子點「完成功課」後會變成申請中，請家長在這裡「簽名完成」才正式給 +30 陽光。</p>
     ${signHTML}
 
+    </div>
+    <div class="pgroup" data-cat="setup">
     <h2 style="margin-top:18px;font-size:17px;">📝 功課清單設定（可自訂）</h2>
     <p class="hint">改名、換練習種類、排序、新增或刪除。完成任何一項都需家長簽名 +30 陽光。至少保留一項。</p>
     ${hwMgmt}
@@ -7533,6 +8022,8 @@ function renderParent(){
     <p class="hint">可新增多位孩子，各自有獨立的小花園、陽光與功課；首頁有家族排行榜。</p>
     ${childMgmt}
 
+    </div>
+    <div class="pgroup" data-cat="rewards">
     <h2 style="margin-top:18px;font-size:17px;">🎁 真實獎勵管理（可自訂）</h2>
     <p class="hint">孩子點兌換後變「申請中」，要由家長「確認發放」才正式給出。</p>
     ${rewardMgmt}
@@ -7541,6 +8032,8 @@ function renderParent(){
     <p class="hint">完整兌換歷史，「清除領取紀錄」不會刪掉這裡的紀錄。</p>
     ${redemptionLogHTML}
 
+    </div>
+    <div class="pgroup" data-cat="security">
     <h2 style="margin-top:18px;font-size:17px;">🔐 密碼與安全</h2>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button class="reset-btn" id="chgPin">✏️ 修改密碼</button>
@@ -7567,6 +8060,8 @@ function renderParent(){
       </div>
     </div>
 
+    </div>
+    <div class="pgroup" data-cat="rules">
     <h2 style="margin-top:18px;font-size:17px;">📅 每週作息設定（星期一到日）</h2>
     <p class="hint">每天各自設定 起床 / 吃飯 / 洗澡 / 睡覺。起床＝拖延怪出發、睡覺＝拖延怪截止（自動聯動）。</p>
     <div style="overflow-x:auto;">
@@ -7610,14 +8105,19 @@ function renderParent(){
       <span style="margin-left:8px;color:#2e7d32;font-weight:800;">目前：${holNow?holNow:'要上課'}</span>
     </div>
 
+    </div>
+    <div class="pgroup" data-cat="stats">
     <h2 style="margin-top:18px;font-size:17px;">📋 匯出紀錄</h2>
     <textarea id="export" readonly>${escapeHtml(summary)}</textarea>
     <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
       <button class="next-btn" id="copyBtn">📋 複製紀錄</button>
-      <button class="reset-btn" id="lockBtn">🔒 鎖定後台</button>
+    </div>
     </div>
   </div>`;
 
+  $$('.parent2 .pgroup').forEach(g=>{ g.hidden = g.dataset.cat!==parentCat; });
+  $$('[data-pcat]').forEach(b=>b.onclick=()=>{ parentCat=b.dataset.pcat; renderParent(); window.scrollTo(0,0); });
+  const pBackBtn=$('#pBack'); if(pBackBtn) pBackBtn.onclick=()=>{ parentCat=null; renderParent(); window.scrollTo(0,0); };
   /* handlers：獎勵 */
   state.rewards.forEach(r=>{
     const d=$('#del'+r.id); if(d) d.onclick=()=>{ state.rewards=state.rewards.filter(x=>x.id!==r.id); save(); renderParent(); };
@@ -7911,7 +8411,7 @@ function renderParent(){
     save(); renderParent();
   };
   $('#copyBtn').onclick=()=>{ const ta=$('#export'); ta.select(); try{ navigator.clipboard.writeText(ta.value); toast('已複製！'); }catch(e){ document.execCommand('copy'); toast('已複製！'); } };
-  $('#lockBtn').onclick=()=>{ parentUnlocked=false; renderParent(); };
+  $('#lockBtn').onclick=()=>{ parentUnlocked=false; parentCat=null; renderParent(); };
 }
 
 /* 近 7 天練習時間 SVG 圖表 */
@@ -7932,6 +8432,7 @@ function weekChartSVG(c){
 
 /* ---------- 啟動 ---------- */
 $$('.tab-btn').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
+paintIcons(); { const sb=$('#settingsBtn'); if(sb) sb.onclick=openSettings; }
 applyActiveSubjects();
 applySubjectIcons();
 function bootApp(){
