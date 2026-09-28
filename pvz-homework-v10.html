@@ -1010,6 +1010,7 @@
   .sc-meta{font-size:13px;color:var(--muted);}
   .sc-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;} .sc-btns button{flex:1;min-width:120px;}
   .next-btn.sc-great{background:var(--honey);color:#3a2a00;}
+  .sc-others{display:flex;flex-direction:column;gap:6px;margin-top:10px;} .sc-others button{width:100%;}
   .sc-hist{margin:12px 0 0;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:#fff;} .sc-hist summary{cursor:pointer;font-weight:700;}
   .sc-hrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px;}
   .sc-lightbox{flex-direction:column;gap:12px;} .sc-lightbox img{max-width:94vw;max-height:80vh;border-radius:10px;background:#fff;}
@@ -5922,7 +5923,8 @@ function logWrong(moduleKey, qText, yourAns, correct, opts, ctx){
   c.wrongStreak=(c.wrongStreak||0)+1;
   if(c.wrongStreak>=2){
     c.wrongStreak=0; save();
-    setTimeout(()=>{ toast('🤴 粗心大王出現了！連續碰上 2 題，先冷靜複習一下剛剛的錯題'); renderReviewDrill(true); }, 1200);
+    /* 1.2 秒內點進造句卡的話不跳，不然孩子拍照送出到一半會被換成錯題複習（2026-09-28 D9 第二批） */
+    setTimeout(()=>{ if(document.querySelector('.sc-page')) return; toast('🤴 粗心大王出現了！連續碰上 2 題，先冷靜複習一下剛剛的錯題'); renderReviewDrill(true); }, 1200);
   }
 }
 
@@ -6185,15 +6187,16 @@ function scCompress(file){
 function scSubmit(file){
   const c=C(); const k=scCard(c);
   const done=(hasPhoto)=>{
-    k.status='pending'; k.photo=hasPhoto; k.sentAt=Date.now(); k.note='';
+    k.status='pending'; k.photo=hasPhoto; k.sentAt=Date.now();   /* 留言先留著：重送後又取消，要回到「再改一次」 */
     save(); goodSound();
     toast(hasPhoto?'📨 已送出，請爸媽來批改！':'📨 已送出，請把紙拿給爸媽看！');
     if(currentTab==='zhuyin') renderSentCard();
   };
   if(!file){ if(k.photo) scPhotoDel(k.id); done(false); return; }
   toast('📷 照片處理中…', 4000);
-  scCompress(file).then(d=>scPhotoPut(k.id, d)).then(()=>done(true))
-    .catch(()=>{ toast('⚠️ 照片存不起來（可能是無痕模式或空間不足），改成直接拿紙給爸媽看', 5000); done(false); });
+  scCompress(file).then(d=>scPhotoPut(k.id, d).then(()=>done(true), ()=>{
+      toast('⚠️ 照片存不起來（可能是無痕模式或空間不足），改成直接拿紙給爸媽看', 5000); done(false); }))
+    .catch(()=>{ badSound(); toast('⚠️ 這張照片打不開，請重拍一張，或按「不拍照」直接拿紙給爸媽', 5000); });
 }
 function scShowPhoto(id){
   scPhotoGet(id).then(d=>{
@@ -6268,7 +6271,7 @@ function renderSentCard(){
   const shot=$('#scShot'); if(shot) shot.onclick=()=>file.click();
   const re=$('#scReshot'); if(re) re.onclick=()=>file.click();
   const paper=$('#scPaper'); if(paper) paper.onclick=()=>scSubmit(null);
-  const cancel=$('#scCancel'); if(cancel) cancel.onclick=()=>{ if(k.photo) scPhotoDel(k.id); k.status='todo'; k.photo=false; k.sentAt=0; save(); toast('↩ 已取消送出'); renderSentCard(); };
+  const cancel=$('#scCancel'); if(cancel) cancel.onclick=()=>{ if(k.photo) scPhotoDel(k.id); k.status=k.decidedAt?'redo':'todo'; k.photo=false; k.sentAt=0; save(); toast('↩ 已取消送出'); renderSentCard(); };
   if(k.status==='pending' && k.photo) scPhotoInto($('#scPhoto'), k.id);
 }
 /* 家長批改：great／ok 給陽光並記錄；redo 退回（可留言），不扣陽光 */
@@ -6299,12 +6302,12 @@ function scCleanPhotos(){
     (keys||[]).forEach(key=>{ if(typeof key==='string' && key.indexOf('sc_photo_')===0 && !keep.has(key)) idbKV('readwrite', st=>st.delete(key)).catch(()=>{}); });
   }).catch(()=>{});
 }
+function scOthersPending(c){ return state.sentCardOn===false ? [] : (state.children||[]).filter(o=>o.id!==c.id && o.sentCard && o.sentCard.status==='pending'); }
 function scParentHTML(c){
   if(state.sentCardOn===false) return '';
   let h=`<h2 style="margin-top:18px;font-size:17px;">✏️ 造句卡批改</h2>`;
   const k=c.sentCard;
-  if(!SC_WORDS_BY_LEVEL[childLevel(c)]) h+='<p class="hint">幼幼程度不出造句卡。</p>';
-  else if(k && k.status==='pending'){
+  if(k && k.status==='pending'){
     h+=`<div class="sc-review">
       <div class="sc-meta">${escapeHtml(c.name||'孩子')}・${fmtDT(k.sentAt)} 送出${k.photo?'':'・<b>沒有拍照，請看紙本</b>'}</div>
       ${k.photo?'<div class="sc-photo" id="scPPhoto">照片讀取中…</div><p class="hint" style="margin:4px 0 0;">點照片可以放大。</p>':''}
@@ -6316,7 +6319,11 @@ function scParentHTML(c){
         <button class="reset-btn" id="scRedo" type="button">↩ 再改一次</button>
       </div>
     </div>`;
-  } else h+=`<p class="hint">${k&&k.status==='redo'?'已請孩子再改一次，等孩子重新送出。':'目前沒有等待批改的造句卡。'}</p>`;
+  } else if(!SC_WORDS_BY_LEVEL[childLevel(c)]) h+='<p class="hint">幼幼程度不出造句卡。</p>';
+  else h+=`<p class="hint">${k&&k.status==='redo'?'已請孩子再改一次，等孩子重新送出。':'目前沒有等待批改的造句卡。'}</p>`;
+  /* 其他孩子送出的卡：後台一次只看目前孩子，不提醒的話家長會漏掉 */
+  const others=scOthersPending(c);
+  if(others.length) h+=`<div class="sc-others">${others.map(o=>`<button class="reset-btn scSwitch" data-kid="${escapeHtml(o.id)}" type="button">✏️ ${escapeHtml(o.name||'孩子')}也有造句卡等批改，切換過去</button>`).join('')}</div>`;
   const log=(c.sentLog||[]).slice(-7).reverse();
   if(log.length) h+=`<details class="sc-hist"><summary>最近批改的造句卡</summary>
     ${log.map(e=>`<div class="sc-hrow"><span>${escapeHtml((e.date||'').slice(5))}　${(e.words||[]).map(escapeHtml).join('、')}　${e.grade==='great'?'🌟 很棒':'✅ 通過'}</span>${e.photo?`<button class="reset-btn scView" data-id="${escapeHtml(e.id)}" type="button">看照片</button>`:''}</div>`).join('')}
@@ -6333,6 +6340,7 @@ function scWireParent(c){
       fields:[{id:'note', label:'給孩子的話', maxlength:40, placeholder:'選填'}], okLabel:'退回'}, v=>{ scGrade('redo', v.note); renderParent(); });
   }
   $$('.scView').forEach(b=>b.onclick=()=>scShowPhoto(b.dataset.id));
+  $$('.scSwitch').forEach(b=>b.onclick=()=>{ state.activeChildId=b.dataset.kid; dailyResetIfNeeded(); save(); renderParent(); });
 }
 
 /* ---------- 成就徽章 ---------- */
@@ -10699,7 +10707,7 @@ function renderParent(){
 
   const scPend = state.sentCardOn!==false && !!(c.sentCard && c.sentCard.status==='pending');
   const PCATS=[
-    {k:'sign', t:'今日功課與簽名', d: (()=>{ const n=allHW().filter(it=>c.homework[it.id]==='pending').length+(scPend?1:0); return n?'待確認 '+n+' 件'+(scPend?'（含造句卡）':''):'沒有待簽名的功課'; })(), warn: allHW().some(it=>c.homework[it.id]==='pending')||scPend},
+    {k:'sign', t:'今日功課與簽名', d: (()=>{ const n=allHW().filter(it=>c.homework[it.id]==='pending').length+(scPend?1:0); const o=scOthersPending(c).map(x=>x.name||'孩子'); return (n?'待確認 '+n+' 件'+(scPend?'（含造句卡）':''):'沒有待簽名的功課')+(o.length?'・'+o.join('、')+'有造句卡等批改':''); })(), warn: allHW().some(it=>c.homework[it.id]==='pending')||scPend||scOthersPending(c).length>0},
     {k:'rewards', t:'真實獎勵與兌換', d: (()=>{ const n=(state.redemptions||[]).filter(r=>r.status==='pending').length; return n?'申請中 '+n+' 件':'設定獎勵、處理兌換'; })(), warn: (state.redemptions||[]).some(r=>r.status==='pending')},
     {k:'setup', t:'孩子、功課與題庫', d: state.children.length+' 位孩子・今日功課 '+allHW().length+' 項'},
     {k:'rules', t:'作息與家規', d:'每週作息、超時扣分、自訂扣分項、放假'},
@@ -10763,7 +10771,7 @@ function renderParent(){
         <input id="scWords" class="in" style="flex:1;min-width:180px;max-width:none;" placeholder="用空白或頓號分開，例如：探索、環境、傳統" value="${escapeHtml((c.sentWords||[]).join('、'))}">
         <button class="next-btn" id="scWordsSave" type="button">儲存語詞</button>
       </div>
-      <p class="hint" style="margin:4px 0 0;">有填的詞會先出（批改通過過的就不再出），不夠再從詞卡抽。低年級建議填課本上的語詞，詞卡的詞偏中年級程度。</p>
+      <p class="hint" style="margin:4px 0 0;">有填的詞會先出（批改通過的詞不會再出），不夠再從詞卡抽。低年級建議填課本上的語詞，詞卡的詞偏中年級程度。</p>
     </div>
 
     <h2 style="margin-top:18px;font-size:17px;">📅 讀書計劃</h2>
