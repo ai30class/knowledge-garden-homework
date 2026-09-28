@@ -994,6 +994,25 @@
   .q-grade.lvl-down{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7;margin-right:6px;}
   .stretch-note{font-size:13px;font-weight:700;margin-top:4px;} .stretch-note.up{color:#9a5b00;} .stretch-note.down{color:#2e7d32;}
   .q-grade.wp-tag{background:#eef3ff;color:#2f4f9a;border-color:#c5d3f5;margin-right:6px;}   /* 2026-09-28 稽核 D6 */
+  /* 2026-09-28 稽核 D9 第二批：造句批改卡 */
+  .sc-banner{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;margin:6px 0 8px;padding:12px 14px;border:1.5px solid var(--honey);border-radius:14px;background:var(--honey-soft);color:var(--ink);font:inherit;font-weight:700;cursor:pointer;}
+  .sc-banner b{color:var(--green);white-space:nowrap;} .sc-banner.redo{border-color:var(--peach);background:var(--peach-soft);} .sc-banner.done{border-color:var(--line);background:var(--green-soft);}
+  .sc-word{background:#fff8e3;border:1px solid #f0dca8;border-radius:12px;padding:10px 12px;margin:8px 0;}
+  .sc-word b{font-size:20px;letter-spacing:1px;} .sc-word small{display:block;color:#7a6a3a;font-size:13px;line-height:1.6;margin-top:2px;}
+  .sc-ex{margin:10px 0;border:1px dashed #d9cfae;border-radius:12px;padding:8px 12px;} .sc-ex summary{cursor:pointer;font-weight:700;color:var(--green);} .sc-ex p{margin:6px 0 0;}
+  .sc-actions{display:flex;flex-direction:column;gap:8px;margin-top:14px;} .sc-actions button{width:100%;}
+  .sc-redo{background:var(--peach-soft);border:1px solid var(--peach);border-radius:12px;padding:10px 12px;margin:6px 0 10px;font-weight:700;color:#8a3a22;}
+  .sc-redo small{display:block;font-weight:400;font-size:13px;margin-top:2px;}
+  .sc-state{font-size:18px;font-weight:800;color:#b8740a;text-align:center;margin:8px 0 6px;} .sc-state.good{color:var(--green);}
+  .sc-photo{margin:10px 0 4px;min-height:60px;border:1px solid var(--line);border-radius:12px;padding:6px;text-align:center;color:var(--muted);font-size:13px;background:#fff;}
+  .sc-photo img{display:block;max-width:100%;max-height:360px;margin:0 auto;border-radius:8px;cursor:zoom-in;}
+  .sc-review{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:#fffdf6;}
+  .sc-meta{font-size:13px;color:var(--muted);}
+  .sc-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;} .sc-btns button{flex:1;min-width:120px;}
+  .next-btn.sc-great{background:var(--honey);color:#3a2a00;}
+  .sc-hist{margin:12px 0 0;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:#fff;} .sc-hist summary{cursor:pointer;font-weight:700;}
+  .sc-hrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px;}
+  .sc-lightbox{flex-direction:column;gap:12px;} .sc-lightbox img{max-width:94vw;max-height:80vh;border-radius:10px;background:#fff;}
 </style>
 </head>
 <body>
@@ -2269,6 +2288,7 @@ function load(seed){
       if(!s.subjectNames||typeof s.subjectNames!=='object') s.subjectNames=defaultSubjectNames();
       if(s.bgm===undefined) s.bgm=false;
       if(s.notifiedDate===undefined) s.notifiedDate='';
+      if(typeof s.sentCardOn!=='boolean') s.sentCardOn=true;   /* 造句卡（2026-09-28 稽核 D9 第二批） */
       return s;
     }
   }catch(e){ try{ console.error('load() 失敗', e); }catch(_){} }
@@ -6103,6 +6123,218 @@ function approveHomework(id){
 }
 function rejectHomework(id){ const c=C(); c.homework[id]=false; save(); toast('↩ 已退回，請繼續努力'); }
 
+/* ---------- 造句批改卡（2026-09-28 稽核 D9 第二批） ----------
+   孩子用指定的詞在紙上造句、拍照送出，家長在後台「今日功課與簽名」批改給陽光；遊戲不自動評分。
+   每天 1 張：低年級 1 個詞、中年級 2 個、高年級與國中 3 個；幼幼（L1）不出。
+   詞：先用家長在後台打的「這週語詞」（通過過的不再出），不夠再從詞卡 WORDS 抽。
+   照片壓縮後只存在這台裝置的 IndexedDB（key：sc_photo_卡片id），不進備份檔、不上傳；批改後留 7 天自動刪。
+   資料：c.sentCard 目前這張（todo／pending／redo／done）、c.sentLog 已通過的紀錄、c.sentWords 這週語詞、state.sentCardOn 開關 */
+const SC_WORDS_BY_LEVEL={L2:1, L3:2, L4:3, L5:3};
+const SC_SUN_OK=10, SC_SUN_GREAT=15;
+const SC_PHOTO_KEEP_DAYS=7;
+const SC_LOG_MAX=60;
+function scOn(c){ c=c||C(); return state.sentCardOn!==false && !!SC_WORDS_BY_LEVEL[childLevel(c)]; }
+function scWordInfo(w){ return WORDS.find(x=>x.ch===w)||null; }
+function idbKV(mode, fn){ return idbOpen().then(db=>new Promise((res,rej)=>{
+  const tx=db.transaction(IDB_STORE, mode); const rq=fn(tx.objectStore(IDB_STORE));
+  tx.oncomplete=()=>res(rq?rq.result:undefined); tx.onerror=()=>rej(tx.error);
+})); }
+function scPhotoKey(id){ return 'sc_photo_'+id; }
+function scPhotoPut(id, data){ return idbKV('readwrite', st=>st.put(data, scPhotoKey(id))); }
+function scPhotoGet(id){ return idbKV('readonly', st=>st.get(scPhotoKey(id))).then(v=>v||null).catch(()=>null); }
+function scPhotoDel(id){ return idbKV('readwrite', st=>st.delete(scPhotoKey(id))).catch(()=>{}); }
+function scParseWords(s){
+  const out=[];
+  String(s||'').split(/[\s,，、;；。]+/).forEach(w=>{ w=w.trim().slice(0,8); if(w && !out.includes(w) && out.length<30) out.push(w); });
+  return out;
+}
+function scPickWords(c, n){
+  const passed=new Set((c.sentLog||[]).flatMap(e=>e.words||[]));
+  const out=[];
+  (c.sentWords||[]).forEach(w=>{ if(out.length<n && !passed.has(w) && !out.includes(w)) out.push(w); });
+  let pool=WORDS.filter(w=>!passed.has(w.ch) && !out.includes(w.ch));
+  if(pool.length<n-out.length) pool=WORDS.filter(w=>!out.includes(w.ch));   /* 詞卡都用過了就重新來 */
+  pool=pool.slice();
+  while(out.length<n && pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0].ch);
+  return out;
+}
+/* 取得今天這張卡：送出中、被退回的卡會一直留到家長批改／孩子重送；其他狀態過了一天就換新的 */
+function scCard(c){
+  c=c||C(); const today=frameDateKey(); let k=c.sentCard;
+  if(k && (k.status==='pending'||k.status==='redo')) return k;
+  if(k && k.date===today) return k;
+  const n=SC_WORDS_BY_LEVEL[childLevel(c)]||2;
+  k=c.sentCard={id:'sc'+Date.now()+Math.floor(Math.random()*1000), date:today, words:scPickWords(c,n), status:'todo', photo:false, note:'', grade:'', sun:0, sentAt:0, decidedAt:0};
+  save(); return k;
+}
+function scCompress(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file); const img=new Image();
+    img.onload=()=>{
+      try{
+        const MAX=1280, s=Math.min(1, MAX/Math.max(img.naturalWidth, img.naturalHeight));
+        const cv=document.createElement('canvas'); cv.width=Math.max(1,Math.round(img.naturalWidth*s)); cv.height=Math.max(1,Math.round(img.naturalHeight*s));
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        URL.revokeObjectURL(url); res(cv.toDataURL('image/jpeg', 0.72));
+      }catch(e){ URL.revokeObjectURL(url); rej(e); }
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); rej(new Error('img')); };
+    img.src=url;
+  });
+}
+function scSubmit(file){
+  const c=C(); const k=scCard(c);
+  const done=(hasPhoto)=>{
+    k.status='pending'; k.photo=hasPhoto; k.sentAt=Date.now(); k.note='';
+    save(); goodSound();
+    toast(hasPhoto?'📨 已送出，請爸媽來批改！':'📨 已送出，請把紙拿給爸媽看！');
+    if(currentTab==='zhuyin') renderSentCard();
+  };
+  if(!file){ if(k.photo) scPhotoDel(k.id); done(false); return; }
+  toast('📷 照片處理中…', 4000);
+  scCompress(file).then(d=>scPhotoPut(k.id, d)).then(()=>done(true))
+    .catch(()=>{ toast('⚠️ 照片存不起來（可能是無痕模式或空間不足），改成直接拿紙給爸媽看', 5000); done(false); });
+}
+function scShowPhoto(id){
+  scPhotoGet(id).then(d=>{
+    if(!d){ toast('照片已經刪除了'); return; }
+    const ov=document.createElement('div'); ov.className='modal-ov sc-lightbox';
+    ov.innerHTML=`<img alt="造句照片"><button class="reset-btn" type="button">關閉</button>`;
+    ov.querySelector('img').src=d;
+    ov.onclick=()=>ov.remove();
+    document.body.appendChild(ov);
+  });
+}
+function scPhotoInto(el, id){
+  if(!el) return;
+  scPhotoGet(id).then(d=>{
+    if(!d){ el.textContent='（照片不見了，請看紙本）'; return; }
+    el.textContent=''; const img=document.createElement('img'); img.src=d; img.alt='造句照片';
+    img.onclick=()=>scShowPhoto(id); el.appendChild(img);
+  });
+}
+function scWordsHTML(words, full){
+  return words.map(w=>{ const i=scWordInfo(w);
+    return `<div class="sc-word"><b>${escapeHtml(w)}</b>${i?`<small>${escapeHtml(i.m)}${full&&i.ex?'｜範例：'+escapeHtml(i.ex):''}</small>`:''}</div>`; }).join('');
+}
+/* 國語練習頁上方的入口 */
+function scBannerHTML(){
+  const c=C(); if(!scOn(c)) return '';
+  const k=scCard(c);
+  const t = k.status==='pending' ? ['⏳','造句卡送出了，等爸媽批改','看看']
+    : k.status==='redo' ? ['↩','造句卡：爸媽說再改一次','去改']
+    : k.status==='done' ? ['✅','今天的造句卡完成了','看看']
+    : ['✏️','今日造句卡：'+k.words.join('、'),'去寫'];
+  return `<button class="sc-banner ${k.status}" id="scBanner" type="button"><span>${t[0]} ${escapeHtml(t[1])}</span><b>${t[2]} ›</b></button>`;
+}
+function renderSentCard(){
+  clearQTimer();
+  const c=C(); if(!scOn(c)){ showTab('zhuyin'); return; }
+  const k=scCard(c);
+  let body='';
+  if(k.status==='todo'||k.status==='redo'){
+    const exs=k.words.map(scWordInfo).filter(i=>i&&i.ex);
+    body=`${k.status==='redo'?`<div class="sc-redo">↩ 爸媽說再改一次${k.note?'：'+escapeHtml(k.note):''}<small>改好再送一次，不會扣陽光</small></div>`:''}
+      <p class="hint">用下面${k.words.length>1?'每一個詞':'這個詞'}，在作業本或紙上${k.words.length>1?'各':''}造一個句子：</p>
+      ${scWordsHTML(k.words)}
+      ${exs.length?`<details class="sc-ex"><summary>💡 卡住了？看範例</summary>${exs.map(i=>`<p>${escapeHtml(i.ex)}</p>`).join('')}</details>`:''}
+      <input type="file" id="scFile" accept="image/*" capture="environment" hidden>
+      <div class="sc-actions">
+        <button class="next-btn" id="scShot" type="button">📷 寫好了，拍照給爸媽看</button>
+        <button class="reset-btn" id="scPaper" type="button">📄 不拍照，直接拿紙給爸媽</button>
+      </div>`;
+  } else if(k.status==='pending'){
+    body=`<div class="sc-state">⏳ 等爸媽批改</div>
+      ${scWordsHTML(k.words)}
+      ${k.photo?'<div class="sc-photo" id="scPhoto">照片讀取中…</div>':'<p class="hint">沒有拍照，記得把紙拿給爸媽看。</p>'}
+      <input type="file" id="scFile" accept="image/*" capture="environment" hidden>
+      <div class="sc-actions">
+        <button class="reset-btn" id="scReshot" type="button">📷 ${k.photo?'重拍':'補拍照片'}</button>
+        <button class="reset-btn" id="scCancel" type="button">↩ 取消送出</button>
+      </div>`;
+  } else {
+    body=`<div class="sc-state good">${k.grade==='great'?'🌟 爸媽說寫得很棒！':'✅ 爸媽批改通過了！'}${k.sun?' +'+k.sun+' 陽光':''}</div>
+      ${scWordsHTML(k.words)}
+      <p class="hint">明天會有新的造句卡。</p>`;
+  }
+  app.innerHTML=`<div class="panel sc-page">
+    <h2 class="title-sticker">✏️ 今日造句卡</h2>
+    ${body}
+    <div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="scBack" type="button">⬅ 回國語練習</button></div>
+  </div>`;
+  $('#scBack').onclick=()=>showTab('zhuyin');
+  const file=$('#scFile');
+  if(file) file.onchange=()=>{ const f=file.files&&file.files[0]; if(f) scSubmit(f); };
+  const shot=$('#scShot'); if(shot) shot.onclick=()=>file.click();
+  const re=$('#scReshot'); if(re) re.onclick=()=>file.click();
+  const paper=$('#scPaper'); if(paper) paper.onclick=()=>scSubmit(null);
+  const cancel=$('#scCancel'); if(cancel) cancel.onclick=()=>{ if(k.photo) scPhotoDel(k.id); k.status='todo'; k.photo=false; k.sentAt=0; save(); toast('↩ 已取消送出'); renderSentCard(); };
+  if(k.status==='pending' && k.photo) scPhotoInto($('#scPhoto'), k.id);
+}
+/* 家長批改：great／ok 給陽光並記錄；redo 退回（可留言），不扣陽光 */
+function scGrade(grade, note){
+  const c=C(); const k=c.sentCard; if(!k || k.status!=='pending') return;
+  k.decidedAt=Date.now();
+  if(grade==='redo'){ k.status='redo'; k.note=String(note||'').slice(0,40); save(); toast('↩ 已請孩子再改一次'); return; }
+  const want = grade==='great' ? SC_SUN_GREAT : SC_SUN_OK;
+  const got=addSun(want, true) || 0;
+  k.status='done'; k.grade=grade; k.sun=got;
+  k.words.forEach(w=>{ if(scWordInfo(w)) markWord(w, true); });   /* 詞卡上的詞：通過一次＝答對一次 */
+  c.sentLog=Array.isArray(c.sentLog)?c.sentLog:[];
+  c.sentLog.push({id:k.id, date:k.date, words:k.words.slice(), grade, sun:got, photo:k.photo, at:k.decidedAt});
+  while(c.sentLog.length>SC_LOG_MAX){ const e=c.sentLog.shift(); if(e && e.photo) scPhotoDel(e.id); }
+  goodSound(); save();
+  toast(got>=want ? (grade==='great'?'🌟 寫得很棒，+':'✅ 批改通過，+')+got+' 陽光！'
+    : got>0 ? '✅ 已批改，+'+got+' 陽光（今天已到上限 '+SUN_DAILY_CAP+'）' : '✅ 已批改（今天陽光已到上限 '+SUN_DAILY_CAP+'，明天再領）');
+}
+/* 照片清理：批改超過 7 天的刪掉；沒有任何紀錄指到的照片（刪掉的孩子、還原備份後留下的）也刪掉 */
+function scCleanPhotos(){
+  const cut=Date.now()-SC_PHOTO_KEEP_DAYS*864e5; const keep=new Set(); let changed=false;
+  (state.children||[]).forEach(c=>{
+    (c.sentLog||[]).forEach(e=>{ if(e.photo && e.at<cut){ e.photo=false; changed=true; } if(e.photo) keep.add(scPhotoKey(e.id)); });
+    const k=c.sentCard; if(k && k.photo) keep.add(scPhotoKey(k.id));
+  });
+  if(changed) save();
+  idbKV('readonly', st=>st.getAllKeys ? st.getAllKeys() : null).then(keys=>{
+    (keys||[]).forEach(key=>{ if(typeof key==='string' && key.indexOf('sc_photo_')===0 && !keep.has(key)) idbKV('readwrite', st=>st.delete(key)).catch(()=>{}); });
+  }).catch(()=>{});
+}
+function scParentHTML(c){
+  if(state.sentCardOn===false) return '';
+  let h=`<h2 style="margin-top:18px;font-size:17px;">✏️ 造句卡批改</h2>`;
+  const k=c.sentCard;
+  if(!SC_WORDS_BY_LEVEL[childLevel(c)]) h+='<p class="hint">幼幼程度不出造句卡。</p>';
+  else if(k && k.status==='pending'){
+    h+=`<div class="sc-review">
+      <div class="sc-meta">${escapeHtml(c.name||'孩子')}・${fmtDT(k.sentAt)} 送出${k.photo?'':'・<b>沒有拍照，請看紙本</b>'}</div>
+      ${k.photo?'<div class="sc-photo" id="scPPhoto">照片讀取中…</div><p class="hint" style="margin:4px 0 0;">點照片可以放大。</p>':''}
+      ${scWordsHTML(k.words, true)}
+      <p class="hint" style="margin:8px 0 0;">句子通順、有用對詞就可以通過；遊戲不會自動評分，由您判斷。</p>
+      <div class="sc-btns">
+        <button class="next-btn sc-great" id="scGreat" type="button">🌟 寫得很棒（+${SC_SUN_GREAT}）</button>
+        <button class="next-btn" id="scOk" type="button">✅ 通過（+${SC_SUN_OK}）</button>
+        <button class="reset-btn" id="scRedo" type="button">↩ 再改一次</button>
+      </div>
+    </div>`;
+  } else h+=`<p class="hint">${k&&k.status==='redo'?'已請孩子再改一次，等孩子重新送出。':'目前沒有等待批改的造句卡。'}</p>`;
+  const log=(c.sentLog||[]).slice(-7).reverse();
+  if(log.length) h+=`<details class="sc-hist"><summary>最近批改的造句卡</summary>
+    ${log.map(e=>`<div class="sc-hrow"><span>${escapeHtml((e.date||'').slice(5))}　${(e.words||[]).map(escapeHtml).join('、')}　${e.grade==='great'?'🌟 很棒':'✅ 通過'}</span>${e.photo?`<button class="reset-btn scView" data-id="${escapeHtml(e.id)}" type="button">看照片</button>`:''}</div>`).join('')}
+    <p class="hint">照片批改後保留 ${SC_PHOTO_KEEP_DAYS} 天，之後自動刪除。</p></details>`;
+  return h;
+}
+function scWireParent(c){
+  const k=c.sentCard;
+  if(k && k.status==='pending'){
+    if(k.photo) scPhotoInto($('#scPPhoto'), k.id);
+    const g=$('#scGreat'); if(g) g.onclick=()=>{ scGrade('great'); renderParent(); };
+    const o=$('#scOk'); if(o) o.onclick=()=>{ scGrade('ok'); renderParent(); };
+    const r=$('#scRedo'); if(r) r.onclick=()=>askInput({title:'請孩子再改一次', hint:'可以留一句話給孩子（選填），例如：句子再寫長一點。退回不會扣陽光。',
+      fields:[{id:'note', label:'給孩子的話', maxlength:40, placeholder:'選填'}], okLabel:'退回'}, v=>{ scGrade('redo', v.note); renderParent(); });
+  }
+  $$('.scView').forEach(b=>b.onclick=()=>scShowPhoto(b.dataset.id));
+}
+
 /* ---------- 成就徽章 ---------- */
 const BADGES=[
   {id:'first',emoji:'🌟',name:'初次達成',desc:'完成第一項功課'},
@@ -9936,6 +10168,7 @@ function renderKnowledge(subject){
   <div class="panel">
     <h2>${subjectIcon(subject)} ${subjectName(subject)} · ${meta.tag}</h2>
     <p class="hint">${meta.desc} 答對 +${meta.sun} 陽光。</p>
+    ${subject==='zhuyin'?scBannerHTML():''}
     <div class="diff-sel" id="kDiffSel"></div>
     <div class="cert-detail" id="kDiffDetail"></div>
     <div class="quiz-hero"><span id="kprog" class="quiz-prog"></span><div id="kmon"></div></div>
@@ -9949,6 +10182,7 @@ function renderKnowledge(subject){
     <button class="next-btn" id="knext" style="display:none;">下一題 ▶</button>
     <div style="text-align:center;margin-top:10px;"><button class="reset-btn" id="khome">🌻 回小花園</button></div>
   </div>`;
+  const scb=$('#scBanner'); if(scb) scb.onclick=()=>renderSentCard();
   const prog=()=>{ const p=$('#kprog'); if(p) p.textContent='第 '+(idx+1)+' / '+total+' 題　✅ '+right; const m=$('#kmon'); if(m) m.innerHTML=monsterTrack(idx,total); };
   const knowDone=()=>{
     const pct=Math.round(right/total*100);
@@ -10463,8 +10697,9 @@ function renderParent(){
 獎勵：${rewardText}
 每週作息：平日 起床 ${state.weekRoutine[0].wake} → 睡覺 ${state.weekRoutine[0].sleep}；週末 起床 ${state.weekRoutine[5].wake} → 睡覺 ${state.weekRoutine[5].sleep}`;
 
+  const scPend = state.sentCardOn!==false && !!(c.sentCard && c.sentCard.status==='pending');
   const PCATS=[
-    {k:'sign', t:'今日功課與簽名', d: (()=>{ const n=allHW().filter(it=>c.homework[it.id]==='pending').length; return n?'待確認 '+n+' 件':'沒有待簽名的功課'; })(), warn: allHW().some(it=>c.homework[it.id]==='pending')},
+    {k:'sign', t:'今日功課與簽名', d: (()=>{ const n=allHW().filter(it=>c.homework[it.id]==='pending').length+(scPend?1:0); return n?'待確認 '+n+' 件'+(scPend?'（含造句卡）':''):'沒有待簽名的功課'; })(), warn: allHW().some(it=>c.homework[it.id]==='pending')||scPend},
     {k:'rewards', t:'真實獎勵與兌換', d: (()=>{ const n=(state.redemptions||[]).filter(r=>r.status==='pending').length; return n?'申請中 '+n+' 件':'設定獎勵、處理兌換'; })(), warn: (state.redemptions||[]).some(r=>r.status==='pending')},
     {k:'setup', t:'孩子、功課與題庫', d: state.children.length+' 位孩子・今日功課 '+allHW().length+' 項'},
     {k:'rules', t:'作息與家規', d:'每週作息、超時扣分、自訂扣分項、放假'},
@@ -10510,12 +10745,26 @@ function renderParent(){
     <h2 style="margin-top:18px;font-size:17px;">✍️ 功課簽名（待確認）</h2>
     <p class="hint">孩子點「完成功課」後會變成申請中，請家長在這裡「簽名完成」才正式給 +30 陽光。</p>
     ${signHTML}
+    ${scParentHTML(c)}
 
     </div>
     <div class="pgroup" data-cat="setup">
     <h2 style="margin-top:18px;font-size:17px;">📝 功課清單設定（可自訂）</h2>
     <p class="hint">改名、換練習種類、排序、新增或刪除。完成任何一項都需家長簽名 +30 陽光。至少保留一項。</p>
     ${hwMgmt}
+
+    <h2 style="margin-top:18px;font-size:17px;">✏️ 造句卡</h2>
+    <p class="hint">孩子在國語練習頁拿到今天要造句的詞，寫在紙上、拍照送出，家長在「今日功課與簽名」批改：寫得很棒 +${SC_SUN_GREAT}、通過 +${SC_SUN_OK}，退回不扣陽光。一天一張，低年級 1 個詞、中年級 2 個、高年級與國中 3 個，幼幼不出。照片只存在這台裝置，不會上傳、也不會放進備份檔，批改後 ${SC_PHOTO_KEEP_DAYS} 天自動刪除。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="reset-btn" id="scToggle" type="button">${state.sentCardOn!==false?'✏️ 造句卡：開':'✏️ 造句卡：關'}</button>
+    </div>
+    <div class="mod-row" style="margin-top:8px;"><label for="scWords"><b>${escapeHtml(c.name||'孩子')}</b>這週的語詞（選填）</label><br>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+        <input id="scWords" class="in" style="flex:1;min-width:180px;max-width:none;" placeholder="用空白或頓號分開，例如：探索、環境、傳統" value="${escapeHtml((c.sentWords||[]).join('、'))}">
+        <button class="next-btn" id="scWordsSave" type="button">儲存語詞</button>
+      </div>
+      <p class="hint" style="margin:4px 0 0;">有填的詞會先出（批改通過過的就不再出），不夠再從詞卡抽。低年級建議填課本上的語詞，詞卡的詞偏中年級程度。</p>
+    </div>
 
     <h2 style="margin-top:18px;font-size:17px;">📅 讀書計劃</h2>
     <p class="hint">科目、教材、課次與考試排程都在「📅 讀書計劃」分頁裡設定（不放在這裡，才不用兩個地方來回跑）。目前 <b>${escapeHtml(c.name||'孩子')}</b> 有 ${studySubjectsOf(c.id).length} 科、${studyItemsOf(c.id).length} 課、${examsOf(c.id).length} 個考試。</p>
@@ -10691,6 +10940,13 @@ function renderParent(){
     const ok=$('#signOK'+it.id); if(ok) ok.onclick=()=>{ approveHomework(it.id); renderParent(); };
     const no=$('#signNO'+it.id); if(no) no.onclick=()=>{ rejectHomework(it.id); renderParent(); };
   });
+  scWireParent(c);
+  const scT=$('#scToggle'); if(scT) scT.onclick=()=>{ state.sentCardOn = state.sentCardOn===false; save(); toast(state.sentCardOn?'✏️ 造句卡已開啟':'✏️ 造句卡已關閉'); renderParent(); };
+  const scW=$('#scWordsSave'); if(scW) scW.onclick=()=>{
+    c.sentWords=scParseWords($('#scWords').value);
+    if(c.sentCard && c.sentCard.status==='todo') c.sentCard=null;   /* 還沒送出的卡換成新語詞 */
+    save(); toast(c.sentWords.length?'✅ 已儲存 '+c.sentWords.length+' 個語詞':'✅ 已清空，改從詞卡抽詞'); renderParent();
+  };
 
   /* handlers：功課清單 */
   allHW().forEach((it,idx)=>{
@@ -11032,7 +11288,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* 啟動後以 IndexedDB 為優先載入（比 localStorage 在 PWA 下更持久） */
-window.addEventListener('load', () => { hydrateFromIDB(); });
+window.addEventListener('load', () => { hydrateFromIDB(); setTimeout(()=>{ try{ scCleanPhotos(); }catch(e){} }, 3000); });
 </script>
 </body>
 </html>
