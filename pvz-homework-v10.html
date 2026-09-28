@@ -993,6 +993,7 @@
   .q-grade.lvl-up{background:#fff1d6;color:#9a5b00;border-color:#f0c36d;margin-right:6px;}
   .q-grade.lvl-down{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7;margin-right:6px;}
   .stretch-note{font-size:13px;font-weight:700;margin-top:4px;} .stretch-note.up{color:#9a5b00;} .stretch-note.down{color:#2e7d32;}
+  .q-grade.wp-tag{background:#eef3ff;color:#2f4f9a;border-color:#c5d3f5;margin-right:6px;}   /* 2026-09-28 稽核 D6 */
 </style>
 </head>
 <body>
@@ -1612,7 +1613,7 @@ function renderChoices(cfg){
   if(cfg.timed!==false) startQTimer(()=>{
     $$('.choice',box).forEach(x=>{ x.disabled=true; if(compare(x.textContent)) x.classList.add('correct'); });
     timeoutMiss(cfg, correctVal, arr);
-  });
+  }, cfg.timeMul);
 }
 /* ========================================================================
    多題型引擎：限時條 / 填空 / 是非 / 排序
@@ -1623,12 +1624,12 @@ let _qTimer=null;
 function clearQTimer(){ if(_qTimer){ clearInterval(_qTimer); _qTimer=null; } }
 /* 限時條 HTML：等級沒設限時就回空字串（幼幼/低年級不限時，避免壓力） */
 function timerHTML(){ const t=liveDiff().timed; if(!t) return ''; return `<div class="q-timer" id="qTimerWrap"><i id="qTimerBar"></i><b id="qTimerNum">${t}s</b></div>`; }
-function startQTimer(onTimeout){
+function startQTimer(onTimeout, mul){
   clearQTimer();
-  const total=liveDiff().timed; if(!total) return;
+  const total=Math.round((liveDiff().timed||0)*(mul||1)); if(!total) return;   /* mul：應用題、代數要讀題，時間放寬（2026-09-28 稽核 D6） */
   const wrap=document.getElementById('qTimerWrap'); const bar=document.getElementById('qTimerBar'); const num=document.getElementById('qTimerNum');
   if(!wrap||!bar) return;
-  wrap.className='q-timer'; bar.style.width='100%'; let left=total;
+  wrap.className='q-timer'; bar.style.width='100%'; let left=total; if(num) num.textContent=total+'s';
   _qTimer=setInterval(()=>{
     left--;
     if(bar) bar.style.width=Math.max(0,left/total*100)+'%';
@@ -6535,6 +6536,75 @@ function renderMath(){
   $('#mn').onclick=mathRound;
   attachComplete();
 }
+/* ---------- 數學應用題與國中代數（2026-09-28 稽核 D6） ----------
+   原本數學分頁全是計算式、國中停在小六程度。台灣生活情境（元、公斤、公尺、打折）隨機出數字，答案都是整數，每題附解題步驟 */
+function rInt(a,b){ return a+Math.floor(Math.random()*(b-a+1)); }
+function signed(n){ return n<0 ? '('+n+')' : String(n); }
+function cx(n){ return n===1 ? 'x' : n+'x'; }
+const WP_NAMES=['小明','小華','小美','阿傑','小安','小晴'];
+function wordProblemQ(li){
+  const who=kPick(WP_NAMES);
+  const T2=[
+    ()=>{ const item=kPick([['鉛筆','枝'],['橡皮擦','個'],['筆記本','本'],['貼紙','張']]); const a=rInt(3,25), b=rInt(2,6); const cost=a*b; const pay=Math.ceil((cost+1)/50)*50 + (Math.random()<.5?0:50);
+      return {q:who+'買 '+b+' '+item[1]+item[0]+'，一'+item[1]+' '+a+' 元，付了 '+pay+' 元，要找回多少元？', ans:pay-cost, steps:'先算要付多少：'+a+' × '+b+' ＝ '+cost+' 元；再算找回：'+pay+' － '+cost+' ＝ '+(pay-cost)+' 元'}; },
+    ()=>{ const k=rInt(3,8), each=rInt(3,12), n=k*each; const th=kPick([['顆','糖果'],['張','卡片'],['塊','餅乾']]);
+      return {q:'有 '+n+' '+th[0]+th[1]+'，平分給 '+k+' 個人，每人可以分到幾'+th[0]+'？', ans:each, steps:n+' ÷ '+k+' ＝ '+each+' '+th[0]}; },
+    ()=>{ const a=rInt(30,300), b=rInt(10,120);
+      return {q:who+'有 '+a+' 元，姊姊比'+who+'多 '+b+' 元。兩人一共有多少元？', ans:a+a+b, steps:'姊姊有 '+a+' ＋ '+b+' ＝ '+(a+b)+' 元；兩人共 '+a+' ＋ '+(a+b)+' ＝ '+(a+a+b)+' 元'}; },
+    ()=>{ const k=rInt(2,6), part=rInt(2,9), cut=rInt(1,5); const total=k*part+cut;
+      return {q:'一條繩子長 '+total+' 公尺，先剪掉 '+cut+' 公尺，剩下的剪成 '+k+' 段一樣長，每段幾公尺？', ans:part, steps:'剩下 '+total+' － '+cut+' ＝ '+(total-cut)+' 公尺；'+(total-cut)+' ÷ '+k+' ＝ '+part+' 公尺'}; },
+    ()=>{ const a=rInt(10,40);
+      return {q:who+'每天讀書 '+a+' 分鐘，一個星期（7 天）一共讀幾分鐘？', ans:a*7, steps:a+' × 7 ＝ '+(a*7)+' 分鐘'}; }
+  ];
+  const T3=[
+    ()=>{ const off=kPick([[9,'九'],[8,'八'],[7,'七'],[75,'七五']]); const price=rInt(3,40)*(off[0]===75?20:10); const pay=price*off[0]/(off[0]>10?100:10);
+      return {q:'一件外套原價 '+price+' 元，打'+off[1]+'折，要付多少元？', ans:pay, steps:'打'+off[1]+'折＝原價的 '+(off[0]>10?off[0]+'%':(off[0]*10)+'%')+'：'+price+' × '+(off[0]>10?off[0]/100:off[0]/10)+' ＝ '+pay+' 元'}; },
+    ()=>{ const v=rInt(8,20), t=rInt(2,5);
+      return Math.random()<.5
+        ? {q:who+'騎腳踏車每小時 '+v+' 公里，騎了 '+t+' 小時，一共騎了幾公里？', ans:v*t, steps:'距離＝速率 × 時間：'+v+' × '+t+' ＝ '+(v*t)+' 公里'}
+        : {q:'一輛車 '+t+' 小時走了 '+(v*t*5)+' 公里，平均每小時走幾公里？', ans:v*5, steps:'速率＝距離 ÷ 時間：'+(v*t*5)+' ÷ '+t+' ＝ '+(v*5)+' 公里'}; },
+    ()=>{ const avg=rInt(70,95); const a=avg+rInt(-8,8), b=avg+rInt(-8,8); const c=avg*3-a-b;
+      if(c>100||c<0) return {q:'三次小考分別是 80、90、100 分，平均幾分？', ans:90, steps:'(80 ＋ 90 ＋ 100) ÷ 3 ＝ 270 ÷ 3 ＝ 90'};
+      return {q:who+'三次小考分別是 '+a+'、'+b+'、'+c+' 分，平均幾分？', ans:avg, steps:'('+a+' ＋ '+b+' ＋ '+c+') ÷ 3 ＝ '+(a+b+c)+' ÷ 3 ＝ '+avg}; },
+    ()=>{ const w=rInt(3,12), n=rInt(4,15), eat=rInt(1,w*n-1);
+      return {q:'每箱蘋果 '+w+' 公斤，買了 '+n+' 箱，吃掉 '+eat+' 公斤，還剩幾公斤？', ans:w*n-eat, steps:w+' × '+n+' ＝ '+(w*n)+' 公斤；'+(w*n)+' － '+eat+' ＝ '+(w*n-eat)+' 公斤'}; },
+    ()=>{ const a=rInt(3,12), b=rInt(2,8), k=rInt(2,6);
+      return {q:'長方形花圃長 '+a+' 公尺、寬 '+b+' 公尺，每平方公尺種 '+k+' 棵花，一共要種幾棵？', ans:a*b*k, steps:'面積 '+a+' × '+b+' ＝ '+(a*b)+' 平方公尺；'+(a*b)+' × '+k+' ＝ '+(a*b*k)+' 棵'}; },
+    ()=>{ const each=rInt(15,60), n=rInt(3,9), money=each*n+rInt(0,each-1);
+      return {q:who+'有 '+money+' 元，一盒色筆 '+each+' 元，最多可以買幾盒？', ans:Math.floor(money/each), steps:money+' ÷ '+each+' ＝ '+Math.floor(money/each)+' 餘 '+(money%each)+'，最多買 '+Math.floor(money/each)+' 盒'}; }
+  ];
+  const T4=[
+    ()=>{ const x=rInt(2,20), a=rInt(2,6), b=rInt(3,30);
+      return {q:'某數的 '+a+' 倍再加 '+b+' 等於 '+(a*x+b)+'，某數是多少？', ans:x, steps:'設某數為 x：'+a+'x ＋ '+b+' ＝ '+(a*x+b)+' → '+a+'x ＝ '+(a*x)+' → x ＝ '+x}; },
+    ()=>{ const heads=rInt(8,20), rabbits=rInt(1,heads-1), legs=rabbits*4+(heads-rabbits)*2;
+      return {q:'籠子裡有雞和兔子共 '+heads+' 隻，腳一共 '+legs+' 隻，兔子有幾隻？', ans:rabbits, steps:'假設全部是雞：'+heads+' × 2 ＝ '+(heads*2)+' 隻腳，多出 '+legs+' － '+(heads*2)+' ＝ '+(legs-heads*2)+'；每隻兔子多 2 隻腳，兔子 ＝ '+(legs-heads*2)+' ÷ 2 ＝ '+rabbits+' 隻'}; },
+    ()=>{ const p=rInt(2,9)*10, n=rInt(2,5), m=rInt(2,5), q2=p+rInt(1,6)*10;
+      return {q:'買 '+n+' 本筆記本和 '+m+' 枝原子筆共 '+(n*q2+m*p)+' 元，已知原子筆一枝 '+p+' 元，筆記本一本多少元？', ans:q2, steps:'原子筆共 '+m+' × '+p+' ＝ '+(m*p)+' 元；筆記本共 '+(n*q2+m*p)+' － '+(m*p)+' ＝ '+(n*q2)+' 元；一本 '+(n*q2)+' ÷ '+n+' ＝ '+q2+' 元'}; }
+  ];
+  const pool = li<=2 ? T2 : li===3 ? T2.concat(T3) : T3.concat(T4);
+  const r=kPick(pool)(); r.word=true; return r;
+}
+function algebraQ(){
+  const T=[
+    ()=>{ let a=rInt(2,9), x=rInt(-9,12); if(x===0) x=3; const b=rInt(-20,20), c=a*x+b;
+      return {q:'解方程式：'+a+'x '+(b<0?'－ '+(-b):'＋ '+b)+' ＝ '+c+'，x ＝ ?', ans:x, steps:a+'x ＝ '+c+' '+(b<0?'＋ '+(-b):'－ '+b)+' ＝ '+(c-b)+'，x ＝ '+(c-b)+' ÷ '+a+' ＝ '+x}; },
+    ()=>{ const x=rInt(-6,10); let a=rInt(3,9), c=rInt(1,a-1); const b=rInt(-10,10); const d=a*x+b-c*x;
+      return {q:'解方程式：'+cx(a)+' '+(b<0?'－ '+(-b):'＋ '+b)+' ＝ '+cx(c)+' '+(d<0?'－ '+(-d):'＋ '+d)+'，x ＝ ?', ans:x, steps:'把 x 移到左邊、數字移到右邊：('+a+' － '+c+')x ＝ '+d+' － '+signed(b)+' → '+(a-c)+'x ＝ '+(d-b)+' → x ＝ '+x}; },
+    ()=>{ const a=rInt(2,15), b=rInt(2,9), c=rInt(-20,20);
+      return {q:'(－'+a+') × '+b+' '+(c<0?'－ '+(-c):'＋ '+c)+' ＝ ?', ans:-a*b+c, steps:'先乘：(－'+a+') × '+b+' ＝ '+(-a*b)+'；再'+(c<0?'減 '+(-c):'加 '+c)+'：'+(-a*b+c)}; },
+    ()=>{ const a=rInt(3,30), b=rInt(3,30);
+      return {q:a+' － (－'+b+') ＝ ?', ans:a+b, steps:'減一個負數＝加上它的相反數：'+a+' ＋ '+b+' ＝ '+(a+b)}; },
+    ()=>{ const x=rInt(-4,4)||2, a=rInt(1,4), b=rInt(-6,6)||3, c=rInt(-9,9);
+      return {q:'當 x ＝ '+x+' 時，'+(a===1?'':a)+'x² '+(b<0?'－ '+cx(-b):'＋ '+cx(b))+' '+(c<0?'－ '+(-c):'＋ '+c)+' 的值是多少？', ans:a*x*x+b*x+c, steps:a+' × '+signed(x)+'² ＝ '+(a*x*x)+'；'+b+' × '+signed(x)+' ＝ '+(b*x)+'；'+(a*x*x)+' ＋ '+signed(b*x)+' ＋ '+signed(c)+' ＝ '+(a*x*x+b*x+c)}; },
+    ()=>{ const base=kPick([-3,-2,2,3]), e=kPick(base<0?[2,3]:[2,3,4]); const v=Math.pow(base,e);
+      return {q:signed(base)+(e===2?'²':e===3?'³':'⁴')+' ＝ ?', ans:v, steps:Array(e).fill(signed(base)).join(' × ')+' ＝ '+v+(base<0?'（負數乘奇數次是負的、乘偶數次是正的）':'')}; },
+    ()=>{ const a=rInt(2,9), b=rInt(2,9), k=rInt(2,8);
+      return {q:'比例式 '+a+' : '+b+' ＝ '+(a*k)+' : x，x ＝ ?', ans:b*k, steps:(a*k)+' ÷ '+a+' ＝ '+k+'（前項放大 '+k+' 倍），x ＝ '+b+' × '+k+' ＝ '+(b*k)}; },
+    ()=>{ const x=rInt(-5,12), y=rInt(-5,12);
+      return {q:'二元一次聯立：x ＋ y ＝ '+(x+y)+'，x － y ＝ '+(x-y)+'，x ＝ ?', ans:x, steps:'兩式相加：2x ＝ '+(x+y)+' ＋ '+signed(x-y)+' ＝ '+(2*x)+'，x ＝ '+x}; }
+  ];
+  const r=kPick(T)(); r.alg=true; return r;
+}
 function mathRound(){
   _diffSubj='math';
   ensureQuiz('math');
@@ -6568,12 +6638,18 @@ function mathRound(){
     else if(r<0.78){ const pct=kPick([10,20,50]); const base=10+10*Math.floor(Math.random()*20); ans=base*pct/100; q=base+' 的 '+pct+'% 是多少？'; steps=base+' × '+pct+'% ＝ '+base+' × '+(pct/100)+' ＝ '+ans; }
     else { const a=1+Math.floor(Math.random()*9), b=1+Math.floor(Math.random()*9), c=10+Math.floor(Math.random()*90); ans=a*b+c; q=''+a+' × '+b+' ＋ '+c+' ＝ ?'; steps='先算 '+a+' × '+b+' ＝ '+(a*b)+'，再 '+(a*b)+' ＋ '+c+' ＝ '+ans; }
   }
+  /* 2026-09-28 稽核 D6：中年級以上約 35% 換成應用題；國中另外約 35% 出代數 */
+  let wp=null;
+  if(li>=2){ const r=Math.random(); if(li>=4 && r<0.35) wp=algebraQ(); else if(r<(li>=4?0.65:0.35)) wp=wordProblemQ(li); }
+  if(wp){ q=wp.q; ans=wp.ans; steps=wp.steps; }
+  const allowNeg = ans<0 || !!(wp && wp.alg);
   $('#mq').textContent=q;
   const set=new Set([ans]); const span=Math.max(4, Math.round(Math.abs(ans)*0.12)+2);
-  let k=1; while(set.size<4){ const cand=ans+(Math.floor(Math.random()*2)?k:-k); if(cand>=0) set.add(cand); if(set.size<4){ const cand2=ans+k*2; if(cand2>=0) set.add(cand2); } k++; }
-  const hint=document.getElementById('mHint'); if(hint) hint.innerHTML = stretchBadge(pl.tag) + hintLine('慢慢算，先乘除後加減～');
+  let k=1; while(set.size<4){ const cand=ans+(Math.floor(Math.random()*2)?k:-k); if(cand>=0||allowNeg) set.add(cand); if(set.size<4){ const cand2=ans+k*2; if(cand2>=0||allowNeg) set.add(cand2); } k++; }
+  if(wp && wp.alg && ans!==0 && !set.has(-ans) && Math.random()<0.6){ set.delete([...set].find(v=>v!==ans)); set.add(-ans); }   /* 代數常見錯：正負號弄反 */
+  const hint=document.getElementById('mHint'); if(hint) hint.innerHTML = stretchBadge(pl.tag) + (wp&&wp.word?'<span class="q-grade wp-tag">📝 應用題</span>':wp&&wp.alg?'<span class="q-grade wp-tag">🔣 代數</span>':'') + hintLine(wp&&wp.word?'先想清楚要算什麼，再列式。':wp&&wp.alg?'記得正負號，移項要變號。':'慢慢算，先乘除後加減～');
   $('#mf').textContent='';
-  renderChoices({ box:$('#mc'), opts:[...set], correct:ans, moduleKey:'math', sun:4, fb:$('#mf'), statLi:li,
+  renderChoices({ box:$('#mc'), opts:[...set], correct:ans, moduleKey:'math', sun:4, fb:$('#mf'), statLi:li, timeMul: wp&&wp.word?2.5 : wp&&wp.alg?2 : 1,
     qText:q, rightMsg:'🎉 算對了！拖延怪被打退！', wrongPrefix:'💡 正確答案是：', explain:steps, compare:(o)=> +o===ans });
 }
 
