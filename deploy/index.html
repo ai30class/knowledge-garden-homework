@@ -255,8 +255,8 @@
   .diff-sel{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 14px;font-size:13px;}
   .diff-lab{color:var(--muted);margin-right:4px;}
   .diff-btn{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:18px;padding:5px 12px;cursor:pointer;font-size:13px;transition:.15s;}
-  .diff-btn:hover{border-color:var(--brand);}
-  .diff-btn.active{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600;}
+  .diff-btn:hover{border-color:var(--green,#2f6f4e);}
+  .diff-btn.active{background:var(--green,#2f6f4e);border-color:var(--green,#2f6f4e);color:#fff;font-weight:600;}   /* 原本用未定義的 --brand，選中的按鈕變成白字透明底看不見（2026-09-28 修） */
   .cert-detail{font-size:13px;color:var(--muted);margin:2px 0 12px;line-height:1.5;}
   .cert-detail .q-grade{font-size:12px;padding:2px 8px;margin:0 4px;}
   .choice{
@@ -989,6 +989,10 @@
   /* 2026-09-28 稽核 D4：考前錯題複習入口 */
   .cram-row{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;margin:6px 0 8px;padding:12px 14px;border:1.5px solid #e07a4e;border-radius:14px;background:#fff6f0;color:inherit;font:inherit;cursor:pointer;}
   .cram-row span{display:flex;flex-direction:column;gap:2px;} .cram-row small{color:var(--muted);font-size:12px;}
+  /* 2026-09-28 稽核 D5：挑戰題／暖身題 */
+  .q-grade.lvl-up{background:#fff1d6;color:#9a5b00;border-color:#f0c36d;margin-right:6px;}
+  .q-grade.lvl-down{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7;margin-right:6px;}
+  .stretch-note{font-size:13px;font-weight:700;margin-top:4px;} .stretch-note.up{color:#9a5b00;} .stretch-note.down{color:#2e7d32;}
 </style>
 </head>
 <body>
@@ -1589,11 +1593,11 @@ function renderChoices(cfg){
       $$('.choice',box).forEach(x=>x.disabled=true);
       const ok=compare(o);
       if(ok){
-        b.classList.add('correct'); const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey);
+        b.classList.add('correct'); const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey, cfg.statLi);
         if(cfg.onRight) cfg.onRight();
         if(fb) fb.textContent = cfg.rightMsg || '🎉 答對了！';
       } else {
-        b.classList.add('wrong'); badSound(); record(cfg.moduleKey,false, cfg.statKey);
+        b.classList.add('wrong'); badSound(); record(cfg.moduleKey,false, cfg.statKey, cfg.statLi);
         if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:String(o), String(o), correctVal, arr, wrongCtx(cfg));
         if(cfg.onWrong) cfg.onWrong();
         $$('.choice',box).forEach(x=>{ if(compare(x.textContent)) x.classList.add('correct'); });
@@ -1636,7 +1640,7 @@ function startQTimer(onTimeout){
 }
 /* 超時＝當作答錯：記錄、進錯題本、走同一條結算流程 */
 function timeoutMiss(cfg, correctVal, opts){
-  record(cfg.moduleKey,false, cfg.statKey);
+  record(cfg.moduleKey,false, cfg.statKey, cfg.statLi);
   if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', '（超時未作答）', correctVal, opts||[], wrongCtx(cfg));
   if(cfg.fb){ cfg.fb.innerHTML = escapeHtml('⏰ 時間到！正確是：'+correctVal) + (cfg.explain? `<div class="q-explain">📖 ${escapeHtml(cfg.explain)}</div>` : ''); }
   if(cfg.onWrong) cfg.onWrong();
@@ -1666,9 +1670,9 @@ function renderFill(cfg){
     go.disabled=true; inp.disabled=true; clearQTimer();
     const ok=accept.includes(normAns(raw));
     inp.classList.add(ok?'ok':'ng');
-    if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey); if(cfg.onRight) cfg.onRight();
+    if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey, cfg.statLi); if(cfg.onRight) cfg.onRight();
       if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 完全正確！自己寫出來最厲害！'; }
-    else { badSound(); record(cfg.moduleKey,false, cfg.statKey);
+    else { badSound(); record(cfg.moduleKey,false, cfg.statKey, cfg.statLi);
       if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', String(raw), correctVal, [correctVal], wrongCtx(Object.assign({qType:'fill'},cfg)));
       if(cfg.onWrong) cfg.onWrong();
       if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確是：')+correctVal; }
@@ -1697,9 +1701,9 @@ function renderTF(cfg){
       const ok = pick===truth;
       b.classList.add(ok?'correct':'wrong');
       if(!ok) btns.forEach(x=>{ if((x.dataset.v==='1')===truth) x.classList.add('correct'); });
-      if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey); if(cfg.onRight) cfg.onRight();
+      if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey, cfg.statLi); if(cfg.onRight) cfg.onRight();
         if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 判斷正確！'; }
-      else { badSound(); record(cfg.moduleKey,false, cfg.statKey);
+      else { badSound(); record(cfg.moduleKey,false, cfg.statKey, cfg.statLi);
         if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', label(pick), label(truth), ['⭕ 對','❌ 錯'], wrongCtx(Object.assign({qType:'tf'},cfg)));
         if(cfg.onWrong) cfg.onWrong();
         if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確是：')+label(truth)+(cfg.why?('　'+cfg.why):''); }
@@ -1730,9 +1734,9 @@ function renderOrder(cfg){
     slots.classList.add(ok?'ok':'ng');
     [...poolEl.children].forEach(el=>el.classList.add('picked'));
     const undo=box.querySelector('#ordUndo'); if(undo) undo.style.display='none';
-    if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey); if(cfg.onRight) cfg.onRight();
+    if(ok){ const ps=practiceSun(cfg.sun, cfg.moduleKey); goodSound(); addSun(ps); onCorrect(ps); record(cfg.moduleKey,true, cfg.statKey, cfg.statLi); if(cfg.onRight) cfg.onRight();
       if(cfg.fb) cfg.fb.textContent=cfg.rightMsg||'🎉 順序完全正確！'; }
-    else { badSound(); record(cfg.moduleKey,false, cfg.statKey);
+    else { badSound(); record(cfg.moduleKey,false, cfg.statKey, cfg.statLi);
       if(!cfg.noLog) logWrong(cfg.moduleKey, cfg.qText!=null?cfg.qText:'', picked.join(' → '), correctVal, [correctVal], wrongCtx(Object.assign({qType:'order'},cfg)));
       if(cfg.onWrong) cfg.onWrong();
       if(cfg.fb) cfg.fb.textContent=(cfg.wrongPrefix||'💡 正確順序是：')+correctVal; }
@@ -2340,12 +2344,14 @@ function toast(msg, ms){
   clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'), ms||2000);
 }
 /* statModule：學習雷達要算在哪一科（每日小考、錯題複習的題目要算回原本的科目）；沒給就用 module */
-function record(module, correct, statModule){
+function record(module, correct, statModule, statLi){
   const c=C();
   c.answers[ correct?'right':'wrong' ]++;
   const m = c.byModule[module] || (c.byModule[module]={right:0,wrong:0});
   m[ correct?'right':'wrong' ]++;
-  try{ radarRecord(c, statModule||module, !!correct); }catch(e){}
+  try{ radarRecord(c, statModule||module, !!correct, statLi); }catch(e){}
+  /* 2026-09-28 稽核 D5：每科各自記最近 SUBJ_WIN 題（原本所有科目共用一個答對率） */
+  { const sm=statModule||module; if(!RADAR_SKIP[sm]){ c.subjWin=c.subjWin||{}; const w=c.subjWin[sm]||(c.subjWin[sm]=[]); w.push(!!correct); if(w.length>SUBJ_WIN) w.shift(); } }
   // 自適應難度：保留最近 20 次作答的滾動答對率
   c.accWin = c.accWin || [];
   c.accWin.push(!!correct);
@@ -2358,9 +2364,9 @@ function record(module, correct, statModule){
    radarDay[日期][科目] = [對, 錯]     → 近 4 週趨勢（只留 70 天）
    missLog[科目␁題目] = {q,m,n,t}      → 最常錯的題目（只留最近 200 題） */
 const RADAR_SKIP={review:1, dailyquiz:1};
-function radarRecord(c, mod, ok){
+function radarRecord(c, mod, ok, qLi){
   if(!mod || RADAR_SKIP[mod]) return;
-  const li=subjectIdx(mod, c);
+  const li=(typeof qLi==='number') ? qLi : subjectIdx(mod, c);   /* 挑戰題／暖身題記在題目實際的程度 */
   c.radarLv=c.radarLv||{}; const lv=c.radarLv[mod]||(c.radarLv[mod]={}); const a=lv[li]||(lv[li]=[0,0]); a[ok?0:1]++;
   c.radarDay=c.radarDay||{}; const dk=dateKey(); const d=c.radarDay[dk]||(c.radarDay[dk]={}); const b=d[mod]||(d[mod]=[0,0]); b[ok?0:1]++;
   if(!c.radarSince) c.radarSince=dk;
@@ -2377,10 +2383,35 @@ function markWord(ch, ok){ if(!ch) return; const c=C(); c.known=c.known||{}; c.k
 function learnedWordCount(c){ return Object.keys(c.known||{}).filter(k=>(c.known[k]||0)>=2 && WORDS.some(w=>w.ch===k)).length; }
 /* 自適應難度：在「年齡基準難度」上，依最近答對率做溫和微調（表現好→加難，表現弱→變簡單）。
    只有累積 >=5 次作答才啟動，避免一兩題失誤就劇烈波動。顯示用的 diff()/diffLabel() 仍回傳年齡基準。 */
+/* 2026-09-28 稽核 D5：題數、提示、數字範圍的微調改看「正在練的那一科」最近的答對率（_diffSubj）；
+   沒有指定科目時（每日小考等）才用全部科目合在一起的 accWin */
+const SUBJ_WIN=12;
+let _diffSubj=null;
+function subjAcc(subject){ const w=((C().subjWin||{})[subject])||[]; return {n:w.length, acc:w.length? w.filter(Boolean).length/w.length : 0}; }
+/* 這一題出哪一級：某科最近 10 題以上答對 85%↑ → 約 3 成出下一級（挑戰題）；50% 以下 → 約 3 成出前一級（暖身題）。
+   家長在該科手動鎖定程度時照鎖定的出，不自動混題 */
+const STRETCH_RATE=0.3;
+function playLevel(subject){
+  const base=subjectIdx(subject);
+  const locked=!!(C().subjectDiff && C().subjectDiff[subject]);
+  if(locked) return {li:base, tag:''};
+  const a=subjAcc(subject);
+  if(a.n>=10 && a.acc>=0.85 && base<4 && Math.random()<STRETCH_RATE) return {li:base+1, tag:'up'};
+  if(a.n>=10 && a.acc<0.5 && base>0 && Math.random()<STRETCH_RATE) return {li:base-1, tag:'down'};
+  return {li:base, tag:''};
+}
+function stretchBadge(tag){ return tag==='up' ? '<span class="q-grade lvl-up">🚀 挑戰題：下一級</span>' : tag==='down' ? '<span class="q-grade lvl-down">🌱 暖身題</span>' : ''; }
+function stretchNote(subject){
+  if(C().subjectDiff && C().subjectDiff[subject]) return '';
+  const a=subjAcc(subject); if(a.n<10) return '';
+  if(a.acc>=0.85 && subjectIdx(subject)<4) return '<div class="stretch-note up">🚀 最近這科答對 '+Math.round(a.acc*100)+'%，會混一些下一級的挑戰題</div>';
+  if(a.acc<0.5 && subjectIdx(subject)>0) return '<div class="stretch-note down">🌱 最近這科有點卡，會混一些前一級的題目暖身</div>';
+  return '';
+}
 function liveDiff(){
   const base=diff();
   const c=C();
-  const w=c.accWin||[];
+  const w=(_diffSubj && (c.subjWin||{})[_diffSubj] && c.subjWin[_diffSubj].length>=5) ? c.subjWin[_diffSubj] : (c.accWin||[]);
   const d=Object.assign({}, base);
   if(w.length>=5){
     const acc=w.filter(Boolean).length/w.length;
@@ -2399,7 +2430,7 @@ function liveDiff(){
   return d;
 }
 function liveDiffNote(){
-  const c=C(); const w=c.accWin||[]; if(w.length<5) return '';
+  const c=C(); const w=(_diffSubj && (c.subjWin||{})[_diffSubj]) || c.accWin||[]; if(w.length<5) return '';
   const acc=w.filter(Boolean).length/w.length;
   if(acc>=0.85) return ' <span style="color:#e08e0b;font-weight:800;">⚡自適應：最近表現很好，題目已微調加難</span>';
   if(acc<0.6) return ' <span style="color:#2e7d32;font-weight:800;">💡自適應：最近有點卡，題目已微調變簡單</span>';
@@ -4966,7 +4997,7 @@ function firstUnfinishedHW(){
   return visibleHW().find(it=>c.homework[it.id]!==true && c.homework[it.id]!=='pending')||null;
 }
 function showTab(tab, hwId){
-  clearQTimer();   /* 2026-09-28 稽核 B11：原本答題到一半回首頁，約 25 秒後會自動算一題錯、跳出粗心大王蓋住首頁 */
+  clearQTimer(); _diffSubj=null;   /* 2026-09-28 稽核 B11：原本答題到一半回首頁，約 25 秒後會自動算一題錯、跳出粗心大王蓋住首頁 */
   /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
   if(tab!=='parent'){ parentUnlocked=false; parentCat=null; }
   refreshSunCount();
@@ -6483,6 +6514,7 @@ function renderReadTest(){
 }
 /* 數學 */
 function renderMath(){
+  _diffSubj='math';
   app.innerHTML=`
   <div class="panel">
     <h2>${subjectIcon('math')} ${subjectName('math')} · 算術防線</h2>
@@ -6504,8 +6536,9 @@ function renderMath(){
   attachComplete();
 }
 function mathRound(){
+  _diffSubj='math';
   ensureQuiz('math');
-  const li=levelIdx();
+  const pl=playLevel('math'); const li=pl.li;
   let q, ans, steps='';
   if(li<=0){ // 幼幼 3-5：10 以內加減
     const a=1+Math.floor(Math.random()*5), b=1+Math.floor(Math.random()*5);
@@ -6538,9 +6571,9 @@ function mathRound(){
   $('#mq').textContent=q;
   const set=new Set([ans]); const span=Math.max(4, Math.round(Math.abs(ans)*0.12)+2);
   let k=1; while(set.size<4){ const cand=ans+(Math.floor(Math.random()*2)?k:-k); if(cand>=0) set.add(cand); if(set.size<4){ const cand2=ans+k*2; if(cand2>=0) set.add(cand2); } k++; }
-  const hint=document.getElementById('mHint'); if(hint) hint.innerHTML = hintLine('慢慢算，先乘除後加減～');
+  const hint=document.getElementById('mHint'); if(hint) hint.innerHTML = stretchBadge(pl.tag) + hintLine('慢慢算，先乘除後加減～');
   $('#mf').textContent='';
-  renderChoices({ box:$('#mc'), opts:[...set], correct:ans, moduleKey:'math', sun:4, fb:$('#mf'),
+  renderChoices({ box:$('#mc'), opts:[...set], correct:ans, moduleKey:'math', sun:4, fb:$('#mf'), statLi:li,
     qText:q, rightMsg:'🎉 算對了！拖延怪被打退！', wrongPrefix:'💡 正確答案是：', explain:steps, compare:(o)=> +o===ans });
 }
 
@@ -6743,6 +6776,7 @@ function genEnglishQ(li, single){
 }
 
 function renderEnglish(mode){
+  _diffSubj='english';
   enMode=mode||null;
   enReadingQueue=null;
   const titles={word:'英文單字',grammar:'英文文法',reading:'英文閱讀測驗'};
@@ -6793,8 +6827,9 @@ function renderEnDiffSel(){
   });
 }
 function englishRound(){
+  _diffSubj='english';
   ensureQuiz('english');
-  const li=subjectIdx('english');
+  const pl=playLevel('english'); const li=pl.li;
   let q;
   if(enReadingQueue && enReadingQueue.idx < enReadingQueue.qs.length){
     const g=enReadingQueue.qs[enReadingQueue.idx++];
@@ -6811,9 +6846,9 @@ function englishRound(){
   if(ep) ep.innerHTML = q.p ? '📖 '+q.p : '';
   $('#eq').textContent=q.q;
   const hint=document.getElementById('eHint');
-  if(hint) hint.innerHTML = hintLine((q.en?('點 🔊 聽「'+q.en+'」'):(q.hint||'想一想！')));
+  if(hint) hint.innerHTML = (enReadingQueue && enReadingQueue.idx>1 ? '' : stretchBadge(pl.tag)) + hintLine((q.en?('點 🔊 聽「'+q.en+'」'):(q.hint||'想一想！')));
   $('#ef').textContent=''; $('#ef').className='feedback';
-  renderChoices({ box:$('#ec'), opts:q.opts, correct:q.ans, moduleKey:'english', sun:3, fb:$('#ef'),
+  renderChoices({ box:$('#ec'), opts:q.opts, correct:q.ans, moduleKey:'english', sun:3, fb:$('#ef'), statLi:li,
     qText:q.q, passage:q.p, rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：', explain:q.hint });
 }
 
@@ -6847,6 +6882,7 @@ function examQuestion(){
   return {q:item.q, opts:item.a.slice(), ans:item.a[item.c]};
 }
 function renderExam(){
+  _diffSubj='exam';
   app.innerHTML=`
   <div class="panel">
     <h2>${subjectIcon('exam')} ${subjectName('exam')} · 混合測驗</h2>
@@ -7796,6 +7832,7 @@ function genKnowledgeQ(subject, li){
 
 /* ---------- 知識科目練習模組（單科） ---------- */
 function renderKnowledge(subject){
+  _diffSubj=subject;
   const meta=KNOW_META[subject]; let li=subjectIdx(subject); const total=liveDiff().quiz;
   let idx=0, right=0; const seenKQ=new Set();
   app.innerHTML=`
@@ -7835,13 +7872,15 @@ function renderKnowledge(subject){
   const renderOne=()=>{
     $('#kf').textContent=''; $('#kf').className='feedback';
     $('#knext').style.display='none';
-    let q; for(let t=0;t<8;t++){ q=genKnowledgeQ(subject, li); if(!seenKQ.has(q.q)){ seenKQ.add(q.q); break; } }
+    const pl=playLevel(subject);
+    let q; for(let t=0;t<8;t++){ q=genKnowledgeQ(subject, pl.li); if(!seenKQ.has(q.q)){ seenKQ.add(q.q); break; } }
     $('#kq').textContent=q.q;
     const spk=$('#kqSpk'); if(spk){ if(q.speak){ spk.style.display=''; spk.onclick=()=>speak(q.speak); } else spk.style.display='none'; }
-    renderQ(q, { box:$('#kqbox'), moduleKey:subject, sun:meta.sun, fb:$('#kf'),
+    renderQ(q, { box:$('#kqbox'), moduleKey:subject, sun:meta.sun, fb:$('#kf'), statLi:pl.li,
       stageId:'kstage', hintId:'khint', gradeId:'kgrade', qText:q.q,
       rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
       onDone:(ok)=>{ if(ok) right++; prog(); $('#knext').style.display='inline-block'; } });
+    if(pl.tag){ const g=$('#kgrade'); if(g) g.insertAdjacentHTML('afterbegin', stretchBadge(pl.tag)); }
     prog();
   };
   $('#knext').onclick=next;
@@ -7864,7 +7903,7 @@ function renderKDiffSel(subject){
       const o=KNOW_DIFF_OPTS.find(x=>x.k===cur);
       det.innerHTML = '📚 目前：<b>'+o.t+'</b> <span class="q-grade">'+o.short+'</span> — 題目難度鎖定「'+o.label+'」';
     } else {
-      det.innerHTML = '📚 目前：自動（依年齡 '+LEVEL_ORDER[levelIdx()]+'）';
+      det.innerHTML = '📚 目前：自動（依年齡 '+LEVEL_ORDER[levelIdx()]+'）'+stretchNote(subject);
     }
   }
   box.querySelectorAll('button').forEach(b=>{
