@@ -2290,6 +2290,7 @@ function load(seed){
       if(s.bgm===undefined) s.bgm=false;
       if(s.notifiedDate===undefined) s.notifiedDate='';
       if(typeof s.sentCardOn!=='boolean') s.sentCardOn=true;   /* 造句卡（2026-09-28 稽核 D9 第二批） */
+      s.children.forEach(scNormChild);
       return s;
     }
   }catch(e){ try{ console.error('load() 失敗', e); }catch(_){} }
@@ -6135,6 +6136,23 @@ const SC_WORDS_BY_LEVEL={L2:1, L3:2, L4:3, L5:3};
 const SC_SUN_OK=10, SC_SUN_GREAT=15;
 const SC_PHOTO_KEEP_DAYS=7;
 const SC_LOG_MAX=60;
+/* 讀檔時整理造句卡欄位：備份檔被手改、型別不對時，原本整個家長後台會打不開（連備份／還原都進不去）。
+   load() 在開機最早就執行，這時 SC_* 常數還沒宣告，這裡只能寫死數字（同稽核 A1 的雷） */
+function scNormChild(ch){
+  if(!ch || typeof ch!=='object') return;
+  const str=v=>typeof v==='string'?v:'';
+  const words=a=>Array.isArray(a)?a.filter(w=>typeof w==='string'&&w).map(w=>w.slice(0,8)).slice(0,5):[];
+  const k=ch.sentCard;
+  if(k && typeof k==='object' && ['todo','pending','redo','done'].includes(k.status) && words(k.words).length){
+    ch.sentCard={id:(str(k.id).replace(/[^\w-]/g,'').slice(0,40))||('sc'+Date.now()), date:str(k.date).slice(0,10), words:words(k.words), status:k.status,
+      photo:k.photo===true, note:str(k.note).slice(0,40), grade:(k.grade==='great'||k.grade==='ok')?k.grade:'',
+      sun:Math.max(0,Math.min(15,Number(k.sun)||0)), sentAt:Number(k.sentAt)||0, decidedAt:Number(k.decidedAt)||0};
+  } else ch.sentCard=null;
+  ch.sentLog=Array.isArray(ch.sentLog) ? ch.sentLog.filter(e=>e&&typeof e==='object').map(e=>({
+      id:str(e.id).replace(/[^\w-]/g,'').slice(0,40), date:str(e.date).slice(0,10), words:words(e.words), grade:e.grade==='great'?'great':'ok',
+      sun:Math.max(0,Math.min(15,Number(e.sun)||0)), photo:e.photo===true, at:Number(e.at)||0 })).slice(-60) : [];
+  ch.sentWords=Array.isArray(ch.sentWords) ? ch.sentWords.filter(w=>typeof w==='string'&&w).map(w=>w.slice(0,8)).slice(0,30) : [];
+}
 function scOn(c){ c=c||C(); return state.sentCardOn!==false && !!SC_WORDS_BY_LEVEL[childLevel(c)]; }
 function scWordInfo(w){ return WORDS.find(x=>x.ch===w)||null; }
 function idbKV(mode, fn){ return idbOpen().then(db=>new Promise((res,rej)=>{
@@ -6256,7 +6274,7 @@ function renderSentCard(){
         <button class="reset-btn" id="scCancel" type="button">↩ 取消送出</button>
       </div>`;
   } else {
-    body=`<div class="sc-state good">${k.grade==='great'?'🌟 爸媽說寫得很棒！':'✅ 爸媽批改通過了！'}${k.sun?' +'+k.sun+' 陽光':''}</div>
+    body=`<div class="sc-state good">${k.grade==='great'?'🌟 爸媽說寫得很棒！':'✅ 爸媽批改通過了！'}${Number(k.sun)>0?' +'+Number(k.sun)+' 陽光':''}</div>
       ${scWordsHTML(k.words)}
       <p class="hint">明天會有新的造句卡。</p>`;
   }
