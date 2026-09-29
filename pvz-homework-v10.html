@@ -7780,6 +7780,15 @@ function renderHome(){
       <span style="flex:1;"><b>今天被扣了 ${pensToday.reduce((s,p)=>s+p.actual,0)} 陽光</b>
         <span>${pensToday.map(p=>escapeHtml((p.emoji||'⚠️')+' '+p.name+'（－'+p.actual+'）')).join('　')}</span></span>
     </div>` : '';
+  /* 造句卡被退回：原本只有國語練習頁看得到，孩子沒進國語頁就不知道要改（2026-09-29 D9 第二批） */
+  const scK = state.sentCardOn!==false ? c.sentCard : null;
+  const scRedoBanner = (scK && scK.status==='redo') ? `
+    <button class="alert2" id="goScRedo" type="button">${ico('alert')}
+      <span style="flex:1;"><b>✏️ 爸媽說造句卡再改一次</b>${scK.note?escapeHtml(scK.note):'改好再拍照送出，不會扣陽光。'}</span>
+      ${ico('chevron')}
+    </button>` : '';
+  /* 等批改的造句卡也算進「請家長簽名」，不然功課都簽完時首頁不會叫爸媽來 */
+  const scPendN = (scK && scK.status==='pending') ? 1 : 0;
   /* 2026-09-28 UI 改版：問候 → 提醒 → 主線任務（今天功課＋下一步＋一個主要按鈕）→ 戰場 → 快捷入口 → 其餘區塊 */
   const total=visibleHW().length;
   const nextHW=firstUnfinishedHW();
@@ -7792,7 +7801,8 @@ function renderHome(){
     : '還有 '+(total-finished-pendingN)+' 項功課沒寫'+(pendingN?'、'+pendingN+' 項等爸媽簽名':'')+'，全部簽完就能打退拖延怪。';
   let ctaText, ctaAct, nextLine;
   if(nextHW){ ctaText=(finished+pendingN===0)?'開始寫功課':'繼續完成作業'; ctaAct='tasks'; nextLine='下一步：<b>'+escapeHtml(displayHWName(nextHW))+'</b>'; }
-  else if(pendingN){ ctaText='請家長簽名（'+pendingN+' 項）'; ctaAct='sign'; nextLine='寫完的功課要請爸媽在家長後台簽名，才算完成。'; }
+  else if(pendingN||scPendN){ ctaText='請家長簽名（'+(pendingN+scPendN)+' 項）'; ctaAct='sign';
+    nextLine = !pendingN ? '造句卡送出了，請爸媽在家長後台批改。' : scPendN ? '寫完的功課要請爸媽簽名，造句卡也要請爸媽批改。' : '寫完的功課要請爸媽在家長後台簽名，才算完成。'; }
   else if(studyDueCount){ ctaText='去做讀書計劃（'+studyDueCount+' 項）'; ctaAct='plan'; nextLine='功課都完成了，接著做今天的讀書計劃。'; }
   else { ctaText='今天都完成了，去練習場'; ctaAct='practice'; nextLine='想多賺陽光，可以去練習場答題。'; }
   const chips=visibleHW().map(it=>{
@@ -7804,6 +7814,7 @@ function renderHome(){
     <div class="greet"><h1>${escapeHtml(name)}，${hello}！</h1><p>${tip}</p></div>
     ${hol?`<div class="alert2 holiday">${ico('flag')}<span style="flex:1;"><b>今天是「${escapeHtml(hol)}」</b>學校功課可以休息，自由練習照樣能賺陽光。</span></div>`:''}
     ${penaltyBanner}
+    ${scRedoBanner}
     ${overdueBanner}
     <section class="card2 quest" id="questCard">
       <div class="card-head"><h2>今天的功課</h2><span class="pill">${ico('checkCircle')}已完成 ${finished}/${total}</span></div>
@@ -7895,6 +7906,7 @@ function renderHome(){
   const qg=$('#qkGarden'); if(qg) qg.onclick=()=>{ const el=$('#secGardenBox'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); else showTab('collection'); };
   $$('input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderHome(); }; });
   const gob=$('#goOverdue'); if(gob) gob.onclick=()=>showTab('plan');
+  const gsr=$('#goScRedo'); if(gsr) gsr.onclick=()=>{ showTab('zhuyin'); if(currentTab==='zhuyin') renderSentCard(); };
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
   const eb=$('#energyBtn'); if(eb){ eb.onclick=useEnergy; tickEnergy(); }
   const tb=$('#ttsBtn'); if(tb) tb.onclick=()=>{ state.tts=!state.tts; save(); renderHome(); };
