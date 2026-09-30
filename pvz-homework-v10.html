@@ -1998,7 +1998,14 @@ function renderExamCram(){
   one();
 }
 function hintLine(txt){ return liveDiff().hint ? `<div class="q-hint">💡 提示：${txt}</div>` : ''; }
+/* 功課難易度要家長密碼：孩子可以自己把程度調低，造句卡從 2 個詞變 1 個、練習題變簡單，陽光照拿
+   （2026-09-30 黑箱測試「想作弊的哥哥姊姊」找到；做法同「自訂首頁」的科目開關，稽核 A8） */
 function openDiffModal(){
+  askInput({ title:'🔐 家長密碼', hint:'調整功課難易度要家長密碼。', okLabel:'下一步',
+    fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
+  }, v=>{ const err=checkPIN(v.pin); if(err) return err; openDiffModalInner(); });
+}
+function openDiffModalInner(){
   const c=C();
   const lvl=childLevel(c);
   const box=document.createElement('div'); box.className='modal-ov';
@@ -2047,7 +2054,7 @@ function openManual(){
     <div class="man-sec">
       <h3>🧭 畫面在哪裡</h3>
       <p>畫面<b>最下面</b>是四個分頁：小花園、讀書計劃、練習場、收藏。<br>
-      <b>右上角的齒輪</b>是設定：切換孩子、自訂首頁、功課難易度、音樂、怎麼玩、關於，還有「進入家長後台」。</p>
+      <b>右上角的齒輪</b>是設定：切換孩子、自訂首頁、功課難易度（要密碼）、音樂、怎麼玩、關於，還有「進入家長後台」。</p>
     </div>
     <div class="man-sec">
       <h3>🎯 這款遊戲在幹嘛</h3>
