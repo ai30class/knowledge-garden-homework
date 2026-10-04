@@ -1295,6 +1295,60 @@ const SAVE_KEY='bloom_homework_v10';
    （家長在另一個分頁批改的陽光、紀錄會不見）。另一個分頁改過存檔時，這裡就停止存檔、請使用者重新整理。
    宣告放在最前面：開機讀檔時就會呼叫 save()，放後面會變成「還沒宣告就使用」（同稽核 A1 的雷）。2026-10-04 稽核 E5 */
 var _otherTabChanged=false, _lastSavedRaw=null;
+/* 讀檔時檢查數值（2026-10-04 稽核 E7）：備份檔被改過（陽光 999999、今日已賺 −1000、獎勵價格負數、
+   護眼鎖／密碼鎖到期時間設在很遠的未來…）原本都照收，每日上限失效、或整台鎖死。超出範圍就拉回合理值，
+   還原時告訴家長修了哪些。範圍照遊戲裡各設定本來允許的數字。
+   放在這裡：開機讀檔（let state = load()）比 SUN_DAILY_CAP 等常數的宣告早，這裡不能用那些常數 */
+const NUM_LIMIT={ sunMax:100000, dayCap:350, interCap:20, eyeMaxMin:60, pinMaxSec:1800 };   /* dayCap＝SUN_DAILY_CAP、interCap＝INTERACT_SUN_CAP，改那邊要一起改 */
+var _loadFixes=[];
+function normNums(s){
+  const fixes=[]; const now=Date.now();
+  /* obj[key] 不是數字、超出 lo～hi、或該是整數卻有小數 → 修正；undefined 不管（其他地方會補預設值） */
+  const fix=(obj, key, lo, hi, def, label, isInt)=>{
+    if(!obj || typeof obj!=='object' || obj[key]===undefined) return;
+    const v=obj[key]; let n=(typeof v==='number') ? v : NaN;
+    if(!isFinite(n)) n=def;
+    if(isInt!==false) n=Math.round(n);
+    n=Math.min(hi, Math.max(lo, n));
+    if(n!==v){ obj[key]=n; fixes.push(label); }
+  };
+  const M=NUM_LIMIT, DAY=86400000;
+  (s.children||[]).forEach(ch=>{
+    fix(ch,'sun',0,M.sunMax,0,'陽光');
+    fix(ch,'dailySunEarned',0,M.dayCap,0,'今日已賺陽光');
+    fix(ch,'interSun',0,M.interCap,0,'互動陽光');
+    fix(ch,'bonusSun',0,1000,0,'行程獎勵陽光');
+    fix(ch,'streak',0,3650,0,'連續天數');
+    fix(ch,'quizStreak',0,3650,0,'小考連續天數');
+    fix(ch,'streakShields',0,999,0,'護盾豆');
+    fix(ch,'combo',0,9999,0,'連擊');
+    fix(ch,'wrongStreak',0,999,0,'連錯次數');
+    fix(ch,'studyDoneCount',0,999,0,'讀書計劃完成數');
+    fix(ch,'plantHP',0,100,100,'植物血量',false);
+    fix(ch,'zombiePush',0,1.3,0,'拖延怪位置',false);
+    fix(ch,'age',3,15,7,'年齡');
+    fix(ch,'studyMs',0,DAY,0,'練習時間');
+    fix(ch,'eyeRestUntil',0,now+M.eyeMaxMin*60000,0,'護眼鎖時間');
+    if(ch.answers && typeof ch.answers==='object'){ fix(ch.answers,'right',0,1e7,0,'答題數'); fix(ch.answers,'wrong',0,1e7,0,'答題數'); }
+  });
+  fix(s,'quizLimitMin',1,120,30,'護眼設定');
+  fix(s,'restMin',1,M.eyeMaxMin,10,'護眼設定');
+  fix(s,'eyeRestUntil',0,now+M.eyeMaxMin*60000,0,'護眼鎖時間');
+  fix(s,'studyMs',0,DAY,0,'練習時間');
+  fix(s,'pinFails',0,1000,0,'密碼錯誤次數');
+  fix(s,'pinLockUntil',0,now+M.pinMaxSec*1000,0,'密碼鎖時間');
+  if(s.routineLimit && typeof s.routineLimit==='object'){ fix(s.routineLimit,'eat',1,600,40,'作息設定'); fix(s.routineLimit,'bath',1,600,30,'作息設定'); }
+  fix(s,'routineStep',1,600,5,'作息設定');
+  fix(s,'routinePenalty',1,M.dayCap,5,'作息設定');
+  fix(s,'schedCheckin',0,100,5,'行程獎勵設定');
+  fix(s,'schedOnTime',0,100,10,'行程獎勵設定');
+  (Array.isArray(s.rewards)?s.rewards:[]).forEach(r=>fix(r,'cost',1,M.sunMax,200,'獎勵價格'));
+  (Array.isArray(s.redemptions)?s.redemptions:[]).forEach(r=>fix(r,'cost',0,M.sunMax,0,'兌換紀錄'));
+  (Array.isArray(s.penalties)?s.penalties:[]).forEach(p=>{ if(p && p.kind!=='zero') fix(p,'amount',1,M.sunMax,10,'扣分項目'); });
+  /* 撤銷扣分會把 actual 還給孩子：一般扣分最多還「扣分數」，只有「陽光歸零」才可能更多 */
+  (Array.isArray(s.penaltyLog)?s.penaltyLog:[]).forEach(p=>{ fix(p,'amount',0,M.sunMax,0,'扣分紀錄'); fix(p,'actual',0,(p && p.kind!=='zero' && typeof p.amount==='number')?p.amount:M.sunMax,0,'扣分紀錄'); });
+  return fixes;
+}
 function showOtherTabLock(){
   if(document.getElementById('otherTabLock')) return;
   const ov=document.createElement('div'); ov.id='otherTabLock';
@@ -2240,7 +2294,7 @@ function freshState(){
 /* _loadFailed 用 var：load() 在開機時就會被呼叫，比這一行的位置早 */
 var _loadFailed;
 function load(seed){
-  _loadFailed=false;
+  _loadFailed=false; _loadFixes=[];
   let raw=null;
   try{
     raw = seed ? JSON.stringify(seed) : (localStorage.getItem(SAVE_KEY) || localStorage.getItem('pvz_homework_v10'));
@@ -2336,6 +2390,7 @@ function load(seed){
       if(s.notifiedDate===undefined) s.notifiedDate='';
       if(typeof s.sentCardOn!=='boolean') s.sentCardOn=true;   /* 造句卡（2026-09-28 稽核 D9 第二批） */
       s.children.forEach(scNormChild);
+      _loadFixes=normNums(s);   /* 稽核 E7：放在所有預設值補完之後 */
       return s;
     }
   }catch(e){ try{ console.error('load() 失敗', e); }catch(_){} }
@@ -11452,7 +11507,7 @@ function renderParent(){
       const names=kids.map(ch=>escapeHtml(String(ch.name||'（未命名）').slice(0,20))).join('、');
       askConfirm('要用這個備份檔<b>覆蓋目前所有進度</b>嗎？<br>檔案裡有 '+kids.length+' 位孩子：'+names+'<br><span class="hint">目前的進度會被取代。不確定的話，先按「一鍵備份」把現在的進度也存一份。</span>', ()=>{
         const prevRaw=JSON.stringify(state), prevPIN=state.parentPIN;
-        const ns=load(s);
+        const ns=load(s); const fixed=_loadFixes.slice();
         if(_loadFailed){ toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return; }
         /* 檔案裡有合法密碼才用；沒有的話 load() 會補成 1234，那樣會把家長改過的密碼變回預設，所以保留目前的 */
         ns.parentPIN = /^\d{1,6}$/.test(String(s.parentPIN)) ? String(s.parentPIN) : prevPIN;
@@ -11463,7 +11518,9 @@ function renderParent(){
           try{ showTab('home'); }catch(_){}
           toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return;
         }
-        parentUnlocked=false; save(); toast('✅ 存檔已還原');
+        parentUnlocked=false; save();
+        if(fixed.length){ const names=[...new Set(fixed)]; toast('✅ 存檔已還原。備份檔裡有 '+fixed.length+' 個數字不合理，已自動修正（'+names.slice(0,4).join('、')+(names.length>4?' 等':'')+'）', 9000); }
+        else toast('✅ 存檔已還原');
       }, '確定還原');
     };
     rd.readAsText(f);
@@ -11480,8 +11537,9 @@ function renderParent(){
     state.weekRoutine=wr; save(); goodSound(); toast('📅 整週作息已儲存'); renderParent();
   };
   const srs=$('#saveRoutineSet'); if(srs) srs.onclick=()=>{
-    const eat=parseInt($('#limEat').value)||40, bath=parseInt($('#limBath').value)||30;
-    const step=parseInt($('#rStep').value)||5, pen=parseInt($('#rPen').value)||5;
+    const clampIn=(v,lo,hi,def)=>{ const n=parseInt(v); return isFinite(n) ? Math.min(hi,Math.max(lo,n)) : def; };   /* 稽核 E7：原本可以填負數 */
+    const eat=clampIn($('#limEat').value,1,600,40), bath=clampIn($('#limBath').value,1,600,30);
+    const step=clampIn($('#rStep').value,1,600,5), pen=clampIn($('#rPen').value,1,350,5);
     state.routineLimit={eat,bath}; state.routineStep=step; state.routinePenalty=pen; save();
     goodSound(); toast('⏱ 作息扣分設定已儲存'); renderParent();
   };
