@@ -10960,7 +10960,7 @@ function renderParent(){
 
     <div style="margin-top:18px;background:linear-gradient(135deg,#e9f8ef,#e3f1ff);border:2px solid #2e9e5b;border-radius:14px;padding:14px;">
       <div style="font-size:18px;font-weight:800;color:#1b7a40;margin-bottom:3px;">🛡 一鍵備份 / 還原</div>
-      <p class="hint" style="margin:0 0 10px;color:#3a6b4a;">每次更新前先備份一次：換手機、清快取、或分享連結變動時，都能從檔案還原。檔案只存在你自己的裝置，不上傳。</p>
+      <p class="hint" style="margin:0 0 10px;color:#3a6b4a;">每次更新前先備份一次：換手機、清快取、或分享連結變動時，都能從檔案還原。檔案只存在你自己的裝置，不上傳。<b>備份檔不含家長密碼</b>：在原本的裝置還原會保留現在的密碼；換新手機還原後，密碼是預設的 1234，請到「密碼與安全」重新設定。</p>
       <button id="exportBtn" style="width:100%;font-size:16px;font-weight:800;padding:14px;border:none;border-radius:10px;background:#2e9e5b;color:#fff;cursor:pointer;box-shadow:0 3px 0 #1b7a40;">💾 一鍵備份（下載存檔檔案）</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
         <input type="file" id="importFile" accept="application/json" style="display:none;">
@@ -11234,7 +11234,10 @@ function renderParent(){
   /* handlers：備份 / 還原 */
   $('#exportBtn').onclick=()=>{
     try{
-      const data=JSON.stringify(state); const blob=new Blob([data],{type:'application/json'});
+      /* 備份檔不放家長密碼：原本明碼存在檔案裡，孩子在下載資料夾就讀得到，家長分享備份也會外流（2026-10-04 稽核 E1）。
+         還原時檔案沒有密碼就保留目前裝置的密碼；換新裝置要重新設定 */
+      const copy=JSON.parse(JSON.stringify(state)); delete copy.parentPIN; delete copy.pinFails; delete copy.pinLockUntil;
+      const data=JSON.stringify(copy); const blob=new Blob([data],{type:'application/json'});
       const url=URL.createObjectURL(blob); const a=document.createElement('a');
       const d=new Date(), pad=n=>String(n).padStart(2,'0');
       const stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds());
