@@ -1016,6 +1016,8 @@
   .sc-typed-w{font-size:13px;font-weight:700;color:#7a6a3a;} .sc-typed p{margin:2px 0 0;font-size:17px;line-height:1.7;}
   .sc-typed mark{background:#fff1b8;border-radius:4px;padding:0 2px;}
   .sc-hist-typed{padding:0 0 6px 8px;} .sc-hist-typed .sc-typed{margin:4px 0;padding:4px 8px;} .sc-hist-typed .sc-typed p{font-size:14px;}
+  .zy-big button{font-size:46px !important;line-height:1.1;min-width:84px;min-height:84px;padding:8px !important;}
+  .q-text.zy-pic{font-size:30px;}
   .sc-home-note{display:block;font-size:13px;color:var(--muted);margin-top:2px;}
   .sc-photo-tip{font-size:12px;color:var(--muted);margin-top:4px;}
   .sc-cap{color:#9a5b00 !important;font-weight:700;}
@@ -2127,7 +2129,7 @@ function openManual(){
       <h3>👨‍👩‍👧 家長後台（右上角齒輪 →「進入家長後台」）</h3>
       <p>分成六類：功課簽名與造句卡批改、真實獎勵、孩子與功課、作息與家規、學習紀錄與雷達（看孩子哪一科需要加強、最常錯哪幾題）、密碼與備份。離開後台或 5 分鐘沒操作會自動上鎖。<br>
       🔐 預設密碼 <b>1234</b>，第一次進去請先改掉。<br>
-      ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。</p>
+      ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。備份檔不含家長密碼：換新手機還原後密碼是 1234，記得重新設定。</p>
     </div>
     <div class="man-sec">
       <h3>📱 裝到手機桌面（像 APP 一樣）</h3>
@@ -5987,6 +5989,17 @@ function speak(text){
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   }catch(e){}
 }
+/* 中文發音給「聽聲音選圖」用（2026-10-04 稽核 D10）：孩子自己按 🔊 的，不受「點讀」開關影響（同 speakEn） */
+function speakZh(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    const u=new SpeechSynthesisUtterance(String(text)); u.lang='zh-TW'; u.rate=.85;
+    const vs=speechSynthesis.getVoices();
+    const tw=vs.find(v=>/zh[-_]TW|Taiwan/i.test(v.lang+' '+v.name)) || vs.find(v=>/zh|cmn/i.test(v.lang));
+    if(tw) u.voice=tw;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
 /* 英文發音（2026-09-28 稽核 D8）：speak() 固定用中文語音，念英文會變中文腔。這支用英文語音，不受「點讀」開關影響（孩子自己按的） */
 function speakEn(text){
   try{
@@ -8869,21 +8882,21 @@ function numL5(){ const r=Math.random();
   return {type:'choice', q:'2 : 3 ＝ 4 : ?', opts:kOpts('6',['5','8','9'],4), ans:'6', hint:'前項後項同乘 2。'}; }
 
 /* ---------- 邏輯推理 logic（對應康軒數學規律/圖形/分類） ---------- */
-function logicL1(){ const items=['🐱','🐶','🐰','🐯','🦁','🐸']; const target=kPick(items); const others=kShuf(items.filter(x=>x!==target)).slice(0,3);
+function logicL1Old(){ const items=['🐱','🐶','🐰','🐯','🦁','🐸']; const target=kPick(items); const others=kShuf(items.filter(x=>x!==target)).slice(0,3);
   return {type:'choice', q:'哪一個跟 '+target+' 一樣？', opts:kShuf([target,...others]), ans:target, hint:'找出相同的！'}; }
-function logicL2(){ const r=Math.random();
+function logicL2Old(){ const r=Math.random();
   if(r<0.5) return {type:'choice', q:'🔴🔵🔴🔵🔴？ 下一個是誰？', opts:kOpts('🔵',['🔴','⚪','🟢','🟡'],4), ans:'🔵', hint:'紅藍紅藍…找規律！'};
   return {type:'order', q:'把數字從小排到大：', order:['1','2','3','4'], hint:'最小的排最前面。'}; }
-function logicL3(){ const r=Math.random();
+function logicL3Old(){ const r=Math.random();
   if(r<0.6){ const start=2+Math.floor(Math.random()*5), step=2; const seq=[start,start+step,start+2*step,start+3*step]; const ans=seq[3]+step; return {type:'choice', q:seq.join(', ')+', ? ＝ ?', opts:kOpts(ans,[ans+step,ans-step,ans+2*step,ans-2*step],4), ans:String(ans), hint:'每次加 '+step+'。'}; }
   const shapeQ=[['三角形',3],['正方形',4],['長方形',4],['五邊形',5]]; const s=kPick(shapeQ);
   return {type:'choice', q:s[0]+' 有幾條邊？', opts:kOpts(String(s[1]),[String(s[1]-1),String(s[1]+1),String(s[1]+2),String(Math.max(1,s[1]-2))],4), ans:String(s[1]), hint:'數數看邊。'}; }
-function logicL4(){ const r=Math.random();
+function logicL4Old(){ const r=Math.random();
   if(r<0.5) return {type:'tf', q:'小明比小華高，小華比小美高。所以小美比小明高。', ans:false, why:'小美最矮，應該是小明比小美高。', hint:'排排看高大順序。'};
   const groups=[['蘋果','香蕉','橘子','兔子'],['狗','貓','鳥','桌子'],['紅色','藍色','綠色','方形']];
   const g=kPick(groups); const odd=g[g.length-1]; const same=g.slice(0,3);
   return {type:'choice', q:'哪一個跟其他不一樣？', opts:kOpts(odd,same.concat(['不知道']),4), ans:odd, hint:'找找看誰不是同一類。'}; }
-function logicL5(){ const r=Math.random();
+function logicL5Old(){ const r=Math.random();
   if(r<0.45) return {type:'choice', q:'所有的貓都會叫。小花是一隻貓。所以？', opts:['小花會叫','小花不會叫','貓都不會叫','不知道'], ans:'小花會叫', hint:'套進前面的話。'};
   if(r<0.78) return {type:'order', q:'數字由小到大：', order:['1','3','5','8'], hint:'一步步排。'};
   return {type:'tf', q:'規則：會下雨就要帶傘。今天下雨了，所以要帶傘。', ans:true, why:'符合規則！', hint:'把條件套進去。'}; }
@@ -8951,9 +8964,14 @@ function factsL5(){ const r=Math.random();
 
 /* ---------- 閱讀測驗 zhuyin（對應康軒國語） ---------- */
 /* 注音對照表（moedict 國語辭典，CC0 授權），供 L1/L2 為每個漢字標註注音 */
-const BOPOMO={"蘋":"ㄆㄧㄣˊ","果":"ㄍㄨㄛˇ","香":"ㄒㄧㄤ","蕉":"ㄐㄧㄠ","橘":"ㄐㄩˊ","子":"˙ㄗ","西":"ㄒㄧ","瓜":"ㄍㄨㄚ","葡":"ㄆㄨˊ","萄":"ㄊㄠˊ","貓":"ㄇㄠ","狗":"ㄍㄡˇ","鳥":"ㄋㄧㄠˇ","魚":"ㄩˊ","兔":"ㄊㄨˋ","太":"ㄊㄞˋ","陽":"ㄧㄤˊ","月":"ㄩㄝˋ","亮":"ㄌㄧㄤˋ","星":"ㄒㄧㄥ","雲":"ㄩㄣˊ","雨":"ㄩˇ","玻":"ㄅㄛ","坡":"ㄆㄛ","摸":"ㄇㄛ","佛":"ㄈㄛˊ","得":"˙ㄉㄜ","媽":"ㄇㄚ"};
+const BOPOMO={"蘋":"ㄆㄧㄥˊ","果":"ㄍㄨㄛˇ","香":"ㄒㄧㄤ","蕉":"ㄐㄧㄠ","橘":"ㄐㄩˊ","子":"˙ㄗ","西":"ㄒㄧ","瓜":"ㄍㄨㄚ","葡":"ㄆㄨˊ","萄":"ㄊㄠˊ","貓":"ㄇㄠ","狗":"ㄍㄡˇ","鳥":"ㄋㄧㄠˇ","魚":"ㄩˊ","兔":"ㄊㄨˋ","太":"ㄊㄞˋ","陽":"ㄧㄤˊ","月":"ㄩㄝˋ","亮":"ㄌㄧㄤˋ","星":"ㄒㄧㄥ","雲":"ㄩㄣˊ","雨":"ㄩˇ","玻":"ㄅㄛ","坡":"ㄆㄛ","摸":"ㄇㄛ","佛":"ㄈㄛˊ","得":"˙ㄉㄜ","媽":"ㄇㄚ"};
 function zhAnno(s){ let r=''; for(const ch of s){ const b=BOPOMO[ch]; r+= b? ch+'('+b+')' : ch; } return r; }
-function zhuyinL1(){ const r=Math.random();
+function zhuyinL1(){
+  if(typeof ZY_BANK!=='undefined'){ const r=Math.random();
+    if(r<0.4 && _zyListenOK && ('speechSynthesis' in window)) return zyListenQ();
+    return zyPicQ(); }
+  return zhuyinL1Old(); }
+function zhuyinL1Old(){ const r=Math.random();
   if(r<0.4) return {type:'choice', q:'🍎 這個水果叫什麼？', opts:kOpts(zhAnno('蘋果'),[zhAnno('香蕉'),zhAnno('橘子'),zhAnno('西瓜'),zhAnno('葡萄')],4), ans:zhAnno('蘋果'), hint:'紅紅的、脆脆的。'};
   if(r<0.7) return {type:'choice', q:'🐱 這是什麼動物？', opts:kOpts(zhAnno('貓'),[zhAnno('狗'),zhAnno('鳥'),zhAnno('魚'),zhAnno('兔')],4), ans:zhAnno('貓'), hint:'牠會喵喵叫。'};
   return {type:'choice', q:'☀️ 天上會發光、給我們溫暖的是？', opts:kOpts(zhAnno('太陽'),[zhAnno('月亮'),zhAnno('星星'),zhAnno('雲'),zhAnno('雨')],4), ans:zhAnno('太陽'), hint:'白天才出現。'}; }
@@ -8964,11 +8982,42 @@ const BOPOMO_COMPOUND=['ㄨㄥ','ㄩㄥ','ㄧㄢ','ㄧㄣ','ㄨㄢ','ㄩㄢ']; /
 const BOPOMO_SIMPLE=['ㄚ','ㄧ','ㄨ','ㄩ','ㄝ','ㄛ']; // 單一韻符
 const TONE_MARKS=[['ˊ','第二聲'],['ˇ','第三聲'],['ˋ','第四聲'],['˙','輕聲']];
 const BOPOMO_BLENDS=[{parts:'ㄋ ＋ ㄧ ＋ ˇ', ans:'你'},{parts:'ㄏ ＋ ㄠ ＋ ˇ', ans:'好'},{parts:'ㄅ ＋ ㄚ', ans:'八'},{parts:'ㄒㄧㄝ ＋ ˋ', ans:'謝'},{parts:'ㄒㄧㄠ ＋ ˇ', ans:'小'},{parts:'ㄇ ＋ ㄚ', ans:'媽'}];
+/* ZY_BANK:START（2026-10-04 稽核 D10：幼幼看圖選詞、聽聲音選圖，低年級拼讀、聲調；由 d10build.py 從教育部《國語小字典》產生，改資料請改 candidates.json 再重跑） */
+const ZY_BANK={"pics":[{"e":"🍎","w":"蘋果","z":["ㄆㄧㄥˊ","ㄍㄨㄛˇ"],"c":"水果"},{"e":"🍌","w":"香蕉","z":["ㄒㄧㄤ","ㄐㄧㄠ"],"c":"水果"},{"e":"🍉","w":"西瓜","z":["ㄒㄧ","ㄍㄨㄚ"],"c":"水果"},{"e":"🍇","w":"葡萄","z":["ㄆㄨˊ","ㄊㄠˊ"],"c":"水果"},{"e":"🍓","w":"草莓","z":["ㄘㄠˇ","ㄇㄟˊ"],"c":"水果"},{"e":"🍍","w":"鳳梨","z":["ㄈㄥˋ","ㄌㄧˊ"],"c":"水果"},{"e":"🍋","w":"檸檬","z":["ㄋㄧㄥˊ","ㄇㄥˊ"],"c":"水果"},{"e":"🍒","w":"櫻桃","z":["ㄧㄥ","ㄊㄠˊ"],"c":"水果"},{"e":"🥭","w":"芒果","z":["ㄇㄤˊ","ㄍㄨㄛˇ"],"c":"水果"},{"e":"🍐","w":"梨","z":["ㄌㄧˊ"],"c":"水果"},{"e":"🐱","w":"貓","z":["ㄇㄠ"],"c":"動物"},{"e":"🐶","w":"狗","z":["ㄍㄡˇ"],"c":"動物"},{"e":"🐦","w":"鳥","z":["ㄋㄧㄠˇ"],"c":"動物"},{"e":"🐟","w":"魚","z":["ㄩˊ"],"c":"動物"},{"e":"🐰","w":"兔","z":["ㄊㄨˋ"],"c":"動物"},{"e":"🐮","w":"牛","z":["ㄋㄧㄡˊ"],"c":"動物"},{"e":"🐷","w":"豬","z":["ㄓㄨ"],"c":"動物"},{"e":"🐴","w":"馬","z":["ㄇㄚˇ"],"c":"動物"},{"e":"🐑","w":"羊","z":["ㄧㄤˊ"],"c":"動物"},{"e":"🐔","w":"雞","z":["ㄐㄧ"],"c":"動物"},{"e":"🦆","w":"鴨","z":["ㄧㄚ"],"c":"動物"},{"e":"🐒","w":"猴","z":["ㄏㄡˊ"],"c":"動物"},{"e":"🐸","w":"青蛙","z":["ㄑㄧㄥ","ㄨㄚ"],"c":"動物"},{"e":"🦋","w":"蝴蝶","z":["ㄏㄨˊ","ㄉㄧㄝˊ"],"c":"動物"},{"e":"🐝","w":"蜜蜂","z":["ㄇㄧˋ","ㄈㄥ"],"c":"動物"},{"e":"🐼","w":"熊貓","z":["ㄒㄩㄥˊ","ㄇㄠ"],"c":"動物"},{"e":"🐻","w":"熊","z":["ㄒㄩㄥˊ"],"c":"動物"},{"e":"✈️","w":"飛機","z":["ㄈㄟ","ㄐㄧ"],"c":"交通"},{"e":"🚢","w":"輪船","z":["ㄌㄨㄣˊ","ㄔㄨㄢˊ"],"c":"交通"},{"e":"🚀","w":"火箭","z":["ㄏㄨㄛˇ","ㄐㄧㄢˋ"],"c":"交通"},{"e":"🚁","w":"直升機","z":["ㄓˊ","ㄕㄥ","ㄐㄧ"],"c":"交通"},{"e":"☀️","w":"太陽","z":["ㄊㄞˋ","ㄧㄤˊ"],"c":"天空"},{"e":"🌙","w":"月亮","z":["ㄩㄝˋ","ㄌㄧㄤˋ"],"c":"天空"},{"e":"⭐","w":"星星","z":["ㄒㄧㄥ","ㄒㄧㄥ"],"c":"天空"},{"e":"☁️","w":"雲","z":["ㄩㄣˊ"],"c":"天空"},{"e":"🌈","w":"彩虹","z":["ㄘㄞˇ","ㄏㄨㄥˊ"],"c":"天空"},{"e":"❄️","w":"雪","z":["ㄒㄩㄝˇ"],"c":"天空"},{"e":"⚡","w":"閃電","z":["ㄕㄢˇ","ㄉㄧㄢˋ"],"c":"天空"},{"e":"🌳","w":"樹","z":["ㄕㄨˋ"],"c":"大自然"},{"e":"🌸","w":"花","z":["ㄏㄨㄚ"],"c":"大自然"},{"e":"🔥","w":"火","z":["ㄏㄨㄛˇ"],"c":"大自然"},{"e":"🌊","w":"海浪","z":["ㄏㄞˇ","ㄌㄤˋ"],"c":"大自然"},{"e":"🍄","w":"香菇","z":["ㄒㄧㄤ","ㄍㄨ"],"c":"大自然"},{"e":"🌵","w":"仙人掌","z":["ㄒㄧㄢ","ㄖㄣˊ","ㄓㄤˇ"],"c":"大自然"},{"e":"🎈","w":"氣球","z":["ㄑㄧˋ","ㄑㄧㄡˊ"],"c":"東西"},{"e":"📚","w":"書","z":["ㄕㄨ"],"c":"東西"},{"e":"🎒","w":"書包","z":["ㄕㄨ","ㄅㄠ"],"c":"東西"},{"e":"⚽","w":"足球","z":["ㄗㄨˊ","ㄑㄧㄡˊ"],"c":"東西"},{"e":"🚪","w":"門","z":["ㄇㄣˊ"],"c":"東西"},{"e":"👟","w":"鞋","z":["ㄒㄧㄝˊ"],"c":"東西"},{"e":"🕐","w":"時鐘","z":["ㄕˊ","ㄓㄨㄥ"],"c":"東西"},{"e":"🍰","w":"蛋糕","z":["ㄉㄢˋ","ㄍㄠ"],"c":"食物"},{"e":"🥛","w":"牛奶","z":["ㄋㄧㄡˊ","ㄋㄞˇ"],"c":"食物"},{"e":"🍞","w":"麵包","z":["ㄇㄧㄢˋ","ㄅㄠ"],"c":"食物"},{"e":"🍚","w":"米飯","z":["ㄇㄧˇ","ㄈㄢˋ"],"c":"食物"},{"e":"🍦","w":"冰淇淋","z":["ㄅㄧㄥ","ㄑㄧˊ","ㄌㄧㄣˊ"],"c":"食物"},{"e":"🥚","w":"雞蛋","z":["ㄐㄧ","ㄉㄢˋ"],"c":"食物"}],"blends":[{"ch":"八","zy":"ㄅㄚ","parts":"ㄅ ＋ ㄚ","ini":"ㄅ","fin":"ㄚ"},{"ch":"爸","zy":"ㄅㄚˋ","parts":"ㄅ ＋ ㄚ ＋ ˋ","ini":"ㄅ","fin":"ㄚ"},{"ch":"媽","zy":"ㄇㄚ","parts":"ㄇ ＋ ㄚ","ini":"ㄇ","fin":"ㄚ"},{"ch":"馬","zy":"ㄇㄚˇ","parts":"ㄇ ＋ ㄚ ＋ ˇ","ini":"ㄇ","fin":"ㄚ"},{"ch":"怕","zy":"ㄆㄚˋ","parts":"ㄆ ＋ ㄚ ＋ ˋ","ini":"ㄆ","fin":"ㄚ"},{"ch":"爬","zy":"ㄆㄚˊ","parts":"ㄆ ＋ ㄚ ＋ ˊ","ini":"ㄆ","fin":"ㄚ"},{"ch":"他","zy":"ㄊㄚ","parts":"ㄊ ＋ ㄚ","ini":"ㄊ","fin":"ㄚ"},{"ch":"拿","zy":"ㄋㄚˊ","parts":"ㄋ ＋ ㄚ ＋ ˊ","ini":"ㄋ","fin":"ㄚ"},{"ch":"拉","zy":"ㄌㄚ","parts":"ㄌ ＋ ㄚ","ini":"ㄌ","fin":"ㄚ"},{"ch":"沙","zy":"ㄕㄚ","parts":"ㄕ ＋ ㄚ","ini":"ㄕ","fin":"ㄚ"},{"ch":"你","zy":"ㄋㄧˇ","parts":"ㄋ ＋ ㄧ ＋ ˇ","ini":"ㄋ","fin":"ㄧ"},{"ch":"我","zy":"ㄨㄛˇ","parts":"ㄨㄛ ＋ ˇ","ini":"","fin":"ㄨㄛ"},{"ch":"小","zy":"ㄒㄧㄠˇ","parts":"ㄒ ＋ ㄧㄠ ＋ ˇ","ini":"ㄒ","fin":"ㄧㄠ"},{"ch":"米","zy":"ㄇㄧˇ","parts":"ㄇ ＋ ㄧ ＋ ˇ","ini":"ㄇ","fin":"ㄧ"},{"ch":"皮","zy":"ㄆㄧˊ","parts":"ㄆ ＋ ㄧ ＋ ˊ","ini":"ㄆ","fin":"ㄧ"},{"ch":"弟","zy":"ㄉㄧˋ","parts":"ㄉ ＋ ㄧ ＋ ˋ","ini":"ㄉ","fin":"ㄧ"},{"ch":"書","zy":"ㄕㄨ","parts":"ㄕ ＋ ㄨ","ini":"ㄕ","fin":"ㄨ"},{"ch":"魚","zy":"ㄩˊ","parts":"ㄩ ＋ ˊ","ini":"","fin":"ㄩ"},{"ch":"去","zy":"ㄑㄩˋ","parts":"ㄑ ＋ ㄩ ＋ ˋ","ini":"ㄑ","fin":"ㄩ"},{"ch":"七","zy":"ㄑㄧ","parts":"ㄑ ＋ ㄧ","ini":"ㄑ","fin":"ㄧ"},{"ch":"西","zy":"ㄒㄧ","parts":"ㄒ ＋ ㄧ","ini":"ㄒ","fin":"ㄧ"},{"ch":"哥","zy":"ㄍㄜ","parts":"ㄍ ＋ ㄜ","ini":"ㄍ","fin":"ㄜ"},{"ch":"歌","zy":"ㄍㄜ","parts":"ㄍ ＋ ㄜ","ini":"ㄍ","fin":"ㄜ"},{"ch":"河","zy":"ㄏㄜˊ","parts":"ㄏ ＋ ㄜ ＋ ˊ","ini":"ㄏ","fin":"ㄜ"},{"ch":"火","zy":"ㄏㄨㄛˇ","parts":"ㄏ ＋ ㄨㄛ ＋ ˇ","ini":"ㄏ","fin":"ㄨㄛ"},{"ch":"果","zy":"ㄍㄨㄛˇ","parts":"ㄍ ＋ ㄨㄛ ＋ ˇ","ini":"ㄍ","fin":"ㄨㄛ"},{"ch":"花","zy":"ㄏㄨㄚ","parts":"ㄏ ＋ ㄨㄚ","ini":"ㄏ","fin":"ㄨㄚ"},{"ch":"瓜","zy":"ㄍㄨㄚ","parts":"ㄍ ＋ ㄨㄚ","ini":"ㄍ","fin":"ㄨㄚ"},{"ch":"貓","zy":"ㄇㄠ","parts":"ㄇ ＋ ㄠ","ini":"ㄇ","fin":"ㄠ"},{"ch":"刀","zy":"ㄉㄠ","parts":"ㄉ ＋ ㄠ","ini":"ㄉ","fin":"ㄠ"},{"ch":"包","zy":"ㄅㄠ","parts":"ㄅ ＋ ㄠ","ini":"ㄅ","fin":"ㄠ"},{"ch":"跑","zy":"ㄆㄠˇ","parts":"ㄆ ＋ ㄠ ＋ ˇ","ini":"ㄆ","fin":"ㄠ"},{"ch":"草","zy":"ㄘㄠˇ","parts":"ㄘ ＋ ㄠ ＋ ˇ","ini":"ㄘ","fin":"ㄠ"},{"ch":"早","zy":"ㄗㄠˇ","parts":"ㄗ ＋ ㄠ ＋ ˇ","ini":"ㄗ","fin":"ㄠ"},{"ch":"牛","zy":"ㄋㄧㄡˊ","parts":"ㄋ ＋ ㄧㄡ ＋ ˊ","ini":"ㄋ","fin":"ㄧㄡ"},{"ch":"九","zy":"ㄐㄧㄡˇ","parts":"ㄐ ＋ ㄧㄡ ＋ ˇ","ini":"ㄐ","fin":"ㄧㄡ"},{"ch":"手","zy":"ㄕㄡˇ","parts":"ㄕ ＋ ㄡ ＋ ˇ","ini":"ㄕ","fin":"ㄡ"},{"ch":"狗","zy":"ㄍㄡˇ","parts":"ㄍ ＋ ㄡ ＋ ˇ","ini":"ㄍ","fin":"ㄡ"},{"ch":"口","zy":"ㄎㄡˇ","parts":"ㄎ ＋ ㄡ ＋ ˇ","ini":"ㄎ","fin":"ㄡ"},{"ch":"走","zy":"ㄗㄡˇ","parts":"ㄗ ＋ ㄡ ＋ ˇ","ini":"ㄗ","fin":"ㄡ"},{"ch":"山","zy":"ㄕㄢ","parts":"ㄕ ＋ ㄢ","ini":"ㄕ","fin":"ㄢ"},{"ch":"天","zy":"ㄊㄧㄢ","parts":"ㄊ ＋ ㄧㄢ","ini":"ㄊ","fin":"ㄧㄢ"},{"ch":"田","zy":"ㄊㄧㄢˊ","parts":"ㄊ ＋ ㄧㄢ ＋ ˊ","ini":"ㄊ","fin":"ㄧㄢ"},{"ch":"生","zy":"ㄕㄥ","parts":"ㄕ ＋ ㄥ","ini":"ㄕ","fin":"ㄥ"},{"ch":"東","zy":"ㄉㄨㄥ","parts":"ㄉ ＋ ㄨㄥ","ini":"ㄉ","fin":"ㄨㄥ"},{"ch":"冬","zy":"ㄉㄨㄥ","parts":"ㄉ ＋ ㄨㄥ","ini":"ㄉ","fin":"ㄨㄥ"},{"ch":"心","zy":"ㄒㄧㄣ","parts":"ㄒ ＋ ㄧㄣ","ini":"ㄒ","fin":"ㄧㄣ"},{"ch":"星","zy":"ㄒㄧㄥ","parts":"ㄒ ＋ ㄧㄥ","ini":"ㄒ","fin":"ㄧㄥ"},{"ch":"新","zy":"ㄒㄧㄣ","parts":"ㄒ ＋ ㄧㄣ","ini":"ㄒ","fin":"ㄧㄣ"},{"ch":"人","zy":"ㄖㄣˊ","parts":"ㄖ ＋ ㄣ ＋ ˊ","ini":"ㄖ","fin":"ㄣ"},{"ch":"門","zy":"ㄇㄣˊ","parts":"ㄇ ＋ ㄣ ＋ ˊ","ini":"ㄇ","fin":"ㄣ"},{"ch":"本","zy":"ㄅㄣˇ","parts":"ㄅ ＋ ㄣ ＋ ˇ","ini":"ㄅ","fin":"ㄣ"},{"ch":"很","zy":"ㄏㄣˇ","parts":"ㄏ ＋ ㄣ ＋ ˇ","ini":"ㄏ","fin":"ㄣ"},{"ch":"雲","zy":"ㄩㄣˊ","parts":"ㄩㄣ ＋ ˊ","ini":"","fin":"ㄩㄣ"},{"ch":"春","zy":"ㄔㄨㄣ","parts":"ㄔ ＋ ㄨㄣ","ini":"ㄔ","fin":"ㄨㄣ"},{"ch":"三","zy":"ㄙㄢ","parts":"ㄙ ＋ ㄢ","ini":"ㄙ","fin":"ㄢ"},{"ch":"四","zy":"ㄙˋ","parts":"ㄙ ＋ ˋ","ini":"ㄙ","fin":"ㄙ"},{"ch":"五","zy":"ㄨˇ","parts":"ㄨ ＋ ˇ","ini":"","fin":"ㄨ"},{"ch":"十","zy":"ㄕˊ","parts":"ㄕ ＋ ˊ","ini":"ㄕ","fin":"ㄕ"},{"ch":"千","zy":"ㄑㄧㄢ","parts":"ㄑ ＋ ㄧㄢ","ini":"ㄑ","fin":"ㄧㄢ"},{"ch":"半","zy":"ㄅㄢˋ","parts":"ㄅ ＋ ㄢ ＋ ˋ","ini":"ㄅ","fin":"ㄢ"},{"ch":"白","zy":"ㄅㄞˊ","parts":"ㄅ ＋ ㄞ ＋ ˊ","ini":"ㄅ","fin":"ㄞ"},{"ch":"黑","zy":"ㄏㄟ","parts":"ㄏ ＋ ㄟ","ini":"ㄏ","fin":"ㄟ"},{"ch":"飛","zy":"ㄈㄟ","parts":"ㄈ ＋ ㄟ","ini":"ㄈ","fin":"ㄟ"},{"ch":"水","zy":"ㄕㄨㄟˇ","parts":"ㄕ ＋ ㄨㄟ ＋ ˇ","ini":"ㄕ","fin":"ㄨㄟ"},{"ch":"土","zy":"ㄊㄨˇ","parts":"ㄊ ＋ ㄨ ＋ ˇ","ini":"ㄊ","fin":"ㄨ"},{"ch":"木","zy":"ㄇㄨˋ","parts":"ㄇ ＋ ㄨ ＋ ˋ","ini":"ㄇ","fin":"ㄨ"},{"ch":"耳","zy":"ㄦˇ","parts":"ㄦ ＋ ˇ","ini":"","fin":"ㄦ"},{"ch":"牙","zy":"ㄧㄚˊ","parts":"ㄧㄚ ＋ ˊ","ini":"","fin":"ㄧㄚ"},{"ch":"鼻","zy":"ㄅㄧˊ","parts":"ㄅ ＋ ㄧ ＋ ˊ","ini":"ㄅ","fin":"ㄧ"},{"ch":"腳","zy":"ㄐㄧㄠˇ","parts":"ㄐ ＋ ㄧㄠ ＋ ˇ","ini":"ㄐ","fin":"ㄧㄠ"},{"ch":"毛","zy":"ㄇㄠˊ","parts":"ㄇ ＋ ㄠ ＋ ˊ","ini":"ㄇ","fin":"ㄠ"},{"ch":"羊","zy":"ㄧㄤˊ","parts":"ㄧㄤ ＋ ˊ","ini":"","fin":"ㄧㄤ"},{"ch":"雞","zy":"ㄐㄧ","parts":"ㄐ ＋ ㄧ","ini":"ㄐ","fin":"ㄧ"},{"ch":"鴨","zy":"ㄧㄚ","parts":"ㄧㄚ","ini":"","fin":"ㄧㄚ"},{"ch":"鵝","zy":"ㄜˊ","parts":"ㄜ ＋ ˊ","ini":"","fin":"ㄜ"},{"ch":"豬","zy":"ㄓㄨ","parts":"ㄓ ＋ ㄨ","ini":"ㄓ","fin":"ㄨ"},{"ch":"兔","zy":"ㄊㄨˋ","parts":"ㄊ ＋ ㄨ ＋ ˋ","ini":"ㄊ","fin":"ㄨ"},{"ch":"鳥","zy":"ㄋㄧㄠˇ","parts":"ㄋ ＋ ㄧㄠ ＋ ˇ","ini":"ㄋ","fin":"ㄧㄠ"},{"ch":"蟲","zy":"ㄔㄨㄥˊ","parts":"ㄔ ＋ ㄨㄥ ＋ ˊ","ini":"ㄔ","fin":"ㄨㄥ"},{"ch":"樹","zy":"ㄕㄨˋ","parts":"ㄕ ＋ ㄨ ＋ ˋ","ini":"ㄕ","fin":"ㄨ"},{"ch":"葉","zy":"ㄧㄝˋ","parts":"ㄧㄝ ＋ ˋ","ini":"","fin":"ㄧㄝ"},{"ch":"雪","zy":"ㄒㄩㄝˇ","parts":"ㄒ ＋ ㄩㄝ ＋ ˇ","ini":"ㄒ","fin":"ㄩㄝ"},{"ch":"冰","zy":"ㄅㄧㄥ","parts":"ㄅ ＋ ㄧㄥ","ini":"ㄅ","fin":"ㄧㄥ"},{"ch":"杯","zy":"ㄅㄟ","parts":"ㄅ ＋ ㄟ","ini":"ㄅ","fin":"ㄟ"},{"ch":"碗","zy":"ㄨㄢˇ","parts":"ㄨㄢ ＋ ˇ","ini":"","fin":"ㄨㄢ"},{"ch":"筆","zy":"ㄅㄧˇ","parts":"ㄅ ＋ ㄧ ＋ ˇ","ini":"ㄅ","fin":"ㄧ"},{"ch":"桌","zy":"ㄓㄨㄛ","parts":"ㄓ ＋ ㄨㄛ","ini":"ㄓ","fin":"ㄨㄛ"}],"tones":[[{"ch":"媽","zy":"ㄇㄚ","t":1},{"ch":"麻","zy":"ㄇㄚˊ","t":2},{"ch":"馬","zy":"ㄇㄚˇ","t":3},{"ch":"罵","zy":"ㄇㄚˋ","t":4}],[{"ch":"姨","zy":"ㄧˊ","t":2},{"ch":"椅","zy":"ㄧˇ","t":3},{"ch":"意","zy":"ㄧˋ","t":4}],[{"ch":"巴","zy":"ㄅㄚ","t":1},{"ch":"拔","zy":"ㄅㄚˊ","t":2},{"ch":"爸","zy":"ㄅㄚˋ","t":4}],[{"ch":"烏","zy":"ㄨ","t":1},{"ch":"五","zy":"ㄨˇ","t":3},{"ch":"物","zy":"ㄨˋ","t":4}],[{"ch":"汪","zy":"ㄨㄤ","t":1},{"ch":"網","zy":"ㄨㄤˇ","t":3},{"ch":"望","zy":"ㄨㄤˋ","t":4}],[{"ch":"通","zy":"ㄊㄨㄥ","t":1},{"ch":"同","zy":"ㄊㄨㄥˊ","t":2},{"ch":"桶","zy":"ㄊㄨㄥˇ","t":3},{"ch":"痛","zy":"ㄊㄨㄥˋ","t":4}],[{"ch":"搭","zy":"ㄉㄚ","t":1},{"ch":"達","zy":"ㄉㄚˊ","t":2},{"ch":"打","zy":"ㄉㄚˇ","t":3}],[{"ch":"呼","zy":"ㄏㄨ","t":1},{"ch":"胡","zy":"ㄏㄨˊ","t":2},{"ch":"戶","zy":"ㄏㄨˋ","t":4}],[{"ch":"居","zy":"ㄐㄩ","t":1},{"ch":"局","zy":"ㄐㄩˊ","t":2},{"ch":"舉","zy":"ㄐㄩˇ","t":3}],[{"ch":"飛","zy":"ㄈㄟ","t":1},{"ch":"肥","zy":"ㄈㄟˊ","t":2},{"ch":"費","zy":"ㄈㄟˋ","t":4}],[{"ch":"光","zy":"ㄍㄨㄤ","t":1},{"ch":"廣","zy":"ㄍㄨㄤˇ","t":3},{"ch":"逛","zy":"ㄍㄨㄤˋ","t":4}],[{"ch":"刀","zy":"ㄉㄠ","t":1},{"ch":"島","zy":"ㄉㄠˇ","t":3},{"ch":"到","zy":"ㄉㄠˋ","t":4}],[{"ch":"包","zy":"ㄅㄠ","t":1},{"ch":"寶","zy":"ㄅㄠˇ","t":3},{"ch":"抱","zy":"ㄅㄠˋ","t":4}],[{"ch":"湯","zy":"ㄊㄤ","t":1},{"ch":"糖","zy":"ㄊㄤˊ","t":2},{"ch":"躺","zy":"ㄊㄤˇ","t":3},{"ch":"燙","zy":"ㄊㄤˋ","t":4}],[{"ch":"天","zy":"ㄊㄧㄢ","t":1},{"ch":"田","zy":"ㄊㄧㄢˊ","t":2},{"ch":"舔","zy":"ㄊㄧㄢˇ","t":3}],[{"ch":"移","zy":"ㄧˊ","t":2},{"ch":"以","zy":"ㄧˇ","t":3},{"ch":"藝","zy":"ㄧˋ","t":4}],[{"ch":"八","zy":"ㄅㄚ","t":1},{"ch":"拔","zy":"ㄅㄚˊ","t":2},{"ch":"爸","zy":"ㄅㄚˋ","t":4}],[{"ch":"豬","zy":"ㄓㄨ","t":1},{"ch":"竹","zy":"ㄓㄨˊ","t":2},{"ch":"主","zy":"ㄓㄨˇ","t":3},{"ch":"住","zy":"ㄓㄨˋ","t":4}]]};
+/* ZY_BANK:END */
+/* 2026-10-04 稽核 D10：幼幼注音原本只有 3 題、低年級拼讀只有 6 組。資料在上面的 ZY_BANK（d10build.py 從教育部《國語小字典》產生，
+   只收單一讀音的字），改資料請改 vault 的 candidates.json 再重跑，不要手改 */
+let _zyListenOK=false;   /* 只有練習頁有 🔊 按鈕，聽聲音的題目只在那裡出（每日小考、測驗卷不出） */
+const ZY_TONE_NAMES=['輕聲','第一聲','第二聲','第三聲','第四聲'];
+function zyAnno(p){ return [...p.w].map((ch,i)=>ch+'('+p.z[i]+')').join(''); }
+function zyOthers(p, n){ const same=kShuf(ZY_BANK.pics.filter(x=>x.c===p.c && x.w!==p.w)); const other=kShuf(ZY_BANK.pics.filter(x=>x.c!==p.c));
+  return same.concat(other).slice(0,n); }
+function zyPicQ(){ const p=kPick(ZY_BANK.pics); const opts=[p].concat(zyOthers(p,3));
+  return {type:'choice', q:p.e+' 這是什麼？', opts:kShuf(opts.map(zyAnno)), ans:zyAnno(p), zyPic:true, hint:'看圖想一想，再看注音唸唸看。', why:p.e+'＝'+zyAnno(p)}; }
+function zyListenQ(){ const p=kPick(ZY_BANK.pics); const opts=[p].concat(zyOthers(p,3));
+  return {type:'choice', q:'🔊 聽聽看，是哪一個？', opts:kShuf(opts.map(x=>x.e)), ans:p.e, listen:true, say:p.w, hint:'按 🔊 可以再聽一次。', why:p.e+'＝'+zyAnno(p)}; }
+function zyBlendQ(){ const b=kPick(ZY_BANK.blends);
+  const near=kShuf(ZY_BANK.blends.filter(x=>x.ch!==b.ch && x.zy!==b.zy && ((b.ini && x.ini===b.ini) || x.fin===b.fin)));
+  const far=kShuf(ZY_BANK.blends.filter(x=>x.ch!==b.ch && x.zy!==b.zy && !near.includes(x)));
+  const opts=[b.ch].concat(near.concat(far).slice(0,3).map(x=>x.ch));
+  return {type:'choice', q:b.parts+' 拼起來是哪個字？', opts:kShuf(opts), ans:b.ch, hint:'一個一個符號慢慢拼起來唸。', why:b.ch+'＝'+b.zy}; }
+function zyToneQ(){ const g=kPick(ZY_BANK.tones); const it=kPick(g);
+  if(Math.random()<0.5) return {type:'choice', q:'「'+it.ch+'」唸第幾聲？', opts:kShuf(['第一聲','第二聲','第三聲','第四聲']), ans:ZY_TONE_NAMES[it.t], speak:it.ch, hint:'唸唸看，聲音是平的、往上、先下再上，還是往下？', why:it.ch+'＝'+it.zy};
+  return {type:'choice', q:'下面哪一個字唸'+ZY_TONE_NAMES[it.t]+'？', opts:kShuf(g.map(x=>x.ch)), ans:it.ch, hint:'這幾個字聲音一樣，只有聲調不同。', why:g.map(x=>x.ch+x.zy).join('、')}; }
 function zhuyinL2(){ const r=Math.random();
+  if(typeof ZY_BANK!=='undefined'){
+    if(r<0.3) return zyBlendQ();
+    if(r<0.5) return zyToneQ();
+    if(r<0.58) return (_zyListenOK && ('speechSynthesis' in window)) ? zyListenQ() : zyPicQ();
+    return zhuyinL2Old(Math.random());
+  }
+  return zhuyinL2Old(r); }
+function zhuyinL2Old(r){
   if(r<0.2){ const it=kPick(BOPOMO_INITIALS); const pool=BOPOMO_INITIALS.filter(x=>x!==it).map(x=>x[1]); return {type:'choice', q:'注音符號『'+it[0]+'』，發音像下面哪個字？', opts:kOpts(it[1],kShuf(pool).slice(0,3),4), ans:it[1], hint:it[0]+' 讀「'+it[1]+'」。', speak:it[1]}; }
   if(r<0.4){ const ft=kPick(BOPOMO_FINALS); const pool=BOPOMO_FINALS.filter(x=>x!==ft).map(x=>x[1]); return {type:'choice', q:'注音符號『'+ft[0]+'』，發音像下面哪個字？', opts:kOpts(ft[1],kShuf(pool).slice(0,3),4), ans:ft[1], hint:ft[0]+' 讀「'+ft[1]+'」。', speak:ft[1]}; }
   if(r<0.6){ const t=kPick(TONE_MARKS); const pool=TONE_MARKS.filter(x=>x!==t).map(x=>x[1]); return {type:'choice', q:'注音的聲調符號『'+t[0]+'』是？', opts:kOpts(t[1],pool,4), ans:t[1], hint:'一聲不標、二ˊ三ˇ四ˋ、輕聲˙。'}; }
-  if(r<0.8){ const b=kPick(BOPOMO_BLENDS); const pool=BOPOMO_BLENDS.filter(x=>x!==b).map(x=>x.ans); return {type:'choice', q:b.parts+' 拼起來是哪個字？', opts:kOpts(b.ans,kShuf(pool).slice(0,3),4), ans:b.ans, hint:'一個一個符號慢慢拼起來唸唸看。'}; }
+  if(r<0.8){ if(typeof ZY_BANK!=='undefined') return zyBlendQ();   /* 原本 6 組沒對過字典（好是多音字），改用 ZY_BANK 的 88 組 */
+    const b=kPick(BOPOMO_BLENDS); const pool=BOPOMO_BLENDS.filter(x=>x!==b).map(x=>x.ans); return {type:'choice', q:b.parts+' 拼起來是哪個字？', opts:kOpts(b.ans,kShuf(pool).slice(0,3),4), ans:b.ans, hint:'一個一個符號慢慢拼起來唸唸看。'}; }
   const comp=kPick(BOPOMO_COMPOUND); const simple=kShuf(BOPOMO_SIMPLE).slice(0,2);
   return {type:'choice', q:'下面哪一個是由兩個以上韻符合起來的「結合韻」？', opts:kShuf([comp,...simple]), ans:comp, hint:'結合韻是好幾個韻符黏在一起，不是單一個符號。'};
 }
@@ -9519,27 +9568,162 @@ function scienceL5(){ const r=Math.random();
   return {type:'tf', q:'做實驗時，會改變的那個條件叫做「變因」。', ans:true, why:'控制變因才準確！', hint:'一次只改一個。'}; }
 
 /* ---------- 程式思維 coding（對應108課綱科技領域） ---------- */
-function codingL1(){ const r=Math.random();
+function codingL1Old(){ const r=Math.random();
   if(r<0.5) return {type:'choice', q:'🤖 想讓機器人走到糖果，第一步該？', opts:kOpts('先往前走',['先睡覺','先回家','先唱歌','先洗澡'],4), ans:'先往前走', hint:'一步一步來。'};
   if(r<0.8) return {type:'order', q:'把鞋子穿好，正確順序是？', order:['坐下','穿襪子','穿鞋子','綁鞋帶'], hint:'照順序排。'};
   return {type:'tf', q:'寫程式就是把步驟一個一個告訴電腦。', ans:true, why:'對，電腦照做！', hint:'像寫食譜。'}; }
-function codingL2(){ const r=Math.random();
+function codingL2Old(){ const r=Math.random();
   if(r<0.5) return {type:'choice', q:'🔁 『重複做 3 次』在程式裡叫做？', opts:kOpts('迴圈',['變數','函式','錯誤','指令'],4), ans:'迴圈', hint:'loop。'};
   return {type:'choice', q:'看規律：🔺🔺🔴🔺🔺🔴 下一個是？', opts:kOpts('🔺',['🔴','⭐','❓','🔵'],4), ans:'🔺', hint:'兩個三角、一個紅。'}; }
-function codingL3(){ const r=Math.random();
+function codingL3Old(){ const r=Math.random();
   if(r<0.5) return {type:'choice', q:'❓ 如果「下雨」就「帶傘」，這叫做？', opts:kOpts('條件判斷',['迴圈','變數','排序','指令'],4), ans:'條件判斷', hint:'if…then。'};
   if(r<0.8) return {type:'order', q:'把數字由小排到大：', order:['1','2','3'], hint:'最小的排最前。'};
   return {type:'choice', q:'下面哪個是「如果…就…」的例子？', opts:kOpts('考試及格就去看電影',['每天刷牙','數到 10','拍手一下','喝一杯水'],4), ans:'考試及格就去看電影', hint:'有條件。'}; }
-function codingL4(){ const r=Math.random();
+function codingL4Old(){ const r=Math.random();
   if(r<0.3) return {type:'choice', q:'🐞 程式結果不對，要找原因修正，叫做？', opts:kOpts('除錯（debug）',['編譯','下載','關機','重新開機'],4), ans:'除錯（debug）', hint:'抓蟲子。'};
   if(r<0.6) return {type:'choice', q:'📦 用一個「盒子」存數字 5，這個盒子叫？', opts:kOpts('變數',['迴圈','流程圖','指令','函式'],4), ans:'變數', hint:'可以取名字。'};
   if(r<0.8) return {type:'choice', q:'下面哪段邏輯會讓角色一直轉圈？', opts:kOpts('重複：右轉',['走一步就好','先睡覺','直接回家','站著不動'],4), ans:'重複：右轉', hint:'一直轉。'};
   return {type:'tf', q:'『重複 5 次：往前走』和寫 5 行「往前走」意思一樣。', ans:true, why:'迴圈就是省事！', hint:'結果相同。'}; }
-function codingL5(){ const r=Math.random();
+function codingL5Old(){ const r=Math.random();
   if(r<0.3) return {type:'choice', q:'🗺️ 解決問題的步驟設計圖，叫做？', opts:kOpts('演算法 / 流程圖',['變數','顏色','歌曲','密碼'],4), ans:'演算法 / 流程圖', hint:'先想好步驟。'};
   if(r<0.55) return {type:'choice', q:'⚡ 同樣的工作，用更少步驟完成，叫做比較？', opts:kOpts('有效率',['好看','大聲','便宜','好笑'],4), ans:'有效率', hint:'省時間。'};
   if(r<0.8) return {type:'choice', q:'找一本書，一本一本翻 vs 先看目錄，哪個？', opts:kOpts('看目錄比較有效率',['一本一本翻比較快','兩個一樣快','都不行','隨便猜'],4), ans:'看目錄比較有效率', hint:'目錄幫你跳。'};
   return {type:'tf', q:'電腦只聽得懂非常清楚的指令，所以不能含糊。', ans:true, why:'要精準！', hint:'一步步說清楚。'}; }
+
+/* ---------- 2026-10-04 稽核 D7 第二批：邏輯推理、程式思維改成程式隨機出題 ----------
+   原本每級只有 2～3 題固定題，一回合一定重複。Janice 定：用程式隨機產生，答案由程式算；原本的題目留著當觀念題（約 2 成）。
+   每題帶 m（出題資料），testD7b.mjs 用另外寫的解題程式重算一次答案，不靠這裡算的結果 */
+const D7_NAMES=['小安','小晴','阿明','小美','小華','阿傑','小芸','大寶'];
+const D7_EMO={水果:['🍎','🍌','🍇','🍓','🍉','🍐','🍒'],動物:['🐱','🐶','🐰','🐻','🐼','🐸','🐷'],交通:['🚗','🚌','🚲','✈️','🚢','🚀'],形狀:['🔴','🔵','🟢','🟡','🟣','🟠'],天氣:['☀️','🌙','⭐','☁️','🌈','❄️']};
+function d7NumOpts(ans, spread){ spread=spread||3; const s=new Set([String(ans)]); const c=kShuf([1,-1,2,-2,spread,-spread,10,-10,5]);
+  for(const d of c){ if(s.size>=4) break; const v=ans+d; if(v>=0) s.add(String(v)); } let k=1; while(s.size<4){ s.add(String(ans+10*k)); k++; } return kShuf([...s]); }
+function d7Seq(start, rule, n){ const a=[start]; for(let i=1;i<n;i++) a.push(rule(a[i-1], i, a)); return a; }
+/* 規律：AB、AAB、ABB、ABC、AABB */
+const D7_PATS=['AB','AAB','ABB','ABC','AABB','ABCC'];
+function d7PatternQ(len, pats){ const pat=kPick(pats); const kinds=[...new Set(pat)].length; const pool=kPick(Object.values(D7_EMO)); const sym=kShuf(pool).slice(0,kinds);
+  const map={}; [...new Set(pat)].forEach((ch,i)=>map[ch]=sym[i]); const seq=[]; for(let i=0;i<len+1;i++) seq.push(map[pat[i%pat.length]]);
+  const ans=seq[len]; return {type:'choice', q:seq.slice(0,len).join('')+' 下一個是？', opts:kOpts(ans, pool.filter(x=>x!==ans), 4), ans, hint:'找找看幾個一組在重複。', m:{k:'pattern', pat, len, sym}}; }
+function logicL1(){ const r=Math.random();
+  if(r<0.2) return logicL1Old();
+  if(r<0.4){ const pool=kPick(Object.values(D7_EMO)); const e=kPick(pool); const n=rInt(1,6); return {type:'choice', q:'數一數，有幾個？ '+e.repeat(n), opts:kOpts(String(n),['1','2','3','4','5','6','7'].filter(x=>x!==String(n)),4), ans:String(n), hint:'用手指一個一個點著數。', m:{k:'count', n}}; }
+  if(r<0.6){ const [a,b]=kShuf(Object.values(D7_EMO)).slice(0,2).map(p=>kPick(p)); let x=rInt(1,6), y=rInt(1,6); while(y===x) y=rInt(1,6);
+    const ans = x>y ? '左邊' : '右邊'; return {type:'choice', q:'哪一邊比較多？ 左邊 '+a.repeat(x)+'　右邊 '+b.repeat(y), opts:['左邊','右邊'], ans, hint:'兩邊一個一個數，數到的數字大就比較多。', m:{k:'more', x, y}}; }
+  if(r<0.8){ const pool=kPick(Object.values(D7_EMO)); const [s,d]=kShuf(pool).slice(0,2); const pos=rInt(0,3); const row=[s,s,s,s]; row[pos]=d;
+    return {type:'choice', q:'哪一個跟別人不一樣？ '+row.join(' '), opts:kShuf([s,d].concat(kShuf(pool.filter(x=>x!==s&&x!==d)).slice(0,2))), ans:d, hint:'找找看誰長得不一樣。', m:{k:'odd', row}}; }
+  return d7PatternQ(5, ['AB','AAB','ABB']); }
+function logicL2(){ const r=Math.random();
+  if(r<0.2) return logicL2Old();
+  if(r<0.45){ const step=kPick([1,2,5,10]); const s0=rInt(0,9)*(step===10?10:1); const seq=d7Seq(s0, v=>v+step, 5); const miss=rInt(1,4);
+    const shown=seq.map((v,i)=>i===miss?'？':v); const ans=seq[miss];
+    return {type:'choice', q:'找規律，？是多少？ '+shown.join('、'), opts:d7NumOpts(ans, step), ans:String(ans), hint:'看看每次加多少。', m:{k:'arith', seq:shown, step}}; }
+  if(r<0.65) return d7PatternQ(6, ['ABC','AABB','ABCC','AAB']);
+  if(r<0.85){ const nums=new Set(); while(nums.size<4) nums.add(rInt(1,30)); const arr=[...nums]; const up=Math.random()<0.6; const ord=arr.slice().sort((a,b)=>up?a-b:b-a);
+    return {type:'order', q:'把數字由'+(up?'小排到大':'大排到小')+'：', order:ord.map(String), hint:up?'最小的排最前面。':'最大的排最前面。', m:{k:'sort', arr, up}}; }
+  const [a,b,c]=kShuf(D7_NAMES).slice(0,3); const rel=kPick([['高','最高','最矮'],['重','最重','最輕'],['快','最快','最慢']]); const askTop=Math.random()<0.5;
+  return {type:'choice', q:a+'比'+b+rel[0]+'，'+b+'比'+c+rel[0]+'。誰'+(askTop?rel[1]:rel[2])+'？', opts:kShuf([a,b,c]), ans:askTop?a:c, hint:'把三個人排成一排想想看。', m:{k:'chain', order:[a,b,c], top:askTop}}; }
+function logicL3(){ const r=Math.random();
+  if(r<0.2) return logicL3Old();
+  if(r<0.45){ const step=rInt(2,9)*(Math.random()<0.3?-1:1); const s0=step<0?rInt(60,99):rInt(1,30); const seq=d7Seq(s0, v=>v+step, 6); const ans=seq[5];
+    return {type:'fill', q:'找規律，下一個是多少？ '+seq.slice(0,5).join('、')+'、？', numeric:true, ans:String(ans), hint:'前後相減，看每次差多少。', m:{k:'arithNext', seq:seq.slice(0,5)}}; }
+  if(r<0.6){ const s0=rInt(1,5); const mul=kPick([2,3]); const seq=d7Seq(s0, v=>v*mul, 5); const ans=seq[4];
+    return {type:'choice', q:'找規律，下一個是多少？ '+seq.slice(0,4).join('、')+'、？', opts:d7NumOpts(ans, s0), ans:String(ans), hint:'不是加，試試看每次乘多少。', m:{k:'geoNext', seq:seq.slice(0,4)}}; }
+  if(r<0.8){ const names=kShuf(D7_NAMES).slice(0,4); const rel=kPick([['高','最高','最矮'],['早到','最早到','最晚到']]);
+    const clues=[names[0]+'比'+names[1]+rel[0], names[1]+'比'+names[2]+rel[0], names[2]+'比'+names[3]+rel[0]]; const askTop=Math.random()<0.5;
+    return {type:'choice', q:kShuf(clues).join('，')+'。誰'+(askTop?rel[1]:rel[2])+'？', opts:kShuf(names), ans:askTop?names[0]:names[3], hint:'先把每一句畫成「誰在誰前面」，再排成一排。', m:{k:'chain', order:names, top:askTop}}; }
+  const animal=kPick([['貓','喵喵叫'],['狗','汪汪叫'],['鴨子','呱呱叫'],['牛','哞哞叫'],['羊','咩咩叫']]);
+  const sure=Math.random()<0.5;
+  return {type:'tf', q:'規則：「所有的'+animal[0]+'都會'+animal[1]+'。」'+(sure?'小毛是一隻'+animal[0]+'，所以小毛會'+animal[1]+'。':'小毛會'+animal[1]+'，所以小毛一定是'+animal[0]+'。'),
+    ans:sure, why:sure?'小毛是'+animal[0]+'，規則說所有'+animal[0]+'都會，所以對。':'會'+animal[1]+'的不一定是'+animal[0]+'（規則沒說只有'+animal[0]+'會），所以不能確定。', hint:'規則是從哪一邊推到哪一邊？', m:{k:'mp', valid:sure}}; }
+function logicL4(){ const r=Math.random();
+  if(r<0.2) return logicL4Old();
+  if(r<0.45){ const t=rInt(0,2); let seq, ans, rule;
+    if(t===0){ const a=rInt(2,5), b=rInt(1,4), s0=rInt(1,10); seq=[s0]; for(let i=1;i<6;i++) seq.push(seq[i-1]+(i%2?a:b)); rule='一次加 '+a+'、一次加 '+b; }
+    else if(t===1){ const s0=rInt(1,4); seq=d7Seq(s0*s0, (v,i)=>(s0+i)*(s0+i), 6); rule='都是某個數乘自己（'+s0+'×'+s0+'、'+(s0+1)+'×'+(s0+1)+'…）'; }
+    else { const a0=rInt(1,3), a1=rInt(1,4); seq=[a0,a1]; for(let i=2;i<6;i++) seq.push(seq[i-1]+seq[i-2]); rule='每一個是前兩個加起來'; }
+    ans=seq[5]; return {type:'fill', q:'找規律，下一個是多少？ '+seq.slice(0,5).join('、')+'、？', numeric:true, ans:String(ans), hint:'不一定每次加一樣多，看看差的規律。', why:'規律：'+rule+'。', m:{k:'next', seq:seq.slice(0,5), t}}; }
+  if(r<0.7){ const names=kShuf(D7_NAMES).slice(0,3); const perm=kShuf(names); /* 由左到右 */
+    const clues=['「'+perm[1]+'」坐在中間', '「'+perm[0]+'」坐在「'+perm[2]+'」的左邊'];
+    const ask=rInt(0,2); const word=['最左邊','中間','最右邊'][ask];
+    return {type:'choice', q:'三個人坐成一排：'+names.join('、')+'。'+clues.join('，')+'。誰坐在'+word+'？', opts:kShuf(names), ans:perm[ask], hint:'先放中間的人，再看左右。', m:{k:'seat', perm, ask}}; }
+  const total=rInt(25,35), a=rInt(10,18), b=rInt(8,16), both=rInt(2,Math.min(a,b,6)); const none=total-(a+b-both);
+  if(none<0) return logicL4();
+  return {type:'fill', q:'班上 '+total+' 人，喜歡貓的有 '+a+' 人，喜歡狗的有 '+b+' 人，兩種都喜歡的有 '+both+' 人。兩種都不喜歡的有幾人？', numeric:true, ans:String(none), unit:'人', hint:'先算「至少喜歡一種」的人：喜歡貓＋喜歡狗－兩種都喜歡。', why:a+'＋'+b+'－'+both+'＝'+(a+b-both)+' 人至少喜歡一種，'+total+'－'+(a+b-both)+'＝'+none+'。', m:{k:'venn', total, a, b, both}}; }
+const D7_TERMS=[['嘟嘟星人','會飛的生物','住在月亮上的生物'],['圓圓族','愛吃糖的人','會唱歌的人'],['藍色小鳥','早起的動物','會游泳的動物'],['機器貓','用電的東西','會發光的東西']];
+const D7_SYL=[
+  {f:'所有A都是B，所有B都是C。所以所有A都是C。', v:true},
+  {f:'所有A都是B，所有C都是B。所以所有A都是C。', v:false},
+  {f:'所有A都是B，有些B是C。所以有些A是C。', v:false},
+  {f:'所有A都是B，有些C是A。所以有些C是B。', v:true},
+  {f:'沒有A是B，所有C都是A。所以沒有C是B。', v:true},
+  {f:'沒有A是B，沒有B是C。所以沒有A是C。', v:false}];
+function logicL5(){ const r=Math.random();
+  if(r<0.2) return logicL5Old();
+  if(r<0.4){ const t=rInt(0,2); let seq;
+    if(t===0){ const s0=rInt(1,4); seq=d7Seq(s0, v=>v*2+1, 6); } else if(t===1){ const s0=rInt(1,3); seq=d7Seq(s0*s0+1, (v,i)=>(s0+i)*(s0+i)+1, 6); } else { const s0=rInt(1,5), d0=rInt(1,3); seq=[s0]; for(let i=1;i<6;i++) seq.push(seq[i-1]+d0+i-1); }
+    return {type:'fill', q:'找規律，下一個是多少？ '+seq.slice(0,5).join('、')+'、？', numeric:true, ans:String(seq[5]), hint:'試試看「乘 2 再加 1」、「平方再加 1」、或差一直變大。', m:{k:'next5', seq:seq.slice(0,5), t}}; }
+  if(r<0.65){ const sy=kPick(D7_SYL); const tm=kPick(D7_TERMS); const st=sy.f.replace(/A/g,tm[0]).replace(/B/g,tm[1]).replace(/C/g,tm[2]);
+    return {type:'tf', q:'這個推論對嗎？「'+st+'」', ans:sy.v, why:sy.v?'前兩句一定能推出結論。':'前兩句推不出這個結論，可以想出反例。', hint:'畫圈圈想：A 圈在不在 C 圈裡面？', m:{k:'syl', f:sy.f, v:sy.v}}; }
+  if(r<0.82){ const pq=kPick([['下雨','地會濕'],['按下開關','燈會亮'],['考試及格','可以看電影'],['睡過頭','會遲到']]);
+    const opts=['如果'+pq[1].replace('會','不會').replace('可以','不可以')+'，那麼'+pq[0].replace(/^/,'沒有'), '如果'+pq[1]+'，那麼'+pq[0], '如果沒有'+pq[0]+'，那麼'+pq[1].replace('會','不會').replace('可以','不可以'), '如果'+pq[0]+'，那麼'+pq[1].replace('會','不會').replace('可以','不可以')];
+    return {type:'choice', q:'「如果'+pq[0]+'，那麼'+pq[1]+'。」跟哪一句的意思一定一樣？', opts:kShuf(opts), ans:opts[0], hint:'「若 P 則 Q」一定等於「若不是 Q，則不是 P」。', why:'逆否命題：'+opts[0]+'。', m:{k:'contra'}}; }
+  const total=rInt(40,60), a=rInt(15,30), b=rInt(12,28), none=rInt(2,8); const both=a+b-(total-none);
+  if(both<1||both>Math.min(a,b)) return logicL5();
+  return {type:'fill', q:'社團 '+total+' 人，參加籃球 '+a+' 人、參加游泳 '+b+' 人，兩種都沒參加 '+none+' 人。兩種都參加的有幾人？', numeric:true, ans:String(both), unit:'人', hint:'至少參加一種的人＝總人數－都沒參加；再想籃球＋游泳多算了誰。', why:'至少一種：'+total+'－'+none+'＝'+(total-none)+'；'+a+'＋'+b+'－'+(total-none)+'＝'+both+'。', m:{k:'venn2', total, a, b, none}}; }
+
+/* 程式思維 */
+const D7_DIR={'→':[1,0],'←':[-1,0],'↑':[0,1],'↓':[0,-1]};
+function codingL1(){ const r=Math.random();
+  if(r<0.25) return codingL1Old();
+  if(r<0.55){ const n=5; const rp=rInt(0,n-1); let cp=rInt(0,n-1); while(cp===rp) cp=rInt(0,n-1); const row=Array(n).fill('⬜'); row[rp]='🤖'; row[cp]='🍬';
+    const ans = cp>rp ? '往右走' : '往左走'; return {type:'choice', q:'🤖 要拿到 🍬，要往哪邊走？ '+row.join(''), opts:['往左走','往右走'], ans, hint:'糖果在機器人的哪一邊？', m:{k:'dir', rp, cp}}; }
+  if(r<0.8){ const n=rInt(2,5); const act=kPick([['👏','拍手','下'],['🦘','跳','下'],['🔔','敲鈴','下']]);
+    return {type:'choice', q:'「'+act[0]+' 重複 '+n+' 次」，一共'+act[1]+'幾'+act[2]+'？', opts:kOpts(String(n),['1','2','3','4','5','6'].filter(x=>x!==String(n)),4), ans:String(n), hint:'重複幾次，就做幾下。', m:{k:'rep', n}}; }
+  const seqs=[['洗手','吃飯','刷牙'],['起床','穿衣服','背書包'],['倒水','拿杯子','喝水']]; const s=kPick(seqs);
+  const order= s[0]==='倒水' ? ['拿杯子','倒水','喝水'] : s;
+  return {type:'order', q:'照順序排好：', order, hint:'想想看先做什麼、再做什麼。', m:{k:'routine'}}; }
+function codingL2(){ const r=Math.random();
+  if(r<0.2) return codingL2Old();
+  if(r<0.5){ const n=6; let pos=rInt(1,3); const start=pos; const cmds=[]; for(let i=0;i<rInt(3,5);i++){ let c; for(let t=0;t<10;t++){ c=kPick(['→','←']); const np=pos+(c==='→'?1:-1); if(np>=1&&np<=n){ pos=np; break; } } cmds.push(c); }
+    let p=start; cmds.forEach(c=>{ p+= c==='→'?1:-1; }); 
+    return {type:'fill', q:'🤖 站在第 '+start+' 格（格子 1～'+n+'）。照指令走：'+cmds.join(' ')+'（→ 往右一格、← 往左一格）。最後在第幾格？', numeric:true, ans:String(p), unit:'格', hint:'一個箭頭一個箭頭慢慢走。', m:{k:'walk1', start, cmds}}; }
+  if(r<0.75){ const n=rInt(2,5), k=rInt(2,4); return {type:'choice', q:'「重複 '+n+' 次：往前走 '+k+' 步」，一共走幾步？', opts:d7NumOpts(n*k, k), ans:String(n*k), hint:'每次走 '+k+' 步，走 '+n+' 次。', m:{k:'loopMul', n, s:k}}; }
+  const light=kPick(['紅燈','綠燈']); const ans= light==='紅燈' ? '停下來' : '往前走';
+  return {type:'choice', q:'程式：「如果 是紅燈，就 停下來；否則 往前走。」現在是'+light+'，機器人會？', opts:['停下來','往前走'], ans, hint:'看看現在的燈是不是紅燈。', m:{k:'ifLight', light}}; }
+function codingL3(){ const r=Math.random();
+  if(r<0.2) return codingL3Old();
+  if(r<0.42){ const cmds=[]; for(let i=0;i<rInt(3,5);i++) cmds.push([kPick(Object.keys(D7_DIR)), rInt(1,3)]); let x=0,y=0; cmds.forEach(([d,k])=>{ x+=D7_DIR[d][0]*k; y+=D7_DIR[d][1]*k; });
+    const desc=(x,y)=>(x===0&&y===0)?'回到起點':[x?((x>0?'右邊 ':'左邊 ')+Math.abs(x)+' 格'):'',y?((y>0?'上面 ':'下面 ')+Math.abs(y)+' 格'):''].filter(Boolean).join('、');
+    const ans=desc(x,y); const opts=new Set([ans]); for(const [dx,dy] of kShuf([[1,0],[-1,0],[0,1],[0,-1],[2,0],[0,2],[-x*2,0],[0,-y*2]])){ if(opts.size>=4) break; opts.add(desc(x+dx,y+dy)); }
+    return {type:'choice', q:'🤖 從起點照指令走：'+cmds.map(([d,k])=>d+k).join('　')+'（箭頭是方向、數字是格數）。最後在起點的哪裡？', opts:kShuf([...opts]), ans, hint:'左右算一次、上下算一次，會互相抵消。', m:{k:'walk2', cmds}}; }
+  if(r<0.64){ let x=rInt(1,9); const x0=x; const ops=[]; for(let i=0;i<rInt(2,3);i++){ const op=kPick(['+','-','×']); const v= op==='×'?rInt(2,3):rInt(1,9); if(op==='-' && x-v<0){ ops.push(['+',v]); x+=v; continue; } ops.push([op,v]); x = op==='+'?x+v : op==='-'?x-v : x*v; }
+    return {type:'fill', q:'程式依序執行：x ＝ '+x0+'；'+ops.map(([o,v])=>'x ＝ x '+(o==='+'?'＋':o==='-'?'－':'×')+' '+v).join('；')+'。最後 x 是多少？', numeric:true, ans:String(x), hint:'一行一行算，每次都用新的 x。', m:{k:'var', x0, ops}}; }
+  if(r<0.82){ const s0=rInt(0,5), n=rInt(3,6), d=rInt(2,5); const ans=s0+n*d;
+    return {type:'fill', q:'分數從 '+s0+' 開始，「重複 '+n+' 次：分數加 '+d+'」。最後分數是多少？', numeric:true, ans:String(ans), unit:'分', hint:'加了幾次、每次加多少？', m:{k:'loopAdd', s0, n, d}}; }
+  const pass=kPick([50,60,70,80]), sc=rInt(pass-10,pass+10); const ans= sc>=pass?'及格':'加油';
+  return {type:'choice', q:'程式：「如果 分數 ≥ '+pass+'，就顯示「及格」；否則顯示「加油」。」分數是 '+sc+'，會顯示？', opts:['及格','加油'], ans, hint:'≥ 是大於或等於。', m:{k:'ifScore', pass, sc}}; }
+function codingL4(){ const r=Math.random();
+  if(r<0.2) return codingL4Old();
+  if(r<0.38){ const a=rInt(1,9); let b=rInt(1,9); while(b===a) b=rInt(1,9); const ask=kPick(['a','b']);
+    return {type:'choice', q:'程式：a ＝ '+a+'；b ＝ '+b+'；t ＝ a；a ＝ b；b ＝ t。最後 '+ask+' 是多少？', opts:kShuf([String(a),String(b),String(a+b),String(Math.abs(a-b)||a+1)].filter((v,i,s)=>s.indexOf(v)===i)), ans:String(ask==='a'?b:a), hint:'t 是暫時放東西的盒子，這是在交換 a 和 b。', m:{k:'swap', a, b, ask}}; }
+  if(r<0.55){ const o=rInt(2,4), i=rInt(2,5); return {type:'fill', q:'「重複 '+o+' 次：［重複 '+i+' 次：拍手］」，一共拍幾下？', numeric:true, ans:String(o*i), unit:'下', hint:'裡面的迴圈每次拍 '+i+' 下，外面再重複 '+o+' 次。', m:{k:'nest', o, i}}; }
+  if(r<0.72){ const x0=rInt(1,3), lim=rInt(15,60), mul=kPick([2,3]); let x=x0, c=0; while(x<lim){ x*=mul; c++; }
+    const askCount=Math.random()<0.5;
+    return {type:'fill', q:'程式：x ＝ '+x0+'；「當 x ＜ '+lim+' 時，重複：x ＝ x × '+mul+'」。'+(askCount?'迴圈一共跑了幾次？':'最後 x 是多少？'), numeric:true, ans:String(askCount?c:x), hint:'每跑一次先檢查 x 還有沒有小於 '+lim+'。', m:{k:'while', x0, lim, mul, askCount}}; }
+  if(r<0.86){ const A=Math.random()<0.5, B=Math.random()<0.5, op=kPick(['且','或']); const v= op==='且'?(A&&B):(A||B);
+    const tA=kPick([['今天是星期六','今天不是星期六'],['外面在下雨','外面沒下雨']]), tB=kPick([['作業寫完了','作業還沒寫完'],['媽媽在家','媽媽不在家']]);
+    return {type:'tf', q:'已知：'+(A?tA[0]:tA[1])+'，'+(B?tB[0]:tB[1])+'。條件「'+tA[0]+' '+op+' '+tB[0]+'」成立嗎？', ans:v, why:op==='且'?'「且」要兩個都成立才成立。':'「或」只要有一個成立就成立。', hint:op==='且'?'「且」：兩個都要對。':'「或」：有一個對就好。', m:{k:'bool', A, B, op}}; }
+  const pool=kShuf(kPick(Object.values(D7_EMO))).slice(0,5); const idx=rInt(1,5);
+  return {type:'choice', q:'清單：［'+pool.join('、')+'］。第 '+idx+' 個是？（從 1 開始數）', opts:kOpts(pool[idx-1], pool, 4), ans:pool[idx-1], hint:'從左邊第 1 個開始數。', m:{k:'index', pool, idx}}; }
+function codingL5(){ const r=Math.random();
+  if(r<0.2) return codingL5Old();
+  if(r<0.38){ const n=rInt(4,10); const s=n*(n+1)/2; return {type:'fill', q:'程式：total ＝ 0；「i 從 1 跑到 '+n+'：total ＝ total ＋ i」。最後 total 是多少？', numeric:true, ans:String(s), hint:'就是 1＋2＋…＋'+n+'。', m:{k:'sum', n}}; }
+  if(r<0.55){ const v=rInt(3,31); const bin=v.toString(2); return {type:'fill', q:'二進位的 '+bin+'，換成十進位是多少？', numeric:true, ans:String(v), hint:'從右邊數來，每一位分別代表 1、2、4、8、16。', why:bin+'（二進位）＝'+v+'。', m:{k:'bin', bin}}; }
+  if(r<0.72){ const a=rInt(2,3), b=rInt(1,5), x=rInt(1,4); const f=v=>a*v+b; const ans=f(f(x));
+    return {type:'fill', q:'函式 f(x) ＝ '+a+'x ＋ '+b+'。f(f('+x+')) 是多少？', numeric:true, ans:String(ans), hint:'先算裡面的 f('+x+')，再把答案放進 f。', why:'f('+x+')＝'+f(x)+'，f('+f(x)+')＝'+ans+'。', m:{k:'fn', a, b, x}}; }
+  if(r<0.86){ const N=kPick([10,20,50,100,200,500,1000]); let k=0; while((1<<k)-1<N) k++;
+    return {type:'fill', q:'猜數字遊戲：答案在 1～'+N+' 之間，每次猜完會說「太大」或「太小」。每次都猜剩下範圍的中間，最多要猜幾次一定猜得到？', numeric:true, ans:String(k), unit:'次', hint:'每猜一次，範圍大約剩一半。', why:'猜 '+k+' 次最多能分出 '+((1<<k)-1)+' 個數，夠涵蓋 '+N+' 個。', m:{k:'bsearch', N}}; }
+  const sc=rInt(40,100); const ans= sc>=90?'A':sc>=75?'B':sc>=60?'C':'D';
+  return {type:'choice', q:'程式：「如果 分數 ≥ 90 → A；否則如果 ≥ 75 → B；否則如果 ≥ 60 → C；否則 → D。」分數 '+sc+' 會得到？', opts:['A','B','C','D'], ans, hint:'從上面一條一條檢查，第一個符合的就停。', m:{k:'elif', sc}}; }
 
 /* KNOW_BANK:START（2026-09-28 稽核 D7：自然、生活、百科每科每級 30 題的題庫表；由 d7build.py 產生，改題目請改 JSON 再重跑） */
 const KNOW_BANK={
@@ -10354,14 +10538,22 @@ function renderKnowledge(subject){
     $('#kf').textContent=''; $('#kf').className='feedback';
     $('#knext').style.display='none';
     const pl=playLevel(subject);
-    let q; for(let t=0;t<8;t++){ q=genKnowledgeQ(subject, pl.li); if(!seenKQ.has(q.q)){ seenKQ.add(q.q); break; } }
+    _zyListenOK=true;
+    let q; for(let t=0;t<8;t++){ q=genKnowledgeQ(subject, pl.li); const key=q.q+'|'+(q.say||''); if(!seenKQ.has(key)){ seenKQ.add(key); break; } }
+    _zyListenOK=false;
     $('#kq').textContent=q.q;
-    const spk=$('#kqSpk'); if(spk){ if(q.speak){ spk.style.display=''; spk.onclick=()=>speak(q.speak); } else spk.style.display='none'; }
+    const spk=$('#kqSpk'); if(spk){
+      if(q.listen){ spk.style.display=''; spk.onclick=()=>speakZh(q.say); setTimeout(()=>speakZh(q.say), 250); }
+      else if(q.speak){ spk.style.display=''; spk.onclick=()=>speak(q.speak); } else spk.style.display='none'; }
     renderQ(q, { box:$('#kqbox'), moduleKey:subject, sun:meta.sun, fb:$('#kf'), statLi:pl.li,
       stageId:'kstage', hintId:'khint', gradeId:'kgrade', qText:q.q,
+      noLog:!!q.listen, explain:q.listen?q.why:undefined,
+      onWrong: q.listen ? ()=>logWrong(subject, '哪一個是「'+q.say+'」？', '', q.ans, q.opts, {ex:q.why}) : undefined,
       rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
       onDone:(ok)=>{ if(ok) right++; prog(); $('#knext').style.display='inline-block'; } });
     if(pl.tag){ const g=$('#kgrade'); if(g) g.insertAdjacentHTML('afterbegin', stretchBadge(pl.tag)); }
+    /* 幼幼看不懂字：聽聲音選圖的圖片選項、看圖選詞的圖放大（2026-10-04 稽核 D10） */
+    $('#kqbox').classList.toggle('zy-big', !!q.listen); $('#kq').classList.toggle('zy-pic', !!q.zyPic);
     prog();
   };
   $('#knext').onclick=next;
@@ -10960,7 +11152,7 @@ function renderParent(){
 
     <div style="margin-top:18px;background:linear-gradient(135deg,#e9f8ef,#e3f1ff);border:2px solid #2e9e5b;border-radius:14px;padding:14px;">
       <div style="font-size:18px;font-weight:800;color:#1b7a40;margin-bottom:3px;">🛡 一鍵備份 / 還原</div>
-      <p class="hint" style="margin:0 0 10px;color:#3a6b4a;">每次更新前先備份一次：換手機、清快取、或分享連結變動時，都能從檔案還原。檔案只存在你自己的裝置，不上傳。</p>
+      <p class="hint" style="margin:0 0 10px;color:#3a6b4a;">每次更新前先備份一次：換手機、清快取、或分享連結變動時，都能從檔案還原。檔案只存在你自己的裝置，不上傳。<b>備份檔不含家長密碼</b>：在原本的裝置還原會保留現在的密碼；換新手機還原後，密碼是預設的 1234，請到「密碼與安全」重新設定。</p>
       <button id="exportBtn" style="width:100%;font-size:16px;font-weight:800;padding:14px;border:none;border-radius:10px;background:#2e9e5b;color:#fff;cursor:pointer;box-shadow:0 3px 0 #1b7a40;">💾 一鍵備份（下載存檔檔案）</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
         <input type="file" id="importFile" accept="application/json" style="display:none;">
@@ -11208,7 +11400,7 @@ function renderParent(){
   /* handlers：密碼 / 鎖定 / 通知 */
   $('#chgPin').onclick=()=>{
     askInput({ title:'🔐 修改家長密碼', okLabel:'💾 修改',
-      hint:'密碼是數字，最多 6 位。忘記的話可以用家長後台的備份檔還原。',
+      hint:'密碼是數字，最多 6 位。忘記密碼：清除這個網站的瀏覽器資料，再用備份檔還原，密碼會變回 1234（造句卡照片會不見；很舊的備份檔會變回當時的密碼）。',
       fields:[
         {id:'old', label:'目前密碼', type:'password', inputmode:'numeric', maxlength:6, placeholder:'預設 1234'},
         {id:'nw',  label:'新密碼',   type:'password', inputmode:'numeric', maxlength:6, placeholder:'數字，最多 6 位'},
@@ -11234,7 +11426,10 @@ function renderParent(){
   /* handlers：備份 / 還原 */
   $('#exportBtn').onclick=()=>{
     try{
-      const data=JSON.stringify(state); const blob=new Blob([data],{type:'application/json'});
+      /* 備份檔不放家長密碼：原本明碼存在檔案裡，孩子在下載資料夾就讀得到，家長分享備份也會外流（2026-10-04 稽核 E1）。
+         還原時檔案沒有密碼就保留目前裝置的密碼；換新裝置要重新設定 */
+      const copy=JSON.parse(JSON.stringify(state)); delete copy.parentPIN; delete copy.pinFails; delete copy.pinLockUntil;
+      const data=JSON.stringify(copy); const blob=new Blob([data],{type:'application/json'});
       const url=URL.createObjectURL(blob); const a=document.createElement('a');
       const d=new Date(), pad=n=>String(n).padStart(2,'0');
       const stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds());
