@@ -1254,6 +1254,27 @@ function tierBadge(tier){
 }
 
 const SAVE_KEY='bloom_homework_v10';
+/* 兩個分頁（或視窗）同時開同一個遊戲：存檔是整份寫入，舊分頁一存就把新分頁的進度整份蓋回去
+   （家長在另一個分頁批改的陽光、紀錄會不見）。另一個分頁改過存檔時，這裡就停止存檔、請使用者重新整理。
+   宣告放在最前面：開機讀檔時就會呼叫 save()，放後面會變成「還沒宣告就使用」（同稽核 A1 的雷）。2026-10-04 稽核 E5 */
+var _otherTabChanged=false, _lastSavedRaw=null;
+function showOtherTabLock(){
+  if(document.getElementById('otherTabLock')) return;
+  const ov=document.createElement('div'); ov.id='otherTabLock';
+  ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(30,45,40,.82);display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML='<div style="background:#fff;color:#253a36;border-radius:16px;padding:22px 20px;max-width:360px;text-align:center;font:16px/1.7 -apple-system,\'PingFang TC\',sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)">'
+    +'<div style="font-size:40px">🔄</div><h3 style="margin:6px 0 8px;font-size:19px">遊戲在另一個分頁更新了</h3>'
+    +'<p style="margin:0 0 16px;color:#5f6f69">這個遊戲同時開在別的分頁或視窗，那邊剛剛存了新的進度。為了不把新的進度蓋掉，這個分頁先停止存檔，請重新整理。</p>'
+    +'<button type="button" id="otherTabReload" style="width:100%;padding:12px;border:0;border-radius:12px;background:#2f6f4e;color:#fff;font-size:17px;font-weight:700">重新整理</button></div>';
+  (document.body||document.documentElement).appendChild(ov);
+  ov.querySelector('#otherTabReload').onclick=()=>location.reload();
+}
+window.addEventListener('storage', e=>{
+  try{ if(e.storageArea && e.storageArea!==localStorage) return; }catch(_){ return; }
+  if(e.key!==null && e.key!==SAVE_KEY) return;            /* 別的資料（例如還原前的備份）不管；key 是 null＝整個被清空 */
+  if(e.key===SAVE_KEY && e.newValue!==null && e.newValue===_lastSavedRaw) return;
+  _otherTabChanged=true; showOtherTabLock();
+});
 
 /* ---------- IndexedDB 主存層（localStorage 兜底） ---------- */
 const IDB_NAME='bloom_garden_db_v1', IDB_STORE='kv', IDB_KEY=SAVE_KEY;
@@ -2278,9 +2299,11 @@ function load(seed){
   return freshState();
 }
 function save(){
+  if(_otherTabChanged){ showOtherTabLock(); return; }   /* 另一個分頁存過新進度：不准蓋掉（稽核 E5） */
   let raw;
   try{ deepClean(state); raw=JSON.stringify(state); }
   catch(e){ toast('⚠️ 存檔失敗：資料無法序列化'); return; }
+  _lastSavedRaw=raw;
   // localStorage 同步兜底（私密模式可能拋錯，忽略）
   try{ localStorage.setItem(SAVE_KEY, raw); }catch(e){}
   // IndexedDB 主存（異步，比 localStorage 在 PWA 下更持久）
