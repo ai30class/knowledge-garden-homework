@@ -1010,6 +1010,12 @@
   .sc-meta{font-size:13px;color:var(--muted);}
   .sc-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;} .sc-btns button{flex:1;min-width:120px;}
   .next-btn.sc-great{background:var(--honey);color:#3a2a00;}
+  .sc-type{margin-top:12px;} .sc-type-row{display:block;margin:10px 0;} .sc-type-row span{display:block;font-size:15px;margin-bottom:4px;}
+  .sc-ta{width:100%;max-width:none;box-sizing:border-box;font-size:18px;line-height:1.6;resize:vertical;}
+  .sc-typed{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0;}
+  .sc-typed-w{font-size:13px;font-weight:700;color:#7a6a3a;} .sc-typed p{margin:2px 0 0;font-size:17px;line-height:1.7;}
+  .sc-typed mark{background:#fff1b8;border-radius:4px;padding:0 2px;}
+  .sc-hist-typed{padding:0 0 6px 8px;} .sc-hist-typed .sc-typed{margin:4px 0;padding:4px 8px;} .sc-hist-typed .sc-typed p{font-size:14px;}
   .sc-home-note{display:block;font-size:13px;color:var(--muted);margin-top:2px;}
   .sc-photo-tip{font-size:12px;color:var(--muted);margin-top:4px;}
   .sc-cap{color:#9a5b00 !important;font-weight:700;}
@@ -2081,7 +2087,7 @@ function openManual(){
     </div>
     <div class="man-sec">
       <h3>🎮 練習場 & 🏆 收藏</h3>
-      <p>🎮 <b>練習場</b>：國語 / 數學 / 英文 / 知識答題，答對賺陽光；每天一場「每日小考」，星星越多拖延怪退越遠；答錯的題目會進「複習錯題」。練習場最上面（每日小考下面）有「✏️ 今日造句卡」：在紙上用指定的詞造句、拍照送出，爸媽批改通過 +10、寫得很棒 +15。<br>
+      <p>🎮 <b>練習場</b>：國語 / 數學 / 英文 / 知識答題，答對賺陽光；每天一場「每日小考」，星星越多拖延怪退越遠；答錯的題目會進「複習錯題」。練習場最上面（每日小考下面）有「✏️ 今日造句卡」：用指定的詞造句，寫在紙上拍照或直接打字送出，爸媽批改通過 +10、寫得很棒 +15。<br>
       🏆 <b>收藏</b>：植物圖鑑（點一下就能解鎖、上場）、徽章、家族排行榜、自訂題庫，還有「陽光兌換所」——用陽光兌換真實獎勵（如多看 10 分鐘動畫），兌換後請爸媽確認發放。</p>
     </div>
     <div class="man-sec">
@@ -6156,11 +6162,13 @@ function scNormChild(ch){
   if(k && typeof k==='object' && ['todo','pending','redo','done'].includes(k.status) && words(k.words).length){
     ch.sentCard={id:(str(k.id).replace(/[^\w-]/g,'').slice(0,40))||('sc'+Date.now()), date:str(k.date).slice(0,10), words:words(k.words), status:k.status,
       photo:k.photo===true, note:str(k.note).slice(0,40), grade:(k.grade==='great'||k.grade==='ok')?k.grade:'',
-      sun:Math.max(0,Math.min(15,Number(k.sun)||0)), sentAt:Number(k.sentAt)||0, decidedAt:Number(k.decidedAt)||0};
+      sun:Math.max(0,Math.min(15,Number(k.sun)||0)), sentAt:Number(k.sentAt)||0, decidedAt:Number(k.decidedAt)||0,
+      typed:Array.isArray(k.typed)?k.typed.slice(0,5).map(x=>str(x).slice(0,80)):[], viaType:k.viaType===true};
   } else ch.sentCard=null;
   ch.sentLog=Array.isArray(ch.sentLog) ? ch.sentLog.filter(e=>e&&typeof e==='object').map(e=>({
       id:str(e.id).replace(/[^\w-]/g,'').slice(0,40), date:str(e.date).slice(0,10), words:words(e.words), grade:e.grade==='great'?'great':'ok',
-      sun:Math.max(0,Math.min(15,Number(e.sun)||0)), photo:e.photo===true, at:Number(e.at)||0 })).slice(-60) : [];
+      sun:Math.max(0,Math.min(15,Number(e.sun)||0)), photo:e.photo===true, at:Number(e.at)||0,
+      typed:Array.isArray(e.typed)?e.typed.slice(0,5).map(x=>str(x).slice(0,80)):[] })).slice(-60) : [];
   ch.sentWords=Array.isArray(ch.sentWords) ? ch.sentWords.filter(w=>typeof w==='string'&&w).map(w=>w.slice(0,8)).slice(0,30) : [];
 }
 function scOn(c){ c=c||C(); return state.sentCardOn!==false && !!SC_WORDS_BY_LEVEL[childLevel(c)]; }
@@ -6226,7 +6234,7 @@ function scSubmit(file){
   const stale=()=>seq!==_scSubmitSeq || c.sentCard!==k;
   const done=(hasPhoto)=>{
     if(stale()) return;
-    k.status='pending'; k.photo=hasPhoto; k.sentAt=Date.now(); k.date=frameDateKey();   /* 留言先留著：重送後又取消，要回到「再改一次」 */
+    k.status='pending'; k.photo=hasPhoto; k.viaType=false; k.sentAt=Date.now(); k.date=frameDateKey(); _scTyping=false;   /* 留言先留著：重送後又取消，要回到「再改一次」 */
     save(); goodSound();
     toast(hasPhoto?'📨 已送出，請爸媽來批改！':'📨 已送出，請把紙拿給爸媽看！');
     if(document.querySelector('.sc-page')) renderSentCard();
@@ -6270,27 +6278,56 @@ function scBannerHTML(){
     : ['✏️','今日造句卡：'+k.words.join('、'),'去寫'];
   return `<button class="sc-banner ${k.status}" id="scBanner" type="button"><span>${t[0]} ${escapeHtml(t[1])}</span><b>${t[2]} ›</b></button>`;
 }
+/* ---------- 造句卡：直接打字（2026-10-04 Janice：孩子可以選寫在紙上拍照，或直接打字） ----------
+   k.typed＝跟 k.words 對齊的句子陣列（打到一半也存著，離開不會不見）；k.viaType＝這次是打字送出的。
+   送出前檢查每句有沒有用到指定的詞，只是提醒、可以照樣送；遊戲不評分 */
+const SC_TYPE_MAX=60;
+let _scTyping=false, _scDraftTimer=null;
+function scTypedHTML(words, typed, mark){
+  return words.map((w,i)=>{ const raw=String((typed||[])[i]||''); let t=escapeHtml(raw);
+    if(mark && w){ const ew=escapeHtml(w); t=t.split(ew).join('<mark>'+ew+'</mark>'); }
+    return `<div class="sc-typed"><span class="sc-typed-w">${escapeHtml(w)}</span><p>${t||'<span class="hint">（沒有寫）</span>'}</p></div>`; }).join('');
+}
+function scSubmitTyped(vals){
+  const c=C(); const k=scCard(c);
+  _scSubmitSeq++;   /* 還在處理的照片作廢 */
+  if(k.photo){ scPhotoDel(k.id); k.photo=false; }
+  k.typed=vals.slice(); k.viaType=true; k.status='pending'; k.sentAt=Date.now(); k.date=frameDateKey();
+  _scTyping=false; save(); goodSound(); toast('📨 已送出，請爸媽來批改！'); renderSentCard();
+}
 /* 從哪裡進造句卡，返回就回哪裡（練習場上面的入口 2026-10-04 加；原本只有注音頁有入口） */
 let _scFrom='zhuyin';
 function renderSentCard(from){
-  if(from) _scFrom=from;
+  if(from){ _scFrom=from; _scTyping=false; }
   clearQTimer();
   const c=C(); if(!scOn(c)){ showTab('zhuyin'); return; }
   const k=scCard(c);
   let body='';
   if(k.status==='todo'||k.status==='redo'){
     const exs=k.words.map(scWordInfo).filter(i=>i&&i.ex);
-    body=`${k.status==='redo'?`<div class="sc-redo">↩ 爸媽說再改一次${k.note?'：'+escapeHtml(k.note):''}<small>改好再送一次，不會扣陽光</small></div>${k.photo?'<p class="hint" style="margin:0;">上次拍的照片：</p><div class="sc-photo" id="scPhoto">照片讀取中…</div>':''}`:''}
-      <p class="hint">用下面${k.words.length>1?'每一個詞':'這個詞'}，在作業本或紙上${k.words.length>1?'各':''}造一個句子：</p>
+    const lastTyped = k.status==='redo' && k.viaType && (k.typed||[]).some(x=>x);
+    body=`${k.status==='redo'?`<div class="sc-redo">↩ 爸媽說再改一次${k.note?'：'+escapeHtml(k.note):''}<small>改好再送一次，不會扣陽光</small></div>${k.photo?'<p class="hint" style="margin:0;">上次拍的照片：</p><div class="sc-photo" id="scPhoto">照片讀取中…</div>':''}${lastTyped&&!_scTyping?'<p class="hint" style="margin:0;">上次寫的句子：</p>'+scTypedHTML(k.words,k.typed,true):''}`:''}
+      <p class="hint">用下面${k.words.length>1?'每一個詞':'這個詞'}${k.words.length>1?'各':''}造一個句子，寫在紙上或直接打字都可以：</p>
       ${scWordsHTML(k.words)}
       ${exs.length?`<details class="sc-ex"><summary>💡 卡住了？看範例</summary>${exs.map(i=>`<p>${escapeHtml(i.ex)}</p>`).join('')}</details>`:''}
-      <input type="file" id="scFile" accept="image/*" capture="environment" hidden>
+      ${_scTyping?`<div class="sc-type">
+        ${k.words.map((w,i)=>`<label class="sc-type-row"><span>用「<b>${escapeHtml(w)}</b>」造一個句子：</span>
+          <textarea class="in sc-ta" id="scT${i}" rows="2" maxlength="${SC_TYPE_MAX}" placeholder="在這裡打字">${escapeHtml((k.typed||[])[i]||'')}</textarea></label>`).join('')}
+        <div class="sc-actions">
+          <button class="next-btn" id="scTypeSend" type="button">✅ 寫好了，送給爸媽看</button>
+          <button class="reset-btn" id="scTypeCancel" type="button">↩ 不打字了</button>
+        </div></div>`:`<input type="file" id="scFile" accept="image/*" capture="environment" hidden>
       <div class="sc-actions">
-        <button class="next-btn" id="scShot" type="button">📷 寫好了，拍照給爸媽看</button>
-        <button class="reset-btn" id="scPaper" type="button">📄 不拍照，直接拿紙給爸媽</button>
-      </div>`;
+        <button class="next-btn" id="scShot" type="button">📷 寫在紙上，拍照給爸媽看</button>
+        <button class="reset-btn" id="scPaper" type="button">📄 寫在紙上，不拍照直接拿給爸媽</button>
+        <button class="reset-btn" id="scType" type="button">⌨️ 直接打字</button>
+      </div>`}`;
   } else if(k.status==='pending'){
-    body=`<div class="sc-state">⏳ 等爸媽批改</div>
+    body=k.viaType ? `<div class="sc-state">⏳ 等爸媽批改</div>
+      ${scTypedHTML(k.words,k.typed,true)}
+      <div class="sc-actions">
+        <button class="reset-btn" id="scCancel" type="button">↩ 取消送出（要修改句子）</button>
+      </div>` : `<div class="sc-state">⏳ 等爸媽批改</div>
       ${scWordsHTML(k.words)}
       ${k.photo?'<div class="sc-photo" id="scPhoto">照片讀取中…</div>':'<p class="hint">沒有拍照，記得把紙拿給爸媽看。</p>'}
       <input type="file" id="scFile" accept="image/*" capture="environment" hidden>
@@ -6301,7 +6338,7 @@ function renderSentCard(from){
   } else {
     body=`<div class="sc-state good">${k.grade==='great'?'🌟 爸媽說寫得很棒！':'✅ 爸媽批改通過了！'}${Number(k.sun)>0?' +'+Number(k.sun)+' 陽光':''}</div>
       ${Number(k.sun)<(k.grade==='great'?SC_SUN_GREAT:SC_SUN_OK)?'<p class="hint" style="text-align:center;">今天的陽光已經拿到上限了，所以這張卡'+(Number(k.sun)>0?'只加了一部分':'沒有加陽光')+'。</p>':''}
-      ${scWordsHTML(k.words)}
+      ${k.viaType?scTypedHTML(k.words,k.typed,true):scWordsHTML(k.words)}
       <p class="hint">明天會有新的造句卡。</p>`;
   }
   app.innerHTML=`<div class="panel sc-page">
@@ -6318,7 +6355,20 @@ function renderSentCard(from){
   const cancel=$('#scCancel'); if(cancel) cancel.onclick=()=>askConfirm('要把這張造句卡收回來嗎？'+(k.photo?'剛剛拍的照片會刪掉，':'')+'改好可以再送。', ()=>{
     _scSubmitSeq++;
     if(k.photo) scPhotoDel(k.id); k.status=k.decidedAt?'redo':'todo'; k.photo=false; k.sentAt=0; k.date=frameDateKey();
+    if(k.viaType) _scTyping=true;   /* 打字送出的，收回來直接可以改 */
     save(); toast('↩ 已收回來'); renderSentCard(); }, '收回來');
+  const tb=$('#scType'); if(tb) tb.onclick=()=>{ _scTyping=true; renderSentCard(); const t0=$('#scT0'); if(t0) t0.focus(); };
+  const tc=$('#scTypeCancel'); if(tc) tc.onclick=()=>{ _scTyping=false; renderSentCard(); };
+  $$('.sc-ta').forEach((ta,i)=>{ ta.oninput=()=>{ k.typed=Array.isArray(k.typed)?k.typed:[]; k.typed[i]=ta.value.slice(0,SC_TYPE_MAX);
+    clearTimeout(_scDraftTimer); _scDraftTimer=setTimeout(save, 600); }; });   /* 打到一半也存著 */
+  const ts=$('#scTypeSend'); if(ts) ts.onclick=()=>{
+    const vals=k.words.map((w,i)=>(($('#scT'+i)||{}).value||'').trim().slice(0,SC_TYPE_MAX));
+    const empty=vals.findIndex(v=>!v);
+    if(empty>=0){ badSound(); toast('✏️ 「'+k.words[empty]+'」還沒有造句喔'); const t=$('#scT'+empty); if(t) t.focus(); return; }
+    const miss=k.words.filter((w,i)=>!vals[i].includes(w));
+    if(miss.length) askConfirm('「'+miss.map(escapeHtml).join('」「')+'」的句子好像沒有用到這個詞。要再改一下，還是照樣送出？', ()=>scSubmitTyped(vals), '照樣送出');
+    else scSubmitTyped(vals);
+  };
   if((k.status==='pending'||k.status==='redo') && k.photo) scPhotoInto($('#scPhoto'), k.id);
 }
 /* 家長批改：great／ok 給陽光並記錄；redo 退回（可留言），不扣陽光 */
@@ -6331,7 +6381,7 @@ function scGrade(grade, note){
   k.status='done'; k.grade=grade; k.sun=got;
   k.words.forEach(w=>{ if(scWordInfo(w)) markWord(w, true); });   /* 詞卡上的詞：通過一次＝答對一次 */
   c.sentLog=Array.isArray(c.sentLog)?c.sentLog:[];
-  c.sentLog.push({id:k.id, date:k.date, words:k.words.slice(), grade, sun:got, photo:k.photo, at:k.decidedAt});
+  c.sentLog.push({id:k.id, date:k.date, words:k.words.slice(), grade, sun:got, photo:k.photo, at:k.decidedAt, typed:k.viaType?(k.typed||[]).slice(0,5):[]});
   while(c.sentLog.length>SC_LOG_MAX){ const e=c.sentLog.shift(); if(e && e.photo) scPhotoDel(e.id); }
   goodSound(); save();
   toast(got>=want ? (grade==='great'?'🌟 寫得很棒，+':'✅ 批改通過，+')+got+' 陽光！'
@@ -6357,7 +6407,8 @@ function scParentHTML(c){
   const k=c.sentCard;
   if(k && k.status==='pending'){
     h+=`<div class="sc-review">
-      <div class="sc-meta">${escapeHtml(c.name||'孩子')}・${fmtDT(k.sentAt)} 送出${k.photo?'':'・<b>沒有拍照，請看紙本</b>'}</div>
+      <div class="sc-meta">${escapeHtml(c.name||'孩子')}・${fmtDT(k.sentAt)} 送出${k.viaType?'・<b>直接打字</b>':k.photo?'':'・<b>沒有拍照，請看紙本</b>'}</div>
+      ${k.viaType?'<p class="hint" style="margin:6px 0 0;">孩子打的句子（指定的詞有標出來）：</p>'+scTypedHTML(k.words,k.typed,true):''}
       ${k.photo?'<div class="sc-photo" id="scPPhoto">照片讀取中…</div>':''}
       ${scWordsHTML(k.words, true)}
       <p class="hint" style="margin:8px 0 0;">句子通順、有用對詞就可以通過；遊戲不會自動評分，由您判斷。</p>
@@ -6375,7 +6426,7 @@ function scParentHTML(c){
   if(others.length) h+=`<div class="sc-others">${others.map(o=>`<button class="reset-btn scSwitch" data-kid="${escapeHtml(o.id)}" type="button">✏️ ${escapeHtml(o.name||'孩子')}也有造句卡等批改，切換過去</button>`).join('')}</div>`;
   const log=(c.sentLog||[]).slice(-7).reverse();
   if(log.length) h+=`<details class="sc-hist"><summary>最近批改的造句卡</summary>
-    ${log.map(e=>`<div class="sc-hrow"><span>${escapeHtml((e.date||'').slice(5))}　${(e.words||[]).map(escapeHtml).join('、')}　${e.grade==='great'?'🌟 很棒':'✅ 通過'}</span>${e.photo?`<button class="reset-btn scView" data-id="${escapeHtml(e.id)}" type="button">看照片</button>`:''}</div>`).join('')}
+    ${log.map(e=>`<div class="sc-hrow"><span>${escapeHtml((e.date||'').slice(5))}　${(e.words||[]).map(escapeHtml).join('、')}　${e.grade==='great'?'🌟 很棒':'✅ 通過'}</span>${e.photo?`<button class="reset-btn scView" data-id="${escapeHtml(e.id)}" type="button">看照片</button>`:''}</div>${(e.typed||[]).some(x=>x)?`<div class="sc-hist-typed">${scTypedHTML(e.words||[],e.typed,true)}</div>`:''}`).join('')}
     <p class="hint">照片批改後保留 ${SC_PHOTO_KEEP_DAYS} 天，之後自動刪除。</p></details>`;
   return h;
 }
@@ -7837,7 +7888,7 @@ function renderHome(){
   const scK = state.sentCardOn!==false ? c.sentCard : null;
   const scRedoBanner = (scK && scK.status==='redo') ? `
     <button class="alert2" id="goScRedo" type="button">${ico('alert')}
-      <span style="flex:1;"><b>✏️ 爸媽說造句卡再改一次</b>${scK.note?escapeHtml(scK.note):'改好再拍照送出，不會扣陽光。'}</span>
+      <span style="flex:1;"><b>✏️ 爸媽說造句卡再改一次</b>${scK.note?escapeHtml(scK.note):'改好再送一次，不會扣陽光。'}</span>
       ${ico('chevron')}
     </button>` : '';
   /* 等批改的造句卡也算進「請家長簽名」，不然功課都簽完時首頁不會叫爸媽來 */
@@ -10828,7 +10879,7 @@ function renderParent(){
     ${hwMgmt}
 
     <h2 style="margin-top:18px;font-size:17px;">✏️ 造句卡</h2>
-    <p class="hint">孩子在國語練習頁拿到今天要造句的詞，寫在紙上、拍照送出，家長在「今日功課與簽名」批改：寫得很棒 +${SC_SUN_GREAT}、通過 +${SC_SUN_OK}，退回不扣陽光。一天一張，低年級 1 個詞、中年級 2 個、高年級與國中 3 個，幼幼不出。照片只存在這台裝置，不會上傳、也不會放進備份檔，批改後 ${SC_PHOTO_KEEP_DAYS} 天自動刪除。</p>
+    <p class="hint">孩子在練習場最上面拿到今天要造句的詞，寫在紙上拍照、或直接打字送出，家長在「今日功課與簽名」批改：寫得很棒 +${SC_SUN_GREAT}、通過 +${SC_SUN_OK}，退回不扣陽光。一天一張，低年級 1 個詞、中年級 2 個、高年級與國中 3 個，幼幼不出。照片只存在這台裝置，不會上傳、也不會放進備份檔，批改後 ${SC_PHOTO_KEEP_DAYS} 天自動刪除。</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button class="reset-btn" id="scToggle" type="button">${state.sentCardOn!==false?'✏️ 造句卡：開':'✏️ 造句卡：關'}</button>
     </div>
