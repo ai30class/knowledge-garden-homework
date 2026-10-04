@@ -1097,7 +1097,13 @@ function openSettings(){
   });
 }
 /* 原本在首頁底部的「新的一天（重設功課）」，改版後收進設定選單 */
+/* 要家長密碼：會把已簽名的功課重設成沒寫，孩子可以再申請一次，家長沒注意就再簽一次 +30（2026-10-04 稽核 E6） */
 function newDayReset(){
+  askInput({ title:'🔐 家長密碼', hint:'開始新的一天會把今天的功課重設成沒寫，要家長密碼。', okLabel:'下一步',
+    fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
+  }, v=>{ const err=checkPIN(v.pin); if(err) return err; newDayResetConfirm(); });
+}
+function newDayResetConfirm(){
   const c=C();
   askConfirm('開始新的一天？<br><span class="hint">今日功課會重設為未完成。</span>', ()=>{
     allHW().forEach(it=>c.homework[it.id]=false); c.homeworkDate=dateKey();
@@ -6239,7 +6245,8 @@ function hideEyeLock(){ const ov=$('#eyeLockOverlay'); if(ov) ov.className=''; }
 const app = $('#app');
 function tabToGroup(tab){
   if(tab==='home'||tab==='practice'||tab==='collection'||tab==='plan') return tab;
-  if(tab==='shop'||tab==='parent'||tab==='custom') return 'collection';
+  if(tab==='parent') return '';   /* 家長後台從右上角齒輪進，不屬於下面四個分頁；原本亮「收藏」（2026-10-04 稽核 E8） */
+  if(tab==='shop'||tab==='custom') return 'collection';
   return 'practice';
 }
 function firstUnfinishedHW(){
@@ -7707,12 +7714,7 @@ function renderHome(){
     } else { wt.style.display='none'; btn.textContent='📅 看整週作息表'; }
   };
   const nd=$('#newDay');
-  if(nd) nd.onclick=()=>{
-    askConfirm('開始新的一天？<br><span class="hint">今日功課會重設為未完成。</span>', ()=>{
-      allHW().forEach(it=>c.homework[it.id]=false); c.homeworkDate=dateKey();
-      c.zombiePush=0; c.zombieDrift=0; c.plantHP=100; c.combo=0; c.routine={}; c.routineDate=dateKey(); save(); renderHome();
-    }, '🔄 開始新的一天');
-  };
+  if(nd) nd.onclick=newDayReset;   /* 目前畫面上沒有這顆按鈕（改版後拿掉）；留著的話也要走家長密碼（稽核 E6） */
 }
 
 /* 練習頁被鎖定 */
@@ -10312,7 +10314,10 @@ function renderParent(){
   const a=c.answers;
   const total=a.right+a.wrong;
   const acc = total? Math.round(a.right/total*100) : 0;
-  const finished = allHW().filter(it=>c.homework[it.id]===true).length;
+  /* 跟首頁一樣只算「自訂首頁」有開的科目；原本首頁寫 1/6、這裡寫 2/7，家長看不懂（2026-10-04 稽核 E8） */
+  const finished = visibleHW().filter(it=>c.homework[it.id]===true).length;
+  const hwTotal = visibleHW().length, hwHidden = allHW().length - hwTotal;
+  const hwHiddenNote = hwHidden ? '（另有 '+hwHidden+' 項的科目在「自訂首頁」關掉了，不算）' : '';
   const week='';
   let weekHtml='';
   for(let i=6;i>=0;i--){ const k=dateKey(-i); const sec=c.timeByDate[k]||0; weekHtml+=`<span class="stat">${k.slice(5)}：${sec?fmt(sec):'0 分 00 秒'}</span>`; }
@@ -10476,7 +10481,7 @@ function renderParent(){
 `【小花園功課台 學習紀錄】
 孩子：${c.name||'（未命名）'}
 日期：${dateKey()}
-今日功課：${finished}/${allHW().length} 完成（需家長簽名）
+今日功課：${finished}/${hwTotal} 完成（需家長簽名）${hwHiddenNote}
 總答題：${total}（答對 ${a.right} / 答錯 ${a.wrong}） 正確率 ${acc}%
 練習時間：今日 ${fmt(todaySec)} / 累計 ${fmt(totalSec)}
 學習雷達（目前程度的答對率）：${radar.rows.filter(r=>r.n).map(r=>reviewModName(r.mod)+' '+r.rate+'%（'+r.n+' 題，'+({weak:'需要加強',ok:'穩定',good:'很熟了',few:'題數不夠'})[r.st]+'）').join('、')||'還沒有資料'}
@@ -10508,7 +10513,7 @@ function renderParent(){
     </div>
     <div class="pgroup" data-cat="stats">
     <div style="margin:6px 0;"><span class="stat">👦 孩子：${escapeHtml(c.name||'（未命名）')}</span>
-      <span class="stat">📝 今日功課：${finished}/${allHW().length}</span>
+      <span class="stat"${hwHidden?' title="'+hwHiddenNote+'"':''}>📝 今日功課：${finished}/${hwTotal}</span>${hwHidden?'<span class="hint" style="display:block;margin:2px 0 0;">'+hwHiddenNote+'</span>':''}
       <span class="stat">☀️ 陽光：${c.sun}</span></div>
     ${radarHTML(c, radar)}
     <details class="rd-all"><summary>全部累計（從開始玩到現在）</summary>
