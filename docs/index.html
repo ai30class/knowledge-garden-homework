@@ -1548,15 +1548,41 @@ function applySubjectIcons(){
 }
 const PRACTICE_TABS=['readtest','math','social','nature','english','enword','engrammar','enreading','exam','num','logic','life','facts','zhuyin','science','coding','dailyquiz','custom','review'];
 
-function defaultHomeworkList(){
+/* 預設功課清單（2026-10-05 Janice 定）：幼幼、低年級（L1、L2）沒有社會、自然科（108 課綱低年級上「生活」），
+   改成一項「生活」（練習連到生活常識）。不帶程度＝舊的完整清單（舊存檔遷移、相容用） */
+function defaultHomeworkList(lvl){
+  const young = lvl==='L1' || lvl==='L2';
   return [
     {id:'h_chinese', name:'國語', type:'chinese'}, {id:'h_readtest', name:'閱讀測驗', type:'readtest'},
-    {id:'h_math', name:'數學', type:'math'},
-    {id:'h_social', name:'社會', type:'social'},
-    {id:'h_nature', name:'自然', type:'nature'},
-    {id:'h_english', name:'英文', type:'english'},
-    {id:'h_exam', name:'假日測驗卷', type:'exam'}
-  ];
+    {id:'h_math', name:'數學', type:'math'}
+  ].concat(young ? [{id:'h_life', name:'生活', type:'life'}]
+                 : [{id:'h_social', name:'社會', type:'social'}, {id:'h_nature', name:'自然', type:'nature'}])
+   .concat([{id:'h_english', name:'英文', type:'english'}, {id:'h_exam', name:'假日測驗卷', type:'exam'}]);
+}
+function hwSig(list){ return JSON.stringify((list||[]).map(x=>[x&&x.id, x&&x.name, x&&x.type])); }
+function isYoungLvl(l){ return l==='L1' || l==='L2'; }
+/* 換成某程度的預設清單（只在清單還是「沒改過的預設」時呼叫）；今天的狀態補新項目、舊的留著無妨 */
+function hwSetDefault(ch, lvl){
+  ch.homeworkList=defaultHomeworkList(lvl); ch.homework=ch.homework||{};
+  ch.homeworkList.forEach(it=>{ if(ch.homework[it.id]===undefined) ch.homework[it.id]=false; });
+}
+/* 改年齡或難度後：清單還是舊程度的預設，就跟著換成新程度的預設（家長改過的不動）。回傳有沒有換 */
+function hwFollowLevel(ch, beforeLvl){
+  const after=childLevel(ch);
+  if(isYoungLvl(beforeLvl)===isYoungLvl(after)) return false;
+  const was=[defaultHomeworkList(beforeLvl), defaultHomeworkList()].map(hwSig);
+  if(!was.includes(hwSig(ch.homeworkList))) return false;
+  hwSetDefault(ch, after); return true;
+}
+/* 已在用的幼幼／低年級孩子：清單跟舊的完整預設一模一樣（家長沒改過）就換成「生活」版。每個孩子只檢查一次（hwYoungMig）。
+   不能放在 load()：開機讀檔比部分常數宣告早，改在 renderHome 開頭做 */
+function migrateYoungHW(){
+  let changed=false;
+  (state.children||[]).forEach(ch=>{
+    if(ch.hwYoungMig) return; ch.hwYoungMig=true; changed=true;
+    if(isYoungLvl(childLevel(ch)) && hwSig(ch.homeworkList)===hwSig(defaultHomeworkList())) hwSetDefault(ch, childLevel(ch));
+  });
+  if(changed) save();
 }
 /* 多孩資料結構 */
 function defaultChild(name){
@@ -1564,7 +1590,7 @@ function defaultChild(name){
     id:'c'+Date.now()+Math.floor(Math.random()*1000),
     name:name||'', sun:0, known:{}, garden:{}, deck:[],
     answers:{right:0,wrong:0}, byModule:{}, timeByDate:{},
-    homework:{}, homeworkDate:dateKey(), homeworkList:defaultHomeworkList(),
+    homework:{}, homeworkDate:dateKey(), homeworkList:defaultHomeworkList(ageToLevel(7)), hwYoungMig:true,
     zombiePush:0, zombieDrift:0, plantHP:100, combo:0,
     routine:{}, routineDate:dateKey(),
     sched:{}, bonusSun:0,
@@ -1577,7 +1603,7 @@ function defaultChild(name){
   };
 }
 function makeChildFromOld(s){
-  const c=defaultChild(s.childName||''); c.since='';   /* 舊存檔轉來的不算第一天 */
+  const c=defaultChild(s.childName||''); c.since=''; c.hwYoungMig=false;   /* 舊存檔轉來的不算第一天；功課清單要檢查一次 */
   c.sun=s.sun||0; c.known=s.known||{}; c.garden=s.garden||{}; c.deck=Array.isArray(s.deck)?s.deck:Object.keys(c.garden).filter(k=>c.garden[k]).slice(0,5);
   c.answers=s.answers||{right:0,wrong:0}; c.byModule=s.byModule||{}; c.timeByDate=s.timeByDate||{};
   c.homework=s.homework||{}; c.homeworkDate=s.homeworkDate||dateKey();
@@ -2208,7 +2234,8 @@ function openDiffModalInner(){
   box.querySelector('#dmCancel').onclick=()=>box.remove();
   box.querySelector('#dmSave').onclick=()=>{
     const a=Number(ageIn.value)||7; const curKey=sel;
-    c.age=a; c.levelOverride=curKey; save(); box.remove(); renderHome();
+    const beforeLvl=childLevel(c); c.age=a; c.levelOverride=curKey; const sw=hwFollowLevel(c, beforeLvl); save(); box.remove(); renderHome();
+    if(sw) toast('📝 功課清單也換成'+(isYoungLvl(childLevel(c))?'「生活」版（幼幼、低年級沒有社會、自然）':'「社會、自然」版'));
     toast('🎚 難度已設為 '+DIFF_MAP[curKey].name+'（年齡 '+a+' 歲）');
   };
 }
@@ -2418,6 +2445,7 @@ function load(seed){
         /* 缺欄位的孩子（例如格式不完整的備份檔）用預設值補齊，避免之後畫面一打開就出錯 */
         const base=defaultChild('');
         if(ch.since===undefined) ch.since='';   /* 舊存檔的孩子不算第一天（不然更新當天晚上大家都變第一天） */
+        if(ch.hwYoungMig===undefined) ch.hwYoungMig=false;   /* 舊存檔的孩子要檢查一次預設功課（不然被下面補成 true） */
         Object.keys(base).forEach(k=>{ if(ch[k]===undefined) ch[k]=base[k]; });
         if(typeof ch.id!=='string'||!ch.id) ch.id=base.id;
         if(typeof ch.name!=='string') ch.name=String(ch.name==null?'':ch.name);
@@ -8020,6 +8048,7 @@ function renderOnboarding(){
 /* 頂列的陽光是全站唯一的陽光數字，換分頁、換孩子、重畫首頁都要更新（原本只在陽光變動時才更新，打開 App 會顯示 0） */
 function refreshSunCount(){ const c=C(); if(c) $$('.sunCount').forEach(e=>e.textContent=c.sun); }
 function renderHome(){
+  migrateYoungHW();   /* 2026-10-05：幼幼、低年級沒改過的預設功課換成「生活」（只檢查一次） */
   refreshSunCount();
   ensureSchedule();
   if(!manualAutoShown && !state.seenManual && !state.seenTour){ manualAutoShown=true; state.seenManual=true; state.manualSeenVer=MANUAL_VER; save(); setTimeout(()=>{ if(typeof openManual==='function') openManual(); },1000); }
@@ -11609,7 +11638,7 @@ function renderParent(){
         save(); toast('🗑 已刪除「'+(ch.name||'孩子')+'」'); renderParent();
       });
     };
-    const ai=$('#age'+ch.id); if(ai) ai.onchange=()=>{ const v=Number(ai.value)||7; ch.age=Math.min(15,Math.max(3,v)); ch.levelOverride=''; save(); renderParent(); toast('🎚 '+ch.name+' 年齡設為 '+ch.age+' 歲（'+DIFF_MAP[childLevel(ch)].name+'）'); };
+    const ai=$('#age'+ch.id); if(ai) ai.onchange=()=>{ const v=Number(ai.value)||7; const beforeLvl=childLevel(ch); ch.age=Math.min(15,Math.max(3,v)); ch.levelOverride=''; const sw=hwFollowLevel(ch, beforeLvl); save(); renderParent(); if(sw) setTimeout(()=>toast('📝 '+ch.name+' 的功課清單也換成'+(isYoungLvl(childLevel(ch))?'「生活」版':'「社會、自然」版')), 1800); toast('🎚 '+ch.name+' 年齡設為 '+ch.age+' 歲（'+DIFF_MAP[childLevel(ch)].name+'）'); };
   });
   const ac=$('#addChild'); if(ac) ac.onclick=()=>{
     const nm=$('#newChild').value.trim(); if(!nm){ toast('請填寫孩子名字'); return; }
