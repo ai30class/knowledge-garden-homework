@@ -8882,21 +8882,21 @@ function numL5(){ const r=Math.random();
   return {type:'choice', q:'2 : 3 ＝ 4 : ?', opts:kOpts('6',['5','8','9'],4), ans:'6', hint:'前項後項同乘 2。'}; }
 
 /* ---------- 邏輯推理 logic（對應康軒數學規律/圖形/分類） ---------- */
-function logicL1(){ const items=['🐱','🐶','🐰','🐯','🦁','🐸']; const target=kPick(items); const others=kShuf(items.filter(x=>x!==target)).slice(0,3);
+function logicL1Old(){ const items=['🐱','🐶','🐰','🐯','🦁','🐸']; const target=kPick(items); const others=kShuf(items.filter(x=>x!==target)).slice(0,3);
   return {type:'choice', q:'哪一個跟 '+target+' 一樣？', opts:kShuf([target,...others]), ans:target, hint:'找出相同的！'}; }
-function logicL2(){ const r=Math.random();
+function logicL2Old(){ const r=Math.random();
   if(r<0.5) return {type:'choice', q:'🔴🔵🔴🔵🔴？ 下一個是誰？', opts:kOpts('🔵',['🔴','⚪','🟢','🟡'],4), ans:'🔵', hint:'紅藍紅藍…找規律！'};
   return {type:'order', q:'把數字從小排到大：', order:['1','2','3','4'], hint:'最小的排最前面。'}; }
-function logicL3(){ const r=Math.random();
+function logicL3Old(){ const r=Math.random();
   if(r<0.6){ const start=2+Math.floor(Math.random()*5), step=2; const seq=[start,start+step,start+2*step,start+3*step]; const ans=seq[3]+step; return {type:'choice', q:seq.join(', ')+', ? ＝ ?', opts:kOpts(ans,[ans+step,ans-step,ans+2*step,ans-2*step],4), ans:String(ans), hint:'每次加 '+step+'。'}; }
   const shapeQ=[['三角形',3],['正方形',4],['長方形',4],['五邊形',5]]; const s=kPick(shapeQ);
   return {type:'choice', q:s[0]+' 有幾條邊？', opts:kOpts(String(s[1]),[String(s[1]-1),String(s[1]+1),String(s[1]+2),String(Math.max(1,s[1]-2))],4), ans:String(s[1]), hint:'數數看邊。'}; }
-function logicL4(){ const r=Math.random();
+function logicL4Old(){ const r=Math.random();
   if(r<0.5) return {type:'tf', q:'小明比小華高，小華比小美高。所以小美比小明高。', ans:false, why:'小美最矮，應該是小明比小美高。', hint:'排排看高大順序。'};
   const groups=[['蘋果','香蕉','橘子','兔子'],['狗','貓','鳥','桌子'],['紅色','藍色','綠色','方形']];
   const g=kPick(groups); const odd=g[g.length-1]; const same=g.slice(0,3);
   return {type:'choice', q:'哪一個跟其他不一樣？', opts:kOpts(odd,same.concat(['不知道']),4), ans:odd, hint:'找找看誰不是同一類。'}; }
-function logicL5(){ const r=Math.random();
+function logicL5Old(){ const r=Math.random();
   if(r<0.45) return {type:'choice', q:'所有的貓都會叫。小花是一隻貓。所以？', opts:['小花會叫','小花不會叫','貓都不會叫','不知道'], ans:'小花會叫', hint:'套進前面的話。'};
   if(r<0.78) return {type:'order', q:'數字由小到大：', order:['1','3','5','8'], hint:'一步步排。'};
   return {type:'tf', q:'規則：會下雨就要帶傘。今天下雨了，所以要帶傘。', ans:true, why:'符合規則！', hint:'把條件套進去。'}; }
@@ -9568,27 +9568,162 @@ function scienceL5(){ const r=Math.random();
   return {type:'tf', q:'做實驗時，會改變的那個條件叫做「變因」。', ans:true, why:'控制變因才準確！', hint:'一次只改一個。'}; }
 
 /* ---------- 程式思維 coding（對應108課綱科技領域） ---------- */
-function codingL1(){ const r=Math.random();
+function codingL1Old(){ const r=Math.random();
   if(r<0.5) return {type:'choice', q:'🤖 想讓機器人走到糖果，第一步該？', opts:kOpts('先往前走',['先睡覺','先回家','先唱歌','先洗澡'],4), ans:'先往前走', hint:'一步一步來。'};
   if(r<0.8) return {type:'order', q:'把鞋子穿好，正確順序是？', order:['坐下','穿襪子','穿鞋子','綁鞋帶'], hint:'照順序排。'};
   return {type:'tf', q:'寫程式就是把步驟一個一個告訴電腦。', ans:true, why:'對，電腦照做！', hint:'像寫食譜。'}; }
-function codingL2(){ const r=Math.random();
+function codingL2Old(){ const r=Math.random();
   if(r<0.5) return {type:'choice', q:'🔁 『重複做 3 次』在程式裡叫做？', opts:kOpts('迴圈',['變數','函式','錯誤','指令'],4), ans:'迴圈', hint:'loop。'};
   return {type:'choice', q:'看規律：🔺🔺🔴🔺🔺🔴 下一個是？', opts:kOpts('🔺',['🔴','⭐','❓','🔵'],4), ans:'🔺', hint:'兩個三角、一個紅。'}; }
-function codingL3(){ const r=Math.random();
+function codingL3Old(){ const r=Math.random();
   if(r<0.5) return {type:'choice', q:'❓ 如果「下雨」就「帶傘」，這叫做？', opts:kOpts('條件判斷',['迴圈','變數','排序','指令'],4), ans:'條件判斷', hint:'if…then。'};
   if(r<0.8) return {type:'order', q:'把數字由小排到大：', order:['1','2','3'], hint:'最小的排最前。'};
   return {type:'choice', q:'下面哪個是「如果…就…」的例子？', opts:kOpts('考試及格就去看電影',['每天刷牙','數到 10','拍手一下','喝一杯水'],4), ans:'考試及格就去看電影', hint:'有條件。'}; }
-function codingL4(){ const r=Math.random();
+function codingL4Old(){ const r=Math.random();
   if(r<0.3) return {type:'choice', q:'🐞 程式結果不對，要找原因修正，叫做？', opts:kOpts('除錯（debug）',['編譯','下載','關機','重新開機'],4), ans:'除錯（debug）', hint:'抓蟲子。'};
   if(r<0.6) return {type:'choice', q:'📦 用一個「盒子」存數字 5，這個盒子叫？', opts:kOpts('變數',['迴圈','流程圖','指令','函式'],4), ans:'變數', hint:'可以取名字。'};
   if(r<0.8) return {type:'choice', q:'下面哪段邏輯會讓角色一直轉圈？', opts:kOpts('重複：右轉',['走一步就好','先睡覺','直接回家','站著不動'],4), ans:'重複：右轉', hint:'一直轉。'};
   return {type:'tf', q:'『重複 5 次：往前走』和寫 5 行「往前走」意思一樣。', ans:true, why:'迴圈就是省事！', hint:'結果相同。'}; }
-function codingL5(){ const r=Math.random();
+function codingL5Old(){ const r=Math.random();
   if(r<0.3) return {type:'choice', q:'🗺️ 解決問題的步驟設計圖，叫做？', opts:kOpts('演算法 / 流程圖',['變數','顏色','歌曲','密碼'],4), ans:'演算法 / 流程圖', hint:'先想好步驟。'};
   if(r<0.55) return {type:'choice', q:'⚡ 同樣的工作，用更少步驟完成，叫做比較？', opts:kOpts('有效率',['好看','大聲','便宜','好笑'],4), ans:'有效率', hint:'省時間。'};
   if(r<0.8) return {type:'choice', q:'找一本書，一本一本翻 vs 先看目錄，哪個？', opts:kOpts('看目錄比較有效率',['一本一本翻比較快','兩個一樣快','都不行','隨便猜'],4), ans:'看目錄比較有效率', hint:'目錄幫你跳。'};
   return {type:'tf', q:'電腦只聽得懂非常清楚的指令，所以不能含糊。', ans:true, why:'要精準！', hint:'一步步說清楚。'}; }
+
+/* ---------- 2026-10-04 稽核 D7 第二批：邏輯推理、程式思維改成程式隨機出題 ----------
+   原本每級只有 2～3 題固定題，一回合一定重複。Janice 定：用程式隨機產生，答案由程式算；原本的題目留著當觀念題（約 2 成）。
+   每題帶 m（出題資料），testD7b.mjs 用另外寫的解題程式重算一次答案，不靠這裡算的結果 */
+const D7_NAMES=['小安','小晴','阿明','小美','小華','阿傑','小芸','大寶'];
+const D7_EMO={水果:['🍎','🍌','🍇','🍓','🍉','🍐','🍒'],動物:['🐱','🐶','🐰','🐻','🐼','🐸','🐷'],交通:['🚗','🚌','🚲','✈️','🚢','🚀'],形狀:['🔴','🔵','🟢','🟡','🟣','🟠'],天氣:['☀️','🌙','⭐','☁️','🌈','❄️']};
+function d7NumOpts(ans, spread){ spread=spread||3; const s=new Set([String(ans)]); const c=kShuf([1,-1,2,-2,spread,-spread,10,-10,5]);
+  for(const d of c){ if(s.size>=4) break; const v=ans+d; if(v>=0) s.add(String(v)); } let k=1; while(s.size<4){ s.add(String(ans+10*k)); k++; } return kShuf([...s]); }
+function d7Seq(start, rule, n){ const a=[start]; for(let i=1;i<n;i++) a.push(rule(a[i-1], i, a)); return a; }
+/* 規律：AB、AAB、ABB、ABC、AABB */
+const D7_PATS=['AB','AAB','ABB','ABC','AABB','ABCC'];
+function d7PatternQ(len, pats){ const pat=kPick(pats); const kinds=[...new Set(pat)].length; const pool=kPick(Object.values(D7_EMO)); const sym=kShuf(pool).slice(0,kinds);
+  const map={}; [...new Set(pat)].forEach((ch,i)=>map[ch]=sym[i]); const seq=[]; for(let i=0;i<len+1;i++) seq.push(map[pat[i%pat.length]]);
+  const ans=seq[len]; return {type:'choice', q:seq.slice(0,len).join('')+' 下一個是？', opts:kOpts(ans, pool.filter(x=>x!==ans), 4), ans, hint:'找找看幾個一組在重複。', m:{k:'pattern', pat, len, sym}}; }
+function logicL1(){ const r=Math.random();
+  if(r<0.2) return logicL1Old();
+  if(r<0.4){ const pool=kPick(Object.values(D7_EMO)); const e=kPick(pool); const n=rInt(1,6); return {type:'choice', q:'數一數，有幾個？ '+e.repeat(n), opts:kOpts(String(n),['1','2','3','4','5','6','7'].filter(x=>x!==String(n)),4), ans:String(n), hint:'用手指一個一個點著數。', m:{k:'count', n}}; }
+  if(r<0.6){ const [a,b]=kShuf(Object.values(D7_EMO)).slice(0,2).map(p=>kPick(p)); let x=rInt(1,6), y=rInt(1,6); while(y===x) y=rInt(1,6);
+    const ans = x>y ? '左邊' : '右邊'; return {type:'choice', q:'哪一邊比較多？ 左邊 '+a.repeat(x)+'　右邊 '+b.repeat(y), opts:['左邊','右邊'], ans, hint:'兩邊一個一個數，數到的數字大就比較多。', m:{k:'more', x, y}}; }
+  if(r<0.8){ const pool=kPick(Object.values(D7_EMO)); const [s,d]=kShuf(pool).slice(0,2); const pos=rInt(0,3); const row=[s,s,s,s]; row[pos]=d;
+    return {type:'choice', q:'哪一個跟別人不一樣？ '+row.join(' '), opts:kShuf([s,d].concat(kShuf(pool.filter(x=>x!==s&&x!==d)).slice(0,2))), ans:d, hint:'找找看誰長得不一樣。', m:{k:'odd', row}}; }
+  return d7PatternQ(5, ['AB','AAB','ABB']); }
+function logicL2(){ const r=Math.random();
+  if(r<0.2) return logicL2Old();
+  if(r<0.45){ const step=kPick([1,2,5,10]); const s0=rInt(0,9)*(step===10?10:1); const seq=d7Seq(s0, v=>v+step, 5); const miss=rInt(1,4);
+    const shown=seq.map((v,i)=>i===miss?'？':v); const ans=seq[miss];
+    return {type:'choice', q:'找規律，？是多少？ '+shown.join('、'), opts:d7NumOpts(ans, step), ans:String(ans), hint:'看看每次加多少。', m:{k:'arith', seq:shown, step}}; }
+  if(r<0.65) return d7PatternQ(6, ['ABC','AABB','ABCC','AAB']);
+  if(r<0.85){ const nums=new Set(); while(nums.size<4) nums.add(rInt(1,30)); const arr=[...nums]; const up=Math.random()<0.6; const ord=arr.slice().sort((a,b)=>up?a-b:b-a);
+    return {type:'order', q:'把數字由'+(up?'小排到大':'大排到小')+'：', order:ord.map(String), hint:up?'最小的排最前面。':'最大的排最前面。', m:{k:'sort', arr, up}}; }
+  const [a,b,c]=kShuf(D7_NAMES).slice(0,3); const rel=kPick([['高','最高','最矮'],['重','最重','最輕'],['快','最快','最慢']]); const askTop=Math.random()<0.5;
+  return {type:'choice', q:a+'比'+b+rel[0]+'，'+b+'比'+c+rel[0]+'。誰'+(askTop?rel[1]:rel[2])+'？', opts:kShuf([a,b,c]), ans:askTop?a:c, hint:'把三個人排成一排想想看。', m:{k:'chain', order:[a,b,c], top:askTop}}; }
+function logicL3(){ const r=Math.random();
+  if(r<0.2) return logicL3Old();
+  if(r<0.45){ const step=rInt(2,9)*(Math.random()<0.3?-1:1); const s0=step<0?rInt(60,99):rInt(1,30); const seq=d7Seq(s0, v=>v+step, 6); const ans=seq[5];
+    return {type:'fill', q:'找規律，下一個是多少？ '+seq.slice(0,5).join('、')+'、？', numeric:true, ans:String(ans), hint:'前後相減，看每次差多少。', m:{k:'arithNext', seq:seq.slice(0,5)}}; }
+  if(r<0.6){ const s0=rInt(1,5); const mul=kPick([2,3]); const seq=d7Seq(s0, v=>v*mul, 5); const ans=seq[4];
+    return {type:'choice', q:'找規律，下一個是多少？ '+seq.slice(0,4).join('、')+'、？', opts:d7NumOpts(ans, s0), ans:String(ans), hint:'不是加，試試看每次乘多少。', m:{k:'geoNext', seq:seq.slice(0,4)}}; }
+  if(r<0.8){ const names=kShuf(D7_NAMES).slice(0,4); const rel=kPick([['高','最高','最矮'],['早到','最早到','最晚到']]);
+    const clues=[names[0]+'比'+names[1]+rel[0], names[1]+'比'+names[2]+rel[0], names[2]+'比'+names[3]+rel[0]]; const askTop=Math.random()<0.5;
+    return {type:'choice', q:kShuf(clues).join('，')+'。誰'+(askTop?rel[1]:rel[2])+'？', opts:kShuf(names), ans:askTop?names[0]:names[3], hint:'先把每一句畫成「誰在誰前面」，再排成一排。', m:{k:'chain', order:names, top:askTop}}; }
+  const animal=kPick([['貓','喵喵叫'],['狗','汪汪叫'],['鴨子','呱呱叫'],['牛','哞哞叫'],['羊','咩咩叫']]);
+  const sure=Math.random()<0.5;
+  return {type:'tf', q:'規則：「所有的'+animal[0]+'都會'+animal[1]+'。」'+(sure?'小毛是一隻'+animal[0]+'，所以小毛會'+animal[1]+'。':'小毛會'+animal[1]+'，所以小毛一定是'+animal[0]+'。'),
+    ans:sure, why:sure?'小毛是'+animal[0]+'，規則說所有'+animal[0]+'都會，所以對。':'會'+animal[1]+'的不一定是'+animal[0]+'（規則沒說只有'+animal[0]+'會），所以不能確定。', hint:'規則是從哪一邊推到哪一邊？', m:{k:'mp', valid:sure}}; }
+function logicL4(){ const r=Math.random();
+  if(r<0.2) return logicL4Old();
+  if(r<0.45){ const t=rInt(0,2); let seq, ans, rule;
+    if(t===0){ const a=rInt(2,5), b=rInt(1,4), s0=rInt(1,10); seq=[s0]; for(let i=1;i<6;i++) seq.push(seq[i-1]+(i%2?a:b)); rule='一次加 '+a+'、一次加 '+b; }
+    else if(t===1){ const s0=rInt(1,4); seq=d7Seq(s0*s0, (v,i)=>(s0+i)*(s0+i), 6); rule='都是某個數乘自己（'+s0+'×'+s0+'、'+(s0+1)+'×'+(s0+1)+'…）'; }
+    else { const a0=rInt(1,3), a1=rInt(1,4); seq=[a0,a1]; for(let i=2;i<6;i++) seq.push(seq[i-1]+seq[i-2]); rule='每一個是前兩個加起來'; }
+    ans=seq[5]; return {type:'fill', q:'找規律，下一個是多少？ '+seq.slice(0,5).join('、')+'、？', numeric:true, ans:String(ans), hint:'不一定每次加一樣多，看看差的規律。', why:'規律：'+rule+'。', m:{k:'next', seq:seq.slice(0,5), t}}; }
+  if(r<0.7){ const names=kShuf(D7_NAMES).slice(0,3); const perm=kShuf(names); /* 由左到右 */
+    const clues=['「'+perm[1]+'」坐在中間', '「'+perm[0]+'」坐在「'+perm[2]+'」的左邊'];
+    const ask=rInt(0,2); const word=['最左邊','中間','最右邊'][ask];
+    return {type:'choice', q:'三個人坐成一排：'+names.join('、')+'。'+clues.join('，')+'。誰坐在'+word+'？', opts:kShuf(names), ans:perm[ask], hint:'先放中間的人，再看左右。', m:{k:'seat', perm, ask}}; }
+  const total=rInt(25,35), a=rInt(10,18), b=rInt(8,16), both=rInt(2,Math.min(a,b,6)); const none=total-(a+b-both);
+  if(none<0) return logicL4();
+  return {type:'fill', q:'班上 '+total+' 人，喜歡貓的有 '+a+' 人，喜歡狗的有 '+b+' 人，兩種都喜歡的有 '+both+' 人。兩種都不喜歡的有幾人？', numeric:true, ans:String(none), unit:'人', hint:'先算「至少喜歡一種」的人：喜歡貓＋喜歡狗－兩種都喜歡。', why:a+'＋'+b+'－'+both+'＝'+(a+b-both)+' 人至少喜歡一種，'+total+'－'+(a+b-both)+'＝'+none+'。', m:{k:'venn', total, a, b, both}}; }
+const D7_TERMS=[['嘟嘟星人','會飛的生物','住在月亮上的生物'],['圓圓族','愛吃糖的人','會唱歌的人'],['藍色小鳥','早起的動物','會游泳的動物'],['機器貓','用電的東西','會發光的東西']];
+const D7_SYL=[
+  {f:'所有A都是B，所有B都是C。所以所有A都是C。', v:true},
+  {f:'所有A都是B，所有C都是B。所以所有A都是C。', v:false},
+  {f:'所有A都是B，有些B是C。所以有些A是C。', v:false},
+  {f:'所有A都是B，有些C是A。所以有些C是B。', v:true},
+  {f:'沒有A是B，所有C都是A。所以沒有C是B。', v:true},
+  {f:'沒有A是B，沒有B是C。所以沒有A是C。', v:false}];
+function logicL5(){ const r=Math.random();
+  if(r<0.2) return logicL5Old();
+  if(r<0.4){ const t=rInt(0,2); let seq;
+    if(t===0){ const s0=rInt(1,4); seq=d7Seq(s0, v=>v*2+1, 6); } else if(t===1){ const s0=rInt(1,3); seq=d7Seq(s0*s0+1, (v,i)=>(s0+i)*(s0+i)+1, 6); } else { const s0=rInt(1,5), d0=rInt(1,3); seq=[s0]; for(let i=1;i<6;i++) seq.push(seq[i-1]+d0+i-1); }
+    return {type:'fill', q:'找規律，下一個是多少？ '+seq.slice(0,5).join('、')+'、？', numeric:true, ans:String(seq[5]), hint:'試試看「乘 2 再加 1」、「平方再加 1」、或差一直變大。', m:{k:'next5', seq:seq.slice(0,5), t}}; }
+  if(r<0.65){ const sy=kPick(D7_SYL); const tm=kPick(D7_TERMS); const st=sy.f.replace(/A/g,tm[0]).replace(/B/g,tm[1]).replace(/C/g,tm[2]);
+    return {type:'tf', q:'這個推論對嗎？「'+st+'」', ans:sy.v, why:sy.v?'前兩句一定能推出結論。':'前兩句推不出這個結論，可以想出反例。', hint:'畫圈圈想：A 圈在不在 C 圈裡面？', m:{k:'syl', f:sy.f, v:sy.v}}; }
+  if(r<0.82){ const pq=kPick([['下雨','地會濕'],['按下開關','燈會亮'],['考試及格','可以看電影'],['睡過頭','會遲到']]);
+    const opts=['如果'+pq[1].replace('會','不會').replace('可以','不可以')+'，那麼'+pq[0].replace(/^/,'沒有'), '如果'+pq[1]+'，那麼'+pq[0], '如果沒有'+pq[0]+'，那麼'+pq[1].replace('會','不會').replace('可以','不可以'), '如果'+pq[0]+'，那麼'+pq[1].replace('會','不會').replace('可以','不可以')];
+    return {type:'choice', q:'「如果'+pq[0]+'，那麼'+pq[1]+'。」跟哪一句的意思一定一樣？', opts:kShuf(opts), ans:opts[0], hint:'「若 P 則 Q」一定等於「若不是 Q，則不是 P」。', why:'逆否命題：'+opts[0]+'。', m:{k:'contra'}}; }
+  const total=rInt(40,60), a=rInt(15,30), b=rInt(12,28), none=rInt(2,8); const both=a+b-(total-none);
+  if(both<1||both>Math.min(a,b)) return logicL5();
+  return {type:'fill', q:'社團 '+total+' 人，參加籃球 '+a+' 人、參加游泳 '+b+' 人，兩種都沒參加 '+none+' 人。兩種都參加的有幾人？', numeric:true, ans:String(both), unit:'人', hint:'至少參加一種的人＝總人數－都沒參加；再想籃球＋游泳多算了誰。', why:'至少一種：'+total+'－'+none+'＝'+(total-none)+'；'+a+'＋'+b+'－'+(total-none)+'＝'+both+'。', m:{k:'venn2', total, a, b, none}}; }
+
+/* 程式思維 */
+const D7_DIR={'→':[1,0],'←':[-1,0],'↑':[0,1],'↓':[0,-1]};
+function codingL1(){ const r=Math.random();
+  if(r<0.25) return codingL1Old();
+  if(r<0.55){ const n=5; const rp=rInt(0,n-1); let cp=rInt(0,n-1); while(cp===rp) cp=rInt(0,n-1); const row=Array(n).fill('⬜'); row[rp]='🤖'; row[cp]='🍬';
+    const ans = cp>rp ? '往右走' : '往左走'; return {type:'choice', q:'🤖 要拿到 🍬，要往哪邊走？ '+row.join(''), opts:['往左走','往右走'], ans, hint:'糖果在機器人的哪一邊？', m:{k:'dir', rp, cp}}; }
+  if(r<0.8){ const n=rInt(2,5); const act=kPick([['👏','拍手','下'],['🦘','跳','下'],['🔔','敲鈴','下']]);
+    return {type:'choice', q:'「'+act[0]+' 重複 '+n+' 次」，一共'+act[1]+'幾'+act[2]+'？', opts:kOpts(String(n),['1','2','3','4','5','6'].filter(x=>x!==String(n)),4), ans:String(n), hint:'重複幾次，就做幾下。', m:{k:'rep', n}}; }
+  const seqs=[['洗手','吃飯','刷牙'],['起床','穿衣服','背書包'],['倒水','拿杯子','喝水']]; const s=kPick(seqs);
+  const order= s[0]==='倒水' ? ['拿杯子','倒水','喝水'] : s;
+  return {type:'order', q:'照順序排好：', order, hint:'想想看先做什麼、再做什麼。', m:{k:'routine'}}; }
+function codingL2(){ const r=Math.random();
+  if(r<0.2) return codingL2Old();
+  if(r<0.5){ const n=6; let pos=rInt(1,3); const start=pos; const cmds=[]; for(let i=0;i<rInt(3,5);i++){ let c; for(let t=0;t<10;t++){ c=kPick(['→','←']); const np=pos+(c==='→'?1:-1); if(np>=1&&np<=n){ pos=np; break; } } cmds.push(c); }
+    let p=start; cmds.forEach(c=>{ p+= c==='→'?1:-1; }); 
+    return {type:'fill', q:'🤖 站在第 '+start+' 格（格子 1～'+n+'）。照指令走：'+cmds.join(' ')+'（→ 往右一格、← 往左一格）。最後在第幾格？', numeric:true, ans:String(p), unit:'格', hint:'一個箭頭一個箭頭慢慢走。', m:{k:'walk1', start, cmds}}; }
+  if(r<0.75){ const n=rInt(2,5), k=rInt(2,4); return {type:'choice', q:'「重複 '+n+' 次：往前走 '+k+' 步」，一共走幾步？', opts:d7NumOpts(n*k, k), ans:String(n*k), hint:'每次走 '+k+' 步，走 '+n+' 次。', m:{k:'loopMul', n, s:k}}; }
+  const light=kPick(['紅燈','綠燈']); const ans= light==='紅燈' ? '停下來' : '往前走';
+  return {type:'choice', q:'程式：「如果 是紅燈，就 停下來；否則 往前走。」現在是'+light+'，機器人會？', opts:['停下來','往前走'], ans, hint:'看看現在的燈是不是紅燈。', m:{k:'ifLight', light}}; }
+function codingL3(){ const r=Math.random();
+  if(r<0.2) return codingL3Old();
+  if(r<0.42){ const cmds=[]; for(let i=0;i<rInt(3,5);i++) cmds.push([kPick(Object.keys(D7_DIR)), rInt(1,3)]); let x=0,y=0; cmds.forEach(([d,k])=>{ x+=D7_DIR[d][0]*k; y+=D7_DIR[d][1]*k; });
+    const desc=(x,y)=>(x===0&&y===0)?'回到起點':[x?((x>0?'右邊 ':'左邊 ')+Math.abs(x)+' 格'):'',y?((y>0?'上面 ':'下面 ')+Math.abs(y)+' 格'):''].filter(Boolean).join('、');
+    const ans=desc(x,y); const opts=new Set([ans]); for(const [dx,dy] of kShuf([[1,0],[-1,0],[0,1],[0,-1],[2,0],[0,2],[-x*2,0],[0,-y*2]])){ if(opts.size>=4) break; opts.add(desc(x+dx,y+dy)); }
+    return {type:'choice', q:'🤖 從起點照指令走：'+cmds.map(([d,k])=>d+k).join('　')+'（箭頭是方向、數字是格數）。最後在起點的哪裡？', opts:kShuf([...opts]), ans, hint:'左右算一次、上下算一次，會互相抵消。', m:{k:'walk2', cmds}}; }
+  if(r<0.64){ let x=rInt(1,9); const x0=x; const ops=[]; for(let i=0;i<rInt(2,3);i++){ const op=kPick(['+','-','×']); const v= op==='×'?rInt(2,3):rInt(1,9); if(op==='-' && x-v<0){ ops.push(['+',v]); x+=v; continue; } ops.push([op,v]); x = op==='+'?x+v : op==='-'?x-v : x*v; }
+    return {type:'fill', q:'程式依序執行：x ＝ '+x0+'；'+ops.map(([o,v])=>'x ＝ x '+(o==='+'?'＋':o==='-'?'－':'×')+' '+v).join('；')+'。最後 x 是多少？', numeric:true, ans:String(x), hint:'一行一行算，每次都用新的 x。', m:{k:'var', x0, ops}}; }
+  if(r<0.82){ const s0=rInt(0,5), n=rInt(3,6), d=rInt(2,5); const ans=s0+n*d;
+    return {type:'fill', q:'分數從 '+s0+' 開始，「重複 '+n+' 次：分數加 '+d+'」。最後分數是多少？', numeric:true, ans:String(ans), unit:'分', hint:'加了幾次、每次加多少？', m:{k:'loopAdd', s0, n, d}}; }
+  const pass=kPick([50,60,70,80]), sc=rInt(pass-10,pass+10); const ans= sc>=pass?'及格':'加油';
+  return {type:'choice', q:'程式：「如果 分數 ≥ '+pass+'，就顯示「及格」；否則顯示「加油」。」分數是 '+sc+'，會顯示？', opts:['及格','加油'], ans, hint:'≥ 是大於或等於。', m:{k:'ifScore', pass, sc}}; }
+function codingL4(){ const r=Math.random();
+  if(r<0.2) return codingL4Old();
+  if(r<0.38){ const a=rInt(1,9); let b=rInt(1,9); while(b===a) b=rInt(1,9); const ask=kPick(['a','b']);
+    return {type:'choice', q:'程式：a ＝ '+a+'；b ＝ '+b+'；t ＝ a；a ＝ b；b ＝ t。最後 '+ask+' 是多少？', opts:kShuf([String(a),String(b),String(a+b),String(Math.abs(a-b)||a+1)].filter((v,i,s)=>s.indexOf(v)===i)), ans:String(ask==='a'?b:a), hint:'t 是暫時放東西的盒子，這是在交換 a 和 b。', m:{k:'swap', a, b, ask}}; }
+  if(r<0.55){ const o=rInt(2,4), i=rInt(2,5); return {type:'fill', q:'「重複 '+o+' 次：［重複 '+i+' 次：拍手］」，一共拍幾下？', numeric:true, ans:String(o*i), unit:'下', hint:'裡面的迴圈每次拍 '+i+' 下，外面再重複 '+o+' 次。', m:{k:'nest', o, i}}; }
+  if(r<0.72){ const x0=rInt(1,3), lim=rInt(15,60), mul=kPick([2,3]); let x=x0, c=0; while(x<lim){ x*=mul; c++; }
+    const askCount=Math.random()<0.5;
+    return {type:'fill', q:'程式：x ＝ '+x0+'；「當 x ＜ '+lim+' 時，重複：x ＝ x × '+mul+'」。'+(askCount?'迴圈一共跑了幾次？':'最後 x 是多少？'), numeric:true, ans:String(askCount?c:x), hint:'每跑一次先檢查 x 還有沒有小於 '+lim+'。', m:{k:'while', x0, lim, mul, askCount}}; }
+  if(r<0.86){ const A=Math.random()<0.5, B=Math.random()<0.5, op=kPick(['且','或']); const v= op==='且'?(A&&B):(A||B);
+    const tA=kPick([['今天是星期六','今天不是星期六'],['外面在下雨','外面沒下雨']]), tB=kPick([['作業寫完了','作業還沒寫完'],['媽媽在家','媽媽不在家']]);
+    return {type:'tf', q:'已知：'+(A?tA[0]:tA[1])+'，'+(B?tB[0]:tB[1])+'。條件「'+tA[0]+' '+op+' '+tB[0]+'」成立嗎？', ans:v, why:op==='且'?'「且」要兩個都成立才成立。':'「或」只要有一個成立就成立。', hint:op==='且'?'「且」：兩個都要對。':'「或」：有一個對就好。', m:{k:'bool', A, B, op}}; }
+  const pool=kShuf(kPick(Object.values(D7_EMO))).slice(0,5); const idx=rInt(1,5);
+  return {type:'choice', q:'清單：［'+pool.join('、')+'］。第 '+idx+' 個是？（從 1 開始數）', opts:kOpts(pool[idx-1], pool, 4), ans:pool[idx-1], hint:'從左邊第 1 個開始數。', m:{k:'index', pool, idx}}; }
+function codingL5(){ const r=Math.random();
+  if(r<0.2) return codingL5Old();
+  if(r<0.38){ const n=rInt(4,10); const s=n*(n+1)/2; return {type:'fill', q:'程式：total ＝ 0；「i 從 1 跑到 '+n+'：total ＝ total ＋ i」。最後 total 是多少？', numeric:true, ans:String(s), hint:'就是 1＋2＋…＋'+n+'。', m:{k:'sum', n}}; }
+  if(r<0.55){ const v=rInt(3,31); const bin=v.toString(2); return {type:'fill', q:'二進位的 '+bin+'，換成十進位是多少？', numeric:true, ans:String(v), hint:'從右邊數來，每一位分別代表 1、2、4、8、16。', why:bin+'（二進位）＝'+v+'。', m:{k:'bin', bin}}; }
+  if(r<0.72){ const a=rInt(2,3), b=rInt(1,5), x=rInt(1,4); const f=v=>a*v+b; const ans=f(f(x));
+    return {type:'fill', q:'函式 f(x) ＝ '+a+'x ＋ '+b+'。f(f('+x+')) 是多少？', numeric:true, ans:String(ans), hint:'先算裡面的 f('+x+')，再把答案放進 f。', why:'f('+x+')＝'+f(x)+'，f('+f(x)+')＝'+ans+'。', m:{k:'fn', a, b, x}}; }
+  if(r<0.86){ const N=kPick([10,20,50,100,200,500,1000]); let k=0; while((1<<k)-1<N) k++;
+    return {type:'fill', q:'猜數字遊戲：答案在 1～'+N+' 之間，每次猜完會說「太大」或「太小」。每次都猜剩下範圍的中間，最多要猜幾次一定猜得到？', numeric:true, ans:String(k), unit:'次', hint:'每猜一次，範圍大約剩一半。', why:'猜 '+k+' 次最多能分出 '+((1<<k)-1)+' 個數，夠涵蓋 '+N+' 個。', m:{k:'bsearch', N}}; }
+  const sc=rInt(40,100); const ans= sc>=90?'A':sc>=75?'B':sc>=60?'C':'D';
+  return {type:'choice', q:'程式：「如果 分數 ≥ 90 → A；否則如果 ≥ 75 → B；否則如果 ≥ 60 → C；否則 → D。」分數 '+sc+' 會得到？', opts:['A','B','C','D'], ans, hint:'從上面一條一條檢查，第一個符合的就停。', m:{k:'elif', sc}}; }
 
 /* KNOW_BANK:START（2026-09-28 稽核 D7：自然、生活、百科每科每級 30 題的題庫表；由 d7build.py 產生，改題目請改 JSON 再重跑） */
 const KNOW_BANK={
