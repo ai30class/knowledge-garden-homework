@@ -2662,7 +2662,10 @@ function defaultActiveSubjects(){
   return { chinese:true, math:true, social:true, nature:true, english:true, exam:true, num:true, logic:true, life:true, facts:true, zhuyin:true, science:true, coding:true, custom:true };
 }
 /* 只回傳「啟用中」的科目功課 */
-function visibleHW(){ return allHW().filter(it=> state.activeSubjects[it.type]===true ); }
+/* 名稱有「假日」的功課（預設「假日測驗卷」）只在週六、週日算今天的功課（2026-10-05 Janice 定；原本每天都算，平日沒寫就被睡覺鎖擋）。
+   看名稱不看種類：家長改名成平日用的測驗卷就照常每天出現。首頁、行程、睡覺鎖、後台統計都走 visibleHW() */
+function hwOnToday(it){ return !/假日/.test(String((it&&it.name)||'')) || todayWeekdayIndex()>=5; }
+function visibleHW(){ return allHW().filter(it=> state.activeSubjects[it.type]===true && hwOnToday(it)); }
 
 /* 每日自動重設功課 + 戰鬥狀態（當前孩子） */
 function dailyResetIfNeeded(){
@@ -11310,7 +11313,7 @@ function renderParent(){
     </div>
     <div class="pgroup" data-cat="setup">
     <h2 style="margin-top:18px;font-size:17px;">📝 功課清單設定（可自訂）</h2>
-    <p class="hint">改名、換練習種類、排序、新增或刪除。完成任何一項都需家長簽名 +30 陽光。至少保留一項。</p>
+    <p class="hint">改名、換練習種類、排序、新增或刪除。完成任何一項都需家長簽名 +30 陽光。至少保留一項。名稱有「假日」兩個字的（例如假日測驗卷）只在週六、週日出現。</p>
     ${hwMgmt}
 
     <h2 style="margin-top:18px;font-size:17px;">✏️ 造句卡</h2>
