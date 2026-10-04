@@ -2129,7 +2129,7 @@ function openManual(){
       <h3>👨‍👩‍👧 家長後台（右上角齒輪 →「進入家長後台」）</h3>
       <p>分成六類：功課簽名與造句卡批改、真實獎勵、孩子與功課、作息與家規、學習紀錄與雷達（看孩子哪一科需要加強、最常錯哪幾題）、密碼與備份。離開後台或 5 分鐘沒操作會自動上鎖。<br>
       🔐 預設密碼 <b>1234</b>，第一次進去請先改掉。<br>
-      ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。</p>
+      ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。備份檔不含家長密碼：換新手機還原後密碼是 1234，記得重新設定。</p>
     </div>
     <div class="man-sec">
       <h3>📱 裝到手機桌面（像 APP 一樣）</h3>
@@ -11400,7 +11400,7 @@ function renderParent(){
   /* handlers：密碼 / 鎖定 / 通知 */
   $('#chgPin').onclick=()=>{
     askInput({ title:'🔐 修改家長密碼', okLabel:'💾 修改',
-      hint:'密碼是數字，最多 6 位。忘記的話可以用家長後台的備份檔還原。',
+      hint:'密碼是數字，最多 6 位。忘記密碼：清除這個網站的瀏覽器資料，再用備份檔還原，密碼會變回 1234（造句卡照片會不見；很舊的備份檔會變回當時的密碼）。',
       fields:[
         {id:'old', label:'目前密碼', type:'password', inputmode:'numeric', maxlength:6, placeholder:'預設 1234'},
         {id:'nw',  label:'新密碼',   type:'password', inputmode:'numeric', maxlength:6, placeholder:'數字，最多 6 位'},
