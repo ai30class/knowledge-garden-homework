@@ -1025,6 +1025,7 @@
   .sc-hist{margin:12px 0 0;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:#fff;} .sc-hist summary{cursor:pointer;font-weight:700;}
   .sc-hrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px;}
   .sc-lightbox{flex-direction:column;gap:12px;} .sc-lightbox img{max-width:94vw;max-height:80vh;border-radius:10px;background:#fff;}
+.home-sign-mini{border:0;background:#fff4e5;color:#7a4100;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px;display:inline-block}
 </style>
 </head>
 <body>
@@ -1571,11 +1572,12 @@ function defaultChild(name){
     wrongQuestions:[], accWin:[], badges:{}, lastDoneDate:'', streak:0, streakShields:0, wrongStreak:0, _reviewIdx:0, studyDoneDate:'', studyDoneCount:0,
     quizLog:{}, quizStreak:0,
     subjectDiff:{},
-    eyeRestUntil:0, studyMs:0, studyMsDate:dateKey()
+    eyeRestUntil:0, studyMs:0, studyMsDate:dateKey(),
+    since:dateKey()   /* 開始使用的日子：第一天晚上拖延怪休息（2026-10-05） */
   };
 }
 function makeChildFromOld(s){
-  const c=defaultChild(s.childName||'');
+  const c=defaultChild(s.childName||''); c.since='';   /* 舊存檔轉來的不算第一天 */
   c.sun=s.sun||0; c.known=s.known||{}; c.garden=s.garden||{}; c.deck=Array.isArray(s.deck)?s.deck:Object.keys(c.garden).filter(k=>c.garden[k]).slice(0,5);
   c.answers=s.answers||{right:0,wrong:0}; c.byModule=s.byModule||{}; c.timeByDate=s.timeByDate||{};
   c.homework=s.homework||{}; c.homeworkDate=s.homeworkDate||dateKey();
@@ -1987,6 +1989,7 @@ function reviewAfterMsg(r, w){
 function reviewExplainHTML(w){ const x=(w&&w.x)||{}; return (x.ex? `<div class="q-explain">📖 ${escapeHtml(x.ex)}</div>` : '') + '<div class="hint">沒關係，明天會再考你一次。</div>'; }
 /* 錯題複習（2026-09-28 稽核 D1 重寫）：只出到期的題目、用原本的題型、帶回圖表和文章、答錯附解說 */
 function renderReviewDrill(viaCareless){
+  _carelessHold=false;
   let pool=dueReviews();
   if(!pool.length){ showTab('review'); return; }
   pool = viaCareless ? pool.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,5)
@@ -2088,9 +2091,11 @@ function offerTopicDrill(it){
   ov.querySelector('#tdGo').onclick=()=>{ ov.remove(); renderTopicDrill(t, qs, studyItemLabel(it)); };
 }
 function renderTopicDrill(t, qs, label){
+  _carelessHold=true;
   let i=0, right=0;
   const one=()=>{
     if(i>=qs.length){
+      _carelessHold=false;
       const good=right>=Math.ceil(qs.length*0.8);
       app.innerHTML=`<div class="panel" style="text-align:center;"><h2>${good?'🎉 這一課學會了！':'💪 再練練就會了'}</h2>
         <p style="font-size:18px;font-weight:800;">「${escapeHtml(t.k)}」${qs.length} 題，答對 ${right} 題</p>
@@ -2127,6 +2132,7 @@ function examCramInfo(c){
   return pool.length ? {exam:ex, days:examCountdown(ex), pool} : null;
 }
 function renderExamCram(){
+  _carelessHold=true;
   const info=examCramInfo(C()); if(!info){ showTab('plan'); return; }
   const queue=info.pool.slice().sort((a,b)=>(a.streak||0)-(b.streak||0) || (b.ts||0)-(a.ts||0)).slice(0,15).sort(()=>Math.random()-.5);
   let i=0, right=0;
@@ -2228,7 +2234,7 @@ function openManual(){
     <div class="man-sec">
       <h3>🌟 三個主角</h3>
       <p>🌿 <b>植物小花園</b>：8 種雨林食蟲植物，用陽光解鎖收藏。<br>
-      😴 <b>拖延怪</b>：從起床時間出發、往睡覺時間逼近；功課寫完、作息準時，牠就被推退。週末還有限定的「週末魔王」，練習連錯 2 題會遇到「粗心大王」帶你複習。<br>
+      😴 <b>拖延怪</b>：從起床時間出發、往睡覺時間逼近；功課寫完、作息準時，牠就被推退。週末還有限定的「週末魔王」，練習連錯 2 題會遇到「粗心大王」帶你複習（每日小考、測驗卷做到一半不會被打斷，做完再複習）。<br>
       ☀️ <b>陽光</b>：遊戲裡的錢幣。寫功課、練習答對、作息打卡都會賺到。</p>
     </div>
     <div class="man-sec">
@@ -2241,7 +2247,7 @@ function openManual(){
     </div>
     <div class="man-sec">
       <h3>📅 讀書計劃（考前用）</h3>
-      <p>家長把考試範圍（哪幾本、哪幾課）建好、填考試日期、勾哪幾天要寫，系統會自動排出<b>每天該讀哪一課</b>：各科交錯、自修寫完才排測驗卷、跳過國定假日。孩子每天打開看今天要做哪幾項，做完打勾拿陽光；落後了按「重新安排進度」。</p>
+      <p>家長把考試範圍（哪幾本、哪幾課）建好、填考試日期、勾哪幾天要寫（新增、修改要家長密碼），系統會自動排出<b>每天該讀哪一課</b>：各科交錯、自修寫完才排測驗卷、跳過國定假日。孩子每天打開看今天要做哪幾項，做完打勾拿陽光；落後了按「重新安排進度」。</p>
     </div>
     <div class="man-sec">
       <h3>🎮 練習場 & 🏆 收藏</h3>
@@ -2411,6 +2417,7 @@ function load(seed){
       s.children.forEach(ch=>{
         /* 缺欄位的孩子（例如格式不完整的備份檔）用預設值補齊，避免之後畫面一打開就出錯 */
         const base=defaultChild('');
+        if(ch.since===undefined) ch.since='';   /* 舊存檔的孩子不算第一天（不然更新當天晚上大家都變第一天） */
         Object.keys(base).forEach(k=>{ if(ch[k]===undefined) ch[k]=base[k]; });
         if(typeof ch.id!=='string'||!ch.id) ch.id=base.id;
         if(typeof ch.name!=='string') ch.name=String(ch.name==null?'':ch.name);
@@ -5575,13 +5582,28 @@ function defaultSchedule(){
     {id:'sc_bath', label:'洗澡', time:r.bath, dur:(lim.bath||30), emoji:'🛁', kind:'routine', routineKey:'bath'},
     {id:'sc_sleep', label:'睡覺', time:r.sleep, dur:0, emoji:'💤', kind:'routine', routineKey:'sleep'}
   ];
-  let t=19*60;
-  visibleHW().forEach(it=>{
-    const hh=String(Math.floor(t/60)).padStart(2,'0'), mm=String(t%60).padStart(2,'0');
-    items.push({id:'sc_hw_'+it.id, label:displayHWName(it), time:hh+':'+mm, dur:30, emoji:subjectIcon(it.type), kind:'homework', hwId:it.id});
-    t+=35;
+  const hw=visibleHW(); const slots=hwSlots(hw.length);
+  hw.forEach((it,i)=>{
+    items.push({id:'sc_hw_'+it.id, label:displayHWName(it), time:slots[i].time, dur:slots[i].dur, emoji:subjectIcon(it.type), kind:'homework', hwId:it.id});
   });
   return items;
+}
+/* 功課排進哪些時段（2026-10-05 代試玩）：原本固定 19:00 起每 35 分一項，跟吃飯、洗澡重疊，6 項排到 21:55 超過睡覺時間。
+   現在：19:00 起（還在吃飯就從吃完開始），跳過吃飯、洗澡，睡覺前排完；排不下先縮短每項（30→25→20→15 分），
+   還是排不下就從放學 16:00 開始排；功課多到怎樣都排不下才照舊依序排 */
+function hwSlots(n){
+  const r=todayRoutine(); const lim=state.routineLimit||{eat:40,bath:30};
+  const sleep=toMin(r.sleep);
+  const busy=[[toMin(r.eat), toMin(r.eat)+(lim.eat||40)], [toMin(r.bath), toMin(r.bath)+(lim.bath||30)]].sort((x,y)=>x[0]-y[0]);
+  const fmt=t=>String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+  const free=start=>{ const segs=[]; let a=start;
+    busy.forEach(([b0,b1])=>{ if(b1<=a || b0>=sleep) return; if(b0>a) segs.push([a, Math.min(b0,sleep)]); a=Math.max(a,b1); });
+    if(a<sleep) segs.push([a,sleep]); return segs; };
+  const place=(start,step,dur)=>{ const out=[]; for(const [a,b] of free(start)){ let t=a; while(out.length<n && t+dur<=b){ out.push({time:fmt(t), dur}); t+=step; } } return out.length===n?out:null; };
+  let start=19*60; busy.forEach(([b0,b1])=>{ if(b0<=start && b1>start) start=b1; });
+  const tries=[[35,30],[30,25],[25,20],[20,15]];
+  for(const st of [start, Math.min(start,16*60)]) for(const [step,dur] of tries){ const got=place(st,step,dur); if(got) return got; }
+  const out=[]; let t=start; for(let i=0;i<n;i++){ out.push({time:fmt(t), dur:30}); t+=35; } return out;
 }
 /* 2026-09-28 稽核 B5：今日行程改成每個孩子各一份（c.schedule）。原本全家共用 state.schedule，
    功課那幾列取自「當天第一個打開的孩子」，妹妹的行程會出現哥哥的功課，被算成逾期、拖延怪一直逼近。
@@ -5825,6 +5847,15 @@ function openSchedModal(id){
 
 let megaUntil=0, heartTimer=null, battleState='playing', battleDismissed=false;
 let _lastZombTick=Date.now();
+/* 拖延怪休息（2026-10-05 代試玩）：①半夜到一天開頭之間——功課照日曆已換成新的一天，時間卻還算前一晚，新功課一打開全部超時；
+   ②第一次使用的那天、已過睡覺時間——家長多半晚上才設定，一打開就是「落後 925 分鐘、10 項超時」。回傳要顯示的文字，不用休息回傳 '' */
+function zombieRest(){
+  const d=new Date(), cal=d.getHours()*60+d.getMinutes();
+  if(cal < dayFrameStart()) return '🌙 夜深了，拖延怪也去睡了。起床後牠才會再出發，先好好休息！';
+  const c=C();
+  if(c.since && c.since===dateKey() && nowFrameMin() >= toMin(todayRoutine().sleep)) return '🌱 今天是第一天，先熟悉一下！明天起床後拖延怪才會出發。';
+  return '';
+}
 function updateZombie(unfinished){
   const _now=Date.now(); const _dtSec=Math.max(0.1, Math.min(120,(_now-_lastZombTick)/1000)); _lastZombTick=_now;
   const z=$('#homeZombie'); if(!z) return;
@@ -5837,6 +5868,16 @@ function updateZombie(unfinished){
   if(hol){
     z.style.left='88%'; z.style.right=''; z.className='zombie sleepy';
     st.textContent='🎉 今天'+hol+'，拖延怪放假去囉！功課可以休息～'; st.style.color='#2e7d32';
+    battle.classList.remove('danger','defeated');
+    if(heartTimer){ clearTimeout(heartTimer); heartTimer=null; }
+    battleState='playing'; battleDismissed=false; clearOverlay();
+    renderTimeline();
+    return;
+  }
+  const rest=zombieRest();
+  if(rest){
+    z.style.left='88%'; z.style.right=''; z.className='zombie sleepy';
+    st.textContent=rest; st.style.color='#2e7d32';
     battle.classList.remove('danger','defeated');
     if(heartTimer){ clearTimeout(heartTimer); heartTimer=null; }
     battleState='playing'; battleDismissed=false; clearOverlay();
@@ -5940,9 +5981,11 @@ function renderTimeline(g){
     <div class="tl-end" style="right:6px;">▶ ${hhmm(aw.start)}</div>`;
   const tag=document.getElementById('leadTag');
   if(tag){
-    if(g.gapMin>=5){ tag.className='lead-tag good'; tag.textContent='😎 進度超前 '+g.gapMin+' 分鐘'; }
+    if(zombieRest()){ tag.className='lead-tag good'; tag.textContent='😴 拖延怪休息中'; }
+    else if(g.gapMin>=5){ tag.className='lead-tag good'; tag.textContent='😎 進度超前 '+g.gapMin+' 分鐘'; }
     else if(g.gapMin>=-5){ tag.className='lead-tag warn'; tag.textContent='⏱ 剛好跟上進度'; }
-    else { tag.className='lead-tag bad'; tag.textContent='⚠️ 落後 '+Math.abs(g.gapMin)+' 分鐘，拖延怪逼近中'; }
+    /* 落後超過 2 小時不顯示分鐘數：下午就出現「落後 540 分鐘」太嚇人（2026-10-05 代試玩） */
+    else { tag.className='lead-tag bad'; tag.textContent= g.gapMin<-120 ? '⚠️ 進度落後，拖延怪逼近中' : '⚠️ 落後 '+Math.abs(g.gapMin)+' 分鐘，拖延怪逼近中'; }
   }
 }
 let _lastThreat=null;
@@ -6102,13 +6145,20 @@ function logWrong(moduleKey, qText, yourAns, correct, opts, ctx){
   screenShake('.battle, .lawn-battle'); flashRed('.battle, .lawn-battle'); onWrong(); save();
   // 粗心大王：連續答錯 2 題就跳轉錯題複習，讓孩子冷靜下來重練
   c.wrongStreak=(c.wrongStreak||0)+1;
-  if(c.wrongStreak>=2){
+  if(c.wrongStreak>=2 && _carelessHold){
+    /* 每日小考、測驗卷、練 5 題、考前錯題做到一半不跳：原本直接換頁，小考作廢、拿不到星星陽光（2026-10-05 代試玩） */
+    c.wrongStreak=0; save();
+    setTimeout(()=>toast('🤴 粗心大王偷偷提醒：慢慢看題目～做完再一起複習錯題'), 900);
+  } else if(c.wrongStreak>=2){
     c.wrongStreak=0; save();
     /* 1.2 秒內點進造句卡的話不跳，不然孩子拍照送出到一半會被換成錯題複習（2026-09-28 D9 第二批） */
     setTimeout(()=>{ if(document.querySelector('.sc-page')) return; toast('🤴 粗心大王出現了！連續碰上 2 題，先冷靜複習一下剛剛的錯題'); renderReviewDrill(true); }, 1200);
   }
 }
 
+/* 粗心大王暫停：每日小考、測驗卷、練 5 題、考前錯題開始時設 true，showTab()、小考結算、錯題複習開始時設回 false。
+   用 var：showTab 開機就會跑 */
+var _carelessHold=false;
 /* ---------- 點讀發音 ---------- */
 function speak(text){
   if(!state.tts) return;
@@ -6740,9 +6790,10 @@ function firstUnfinishedHW(){
   return visibleHW().find(it=>c.homework[it.id]!==true && c.homework[it.id]!=='pending')||null;
 }
 function showTab(tab, hwId){
-  clearQTimer(); _diffSubj=null;   /* 2026-09-28 稽核 B11：原本答題到一半回首頁，約 25 秒後會自動算一題錯、跳出粗心大王蓋住首頁 */
+  clearQTimer(); _diffSubj=null; _carelessHold=false;   /* 2026-09-28 稽核 B11：原本答題到一半回首頁，約 25 秒後會自動算一題錯、跳出粗心大王蓋住首頁 */
   /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
   if(tab!=='parent'){ parentUnlocked=false; parentCat=null; scRestoreChild(); }
+  if(tab!=='plan') _planUnlockUntil=0;
   refreshSunCount();
   const _ec=state.eyeRestUntil;
   if(_ec && _ec>Date.now() && isEyeTab(tab)){ showEyeLock(_ec-Date.now()); return; }
@@ -6789,6 +6840,7 @@ let homeFocus=null; // 控制首頁自動展開哪個折疊區（'garden'/'badge
 function renderTodayTasks(){
   const c=C();
   const finished = visibleHW().filter(it=>c.homework[it.id]===true).length;
+  const tkPend = visibleHW().filter(it=>c.homework[it.id]==='pending').length;
   const total = visibleHW().length;
   const hol = isHolidayToday();
   const banner = hol ? `<div style="background:#eafbe7;border:2px solid #2e7d32;border-radius:14px;padding:10px 14px;margin:10px 0;font-weight:800;color:#2e7d32;text-align:center;">🎉 今天是「${hol}」，學校功課可以休息，自由練習照樣能賺陽光！</div>` : '';
@@ -6801,8 +6853,9 @@ function renderTodayTasks(){
       <h2 style="font-size:17px;margin-top:10px;">要寫的功課（${finished}/${total} 完成）</h2>
       <div id="hwList"></div>
     </div>
-    <div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="tkHome">🌻 回小花園</button></div>
+    <div style="text-align:center;margin-top:14px;">${tkPend?'<button class="next-btn" id="tkSign">✍️ 請爸媽簽名（'+tkPend+' 項）</button> ':''}<button class="reset-btn" id="tkHome">🌻 回小花園</button></div>
   </div>`;
+  const tks=$('#tkSign'); if(tks) tks.onclick=()=>{ showTab('parent'); parentCat='sign'; };   /* 送出申請後直接叫爸媽（2026-10-05 代試玩：原本要回首頁、而且功課全寫完才有按鈕） */
   const list=$('#hwList');
   if(list){
     if(!visibleHW().length){
@@ -6900,7 +6953,7 @@ function renderPracticeHub(){
     <div class="greet"><h1>練習場</h1><p>挑一個科目練習，答對賺陽光種植物。</p></div>
     <section class="card2 quest challenge">
       <div class="ch-row"><div><div class="np-k">今日挑戰</div><h2>每日小考</h2>
-        <p>${rec?'今天拿到 <b class="stars">'+'★'.repeat(rec.stars||0)+'</b>（答對 '+rec.right+'/'+rec.total+'），可以再挑戰一次':'跨科混合 '+liveDiff().quiz+' 題，星星越多陽光越多'}</p></div>
+        <p>${rec?'今天拿到 <b class="stars">'+'★'.repeat(rec.stars||0)+'</b>（答對 '+rec.right+'/'+rec.total+'），可以再挑戰一次':'跨科混合 '+Math.min(15, liveDiff().quiz+4)+' 題，星星越多陽光越多'}</p></div>
         <img class="ch-mon" src="assets/monsters/粗心大王/粗心大王_頭像.png" alt=""></div>
       <button class="btn-primary" id="phDq" type="button">${rec?'再挑戰一次':'開始每日小考'}</button>
     </section>
@@ -7057,6 +7110,7 @@ function paintExamZone(){
   });
   box.querySelectorAll('[data-exedit]').forEach(b=> b.onclick=()=>openExamModal(b.dataset.exedit));
   box.querySelectorAll('[data-exdel]').forEach(b=> b.onclick=()=>{
+    if(!planGateOk(()=>b.click())) return;
     const e=studyPlan().exams.find(x=>x.id===b.dataset.exdel); if(!e) return;
     askConfirm('刪除考試「'+escapeHtml(e.name)+'」？<br><span class="hint">已排好的課次日期會保留，不會被清掉。</span>', ()=>{
       studyPlan().exams=studyPlan().exams.filter(x=>x.id!==e.id); save();
@@ -7117,6 +7171,7 @@ function paintPlanMaterials(){
     ${mats.length?'':'<p class="hint" style="margin-top:10px;">還沒有教材。點「新增教材與課次」，一次把整本的課名貼進來。</p>'}`;
   $('#planBack').onclick=()=>{ planSubjectId=null; planMaterial=null; renderStudyPlan(); };
   $('#subDel').onclick=()=>{
+    if(!planGateOk(()=>$('#subDel').click())) return;
     const n=studyItemsOfSubject(sub.id).length;
     askConfirm('刪除「'+escapeHtml(sub.name)+'」以及底下 '+n+' 筆課次？<br><span class="hint">這個動作無法復原。</span>', ()=>{
       deleteStudySubject(sub.id); planSubjectId=null; planMaterial=null;
@@ -7163,6 +7218,7 @@ function paintPlanLessons(){
   $('#matAdd2').onclick=()=>openLessonModal(sub.id, planMaterial);
   const mc=$('#matCopy'); if(mc && !mc.disabled) mc.onclick=()=>openCopyModal(sub.id, planMaterial);
   $('#matDel').onclick=()=>{
+    if(!planGateOk(()=>$('#matDel').click())) return;
     const m=planMaterial;
     askConfirm('刪除「'+escapeHtml(sub.name)+' · '+escapeHtml(m)+'」底下的 '+items.length+' 課？<br><span class="hint">這個動作無法復原。</span>', ()=>{
       const sp=studyPlan();
@@ -7182,6 +7238,7 @@ function paintPlanLessons(){
   });
   box.querySelectorAll('[data-up],[data-down]').forEach(b=>{
     b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+      if(!planGateOk(()=>b.click())) return;
       const id=b.dataset.up||b.dataset.down;
       if(moveStudyRow(id, b.dataset.up?-1:1)) renderStudyPlan();
     };
@@ -7191,6 +7248,7 @@ function paintPlanLessons(){
   });
   box.querySelectorAll('[data-del]').forEach(b=>{
     b.onclick=(ev)=>{ ev.preventDefault(); ev.stopPropagation();
+      if(!planGateOk(()=>b.click())) return;
       const sp=studyPlan(); sp.items=sp.items.filter(i=>i.id!==b.dataset.del); save(); renderStudyPlan(); };
   });
 }
@@ -7342,6 +7400,7 @@ function copyMaterialLessons(subjectId, fromMaterial, toMaterial){
 }
 /* 複製到其他教材的視窗 */
 function openCopyModal(subjectId, fromMaterial){
+  if(!planGateOk(()=>openCopyModal(subjectId, fromMaterial))) return;
   const sub=studySubjectById(subjectId); if(!sub) return;
   const src=studyItemsOfMaterial(subjectId, fromMaterial);
   const others=studyMaterialsOf(subjectId).filter(m=>m!==fromMaterial);
@@ -7415,6 +7474,7 @@ function setItemWords(itemId, words){
 }
 /* 家長：編輯某一課的單字 */
 function openWordsModal(itemId){
+  if(!planGateOk(()=>openWordsModal(itemId))) return;
   const it=studyItems().find(x=>x.id===itemId); if(!it) return;
   const sub=studySubjectById(it.subjectId);
   const cur=itemWords(it);
@@ -7543,6 +7603,7 @@ function renderWordTest(itemId){
 }
 /* 在某一列下面插入一列：可選「獨立項目」（複習考）或「同一課的第二張」 */
 function openInsertRowModal(afterItemId, unitWord){
+  if(!planGateOk(()=>openInsertRowModal(afterItemId, unitWord))) return;
   const it=studyItems().find(x=>x.id===afterItemId); if(!it) return;
   const w=unitWord||'課';
   const anchor = it.extra ? (it.lessonName||'複習考') : ('第'+it.lesson+w+(it.lessonName?' '+it.lessonName:''));
@@ -7600,7 +7661,18 @@ function openInsertRowModal(afterItemId, unitWord){
   };
 }
 /* 新增科目 */
+/* 讀書計劃的科目、課次、考試改成要家長密碼：原本孩子能自己加假課次再打勾，每項 +10 陽光（2026-10-05 代試玩）。
+   輸入一次 5 分鐘內不用再輸入；離開讀書計劃分頁就失效。打勾、重新安排進度不用密碼 */
+var _planUnlockUntil=0;
+function planGateOk(retry){
+  if(Date.now()<_planUnlockUntil) return true;
+  askInput({ title:'🔐 家長密碼', hint:'設定考試、科目和課次要家長密碼（5 分鐘內不用再輸入）。孩子打勾、按「重新安排進度」不用密碼。', okLabel:'下一步',
+    fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
+  }, v=>{ const err=checkPIN(v.pin); if(err) return err; _planUnlockUntil=Date.now()+5*60000; setTimeout(retry, 0); });
+  return false;
+}
 function openSubjectModal(){
+  if(!planGateOk(()=>openSubjectModal())) return;
   const ov=document.createElement('div'); ov.className='modal-ov';
   const preset=['📘 國語','➕ 數學','🔤 英文','🔬 自然','🏘️ 社會','🎨 藝術','💪 健體','🌏 本土語','🧩 綜合'];
   ov.innerHTML=`<div class="modal">
@@ -7634,6 +7706,7 @@ function openSubjectModal(){
 }
 /* 新增教材與課次（可一次貼一整份課名清單） */
 function openLessonModal(subjectId, fixedMaterial){
+  if(!planGateOk(()=>openLessonModal(subjectId, fixedMaterial))) return;
   const sub=studySubjectById(subjectId); if(!sub) return;
   const mats=studyMaterialsOf(subjectId);
   const exist=fixedMaterial? studyItemsOfMaterial(subjectId, fixedMaterial):[];
@@ -7724,6 +7797,7 @@ function openLessonModal(subjectId, fixedMaterial){
 }
 /* 新增考試：日期 + 範圍（勾選科目底下的教材） */
 function openExamModal(examId){
+  if(!planGateOk(()=>openExamModal(examId))) return;
   const c=C();
   const subs=studySubjectsOf(c.id);
   if(!subs.length){ toast('請先新增科目與課次，才能設定考試範圍'); return; }
@@ -8081,7 +8155,8 @@ function renderHome(){
     : '還有 '+(total-finished-pendingN)+' 項功課沒寫'+(pendingN?'、'+pendingN+' 項等爸媽簽名':'')+'，全部簽完就能打退拖延怪。';
   let ctaText, ctaAct, nextLine;
   if(nextHW){ ctaText=(finished+pendingN===0)?'開始寫功課':'繼續完成作業'; ctaAct='tasks'; nextLine='下一步：<b>'+escapeHtml(displayHWName(nextHW))+'</b>'
-    + (scPendN ? '<span class="sc-home-note">✏️ 造句卡已送出，等爸媽批改</span>' : ''); }   /* 功課還沒寫完時按鈕先叫孩子寫功課，造句卡在這裡提一句（2026-10-04） */
+    + (scPendN ? '<span class="sc-home-note">✏️ 造句卡已送出，等爸媽批改</span>' : '')
+    + (pendingN ? '<button type="button" class="sc-home-note home-sign-mini" id="homeSignMini">✍️ 寫完的 '+pendingN+' 項可以先請爸媽簽名 ›</button>' : ''); }   /* 功課還沒寫完時按鈕先叫孩子寫功課，造句卡在這裡提一句（2026-10-04） */
   else if(pendingN||scPendN){ ctaText='請家長簽名（'+(pendingN+scPendN)+' 項）'; ctaAct='sign';
     nextLine = !pendingN ? '造句卡送出了，請爸媽在家長後台批改。' : scPendN ? '寫完的功課要請爸媽簽名，造句卡也要請爸媽批改。' : '寫完的功課要請爸媽在家長後台簽名，才算完成。'; }
   else if(studyDueCount){ ctaText='去做讀書計劃（'+studyDueCount+' 項）'; ctaAct='plan'; nextLine='功課都完成了，接著做今天的讀書計劃。'; }
@@ -8173,6 +8248,7 @@ function renderHome(){
   renderRoutineBonus($('#routineBonus'));
   updateClock();
   /* 優先序：學校功課 → 讀書計劃 → 練習場（加分） */
+  const hsm=$('#homeSignMini'); if(hsm) hsm.onclick=()=>{ showTab('parent'); parentCat='sign'; };   /* 2026-10-05 代試玩：功課沒全寫完時首頁沒有簽名入口 */
   const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{
     if(ctaAct==='tasks') renderTodayTasks();
     else if(ctaAct==='sign'){ showTab('parent'); parentCat='sign'; }
@@ -8758,6 +8834,7 @@ function examQuestion(){
   return {q:item.q, opts:item.a.slice(), ans:item.a[item.c]};
 }
 function renderExam(){
+  _carelessHold=true;
   _diffSubj='exam';
   app.innerHTML=`
   <div class="panel">
@@ -9821,7 +9898,7 @@ function codingL2(){ const r=Math.random();
     return {type:'fill', q:'🤖 站在第 '+start+' 格（格子 1～'+n+'）。照指令走：'+cmds.join(' ')+'（→ 往右一格、← 往左一格）。最後在第幾格？', numeric:true, ans:String(p), unit:'格', hint:'一個箭頭一個箭頭慢慢走。', m:{k:'walk1', start, cmds}}; }
   if(r<0.75){ const n=rInt(2,5), k=rInt(2,4); return {type:'choice', q:'「重複 '+n+' 次：往前走 '+k+' 步」，一共走幾步？', opts:d7NumOpts(n*k, k), ans:String(n*k), hint:'每次走 '+k+' 步，走 '+n+' 次。', m:{k:'loopMul', n, s:k}}; }
   const light=kPick(['紅燈','綠燈']); const ans= light==='紅燈' ? '停下來' : '往前走';
-  return {type:'choice', q:'程式：「如果 是紅燈，就 停下來；否則 往前走。」現在是'+light+'，機器人會？', opts:['停下來','往前走'], ans, hint:'看看現在的燈是不是紅燈。', m:{k:'ifLight', light}}; }
+  return {type:'choice', q:'程式：「如果是紅燈，就停下來；不然就往前走。」現在是'+light+'，機器人會？', opts:['停下來','往前走'], ans, hint:'看看現在的燈是不是紅燈。', m:{k:'ifLight', light}}; }
 function codingL3(){ const r=Math.random();
   if(r<0.2) return codingL3Old();
   if(r<0.42){ const cmds=[]; for(let i=0;i<rInt(3,5);i++) cmds.push([kPick(Object.keys(D7_DIR)), rInt(1,3)]); let x=0,y=0; cmds.forEach(([d,k])=>{ x+=D7_DIR[d][0]*k; y+=D7_DIR[d][1]*k; });
@@ -9833,7 +9910,7 @@ function codingL3(){ const r=Math.random();
   if(r<0.82){ const s0=rInt(0,5), n=rInt(3,6), d=rInt(2,5); const ans=s0+n*d;
     return {type:'fill', q:'分數從 '+s0+' 開始，「重複 '+n+' 次：分數加 '+d+'」。最後分數是多少？', numeric:true, ans:String(ans), unit:'分', hint:'加了幾次、每次加多少？', m:{k:'loopAdd', s0, n, d}}; }
   const pass=kPick([50,60,70,80]), sc=rInt(pass-10,pass+10); const ans= sc>=pass?'及格':'加油';
-  return {type:'choice', q:'程式：「如果 分數 ≥ '+pass+'，就顯示「及格」；否則顯示「加油」。」分數是 '+sc+'，會顯示？', opts:['及格','加油'], ans, hint:'≥ 是大於或等於。', m:{k:'ifScore', pass, sc}}; }
+  return {type:'choice', q:'程式：「如果分數 ≥ '+pass+'，就顯示『及格』；否則顯示『加油』。」分數是 '+sc+'，會顯示？', opts:['及格','加油'], ans, hint:'≥ 是大於或等於。', m:{k:'ifScore', pass, sc}}; }
 function codingL4(){ const r=Math.random();
   if(r<0.2) return codingL4Old();
   if(r<0.38){ const a=rInt(1,9); let b=rInt(1,9); while(b===a) b=rInt(1,9); const ask=kPick(['a','b']);
@@ -9856,7 +9933,7 @@ function codingL5(){ const r=Math.random();
   if(r<0.86){ const N=kPick([10,20,50,100,200,500,1000]); let k=0; while((1<<k)-1<N) k++;
     return {type:'fill', q:'猜數字遊戲：答案在 1～'+N+' 之間，每次猜完會說「太大」或「太小」。每次都猜剩下範圍的中間，最多要猜幾次一定猜得到？', numeric:true, ans:String(k), unit:'次', hint:'每猜一次，範圍大約剩一半。', why:'猜 '+k+' 次最多能分出 '+((1<<k)-1)+' 個數，夠涵蓋 '+N+' 個。', m:{k:'bsearch', N}}; }
   const sc=rInt(40,100); const ans= sc>=90?'A':sc>=75?'B':sc>=60?'C':'D';
-  return {type:'choice', q:'程式：「如果 分數 ≥ 90 → A；否則如果 ≥ 75 → B；否則如果 ≥ 60 → C；否則 → D。」分數 '+sc+' 會得到？', opts:['A','B','C','D'], ans, hint:'從上面一條一條檢查，第一個符合的就停。', m:{k:'elif', sc}}; }
+  return {type:'choice', q:'程式：「如果分數 ≥ 90 → A；否則如果 ≥ 75 → B；否則如果 ≥ 60 → C；否則 → D。」分數 '+sc+' 會得到？', opts:['A','B','C','D'], ans, hint:'從上面一條一條檢查，第一個符合的就停。', m:{k:'elif', sc}}; }
 
 /* KNOW_BANK:START（2026-09-28 稽核 D7：自然、生活、百科每科每級 30 題的題庫表；由 d7build.py 產生，改題目請改 JSON 再重跑） */
 const KNOW_BANK={
@@ -10737,6 +10814,7 @@ function dailyQuizStatusHTML(){
   </div>`;
 }
 function renderDailyQuiz(){
+  _carelessHold=true;
   const li=levelIdx(); const total=Math.min(15, liveDiff().quiz + 4);
   const pool=[]; const seenQ=new Set();
   for(let i=0;i<total;i++){
@@ -10797,6 +10875,8 @@ function renderDailyQuiz(){
     award('quiz1');
     save(); checkBadges();
     const starStr='★'.repeat(stars)+'☆'.repeat(3-stars);
+    _carelessHold=false;
+    const hasWrong = right<total && dueReviews().length>0;
     app.innerHTML=`<div class="panel" style="text-align:center;">
       <h2>🎉 今日小考完成！</h2>
       <p style="font-size:18px;font-weight:800;">${total} 題，答對 ${right} 題（${pct}%）</p>
@@ -10805,9 +10885,11 @@ function renderDailyQuiz(){
         <p>獲得 ☀️ ${bonusSun} 陽光　🔥 連續 ${c.quizStreak} 天</p>
         <p class="hint">表現越好，拖延怪被你打退越多！明天再來挑戰拿滿星～</p>
       </div>
-      <button class="next-btn" id="dqagain">再挑戰一次 ▶</button>
+      ${hasWrong?'<button class="next-btn" id="dqreview">🔁 複習剛剛答錯的題目</button>':''}
+      <button class="${hasWrong?'reset-btn':'next-btn'}" id="dqagain">再挑戰一次 ▶</button>
       <button class="reset-btn" id="dqhome">🌻 回小花園</button>
     </div>`;
+    const dqr=$('#dqreview'); if(dqr) dqr.onclick=()=>renderReviewDrill(false);
     $('#dqagain').onclick=renderDailyQuiz;
     $('#dqhome').onclick=renderHome;
   };
@@ -11179,7 +11261,7 @@ function renderParent(){
   const PCATS=[
     {k:'sign', t:'今日功課與簽名', d: (()=>{ const n=allHW().filter(it=>c.homework[it.id]==='pending').length+(scPend?1:0); const o=scOthersPending(c).map(x=>x.name||'孩子'); return (n?'待確認 '+n+' 件'+(scPend?'（含造句卡）':''):'沒有待簽名的功課')+(o.length?'・'+o.join('、')+'有造句卡等批改':''); })(), warn: allHW().some(it=>c.homework[it.id]==='pending')||scPend||scOthersPending(c).length>0},
     {k:'rewards', t:'真實獎勵與兌換', d: (()=>{ const n=(state.redemptions||[]).filter(r=>r.status==='pending').length; return n?'申請中 '+n+' 件':'設定獎勵、處理兌換'; })(), warn: (state.redemptions||[]).some(r=>r.status==='pending')},
-    {k:'setup', t:'孩子、功課與題庫', d: state.children.length+' 位孩子・今日功課 '+allHW().length+' 項'},
+    {k:'setup', t:'孩子、功課與題庫', d: state.children.length+' 位孩子・功課清單 '+allHW().length+' 項'},
     {k:'rules', t:'作息與家規', d:'每週作息、超時扣分、自訂扣分項、放假'},
     {k:'stats', t:'學習紀錄與雷達', d:(radar.weak.length?(radar.weak.length+' 科需要加強・'):'')+'正確率 '+acc+'%・今天練習 '+fmt(todaySec), warn: radar.weak.length>0},
     {k:'security', t:'密碼、安全與備份', d: state.parentPIN==='1234'?'還在用預設密碼，建議修改':'睡覺鎖'+(state.sleepLock?'開':'關')+'・護眼鎖'+(state.eyeRestOn?'開':'關'), warn: state.parentPIN==='1234'}
