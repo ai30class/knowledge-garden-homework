@@ -1010,6 +1010,7 @@
   .sc-meta{font-size:13px;color:var(--muted);}
   .sc-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;} .sc-btns button{flex:1;min-width:120px;}
   .next-btn.sc-great{background:var(--honey);color:#3a2a00;}
+  .sc-home-note{display:block;font-size:13px;color:var(--muted);margin-top:2px;}
   .sc-photo-tip{font-size:12px;color:var(--muted);margin-top:4px;}
   .sc-cap{color:#9a5b00 !important;font-weight:700;}
   .sc-others{display:flex;flex-direction:column;gap:6px;margin-top:10px;} .sc-others button{width:100%;}
@@ -7845,7 +7846,8 @@ function renderHome(){
     : (!nextHW && pendingN) ? '功課都寫完了，請爸媽簽名就能打退拖延怪。'
     : '還有 '+(total-finished-pendingN)+' 項功課沒寫'+(pendingN?'、'+pendingN+' 項等爸媽簽名':'')+'，全部簽完就能打退拖延怪。';
   let ctaText, ctaAct, nextLine;
-  if(nextHW){ ctaText=(finished+pendingN===0)?'開始寫功課':'繼續完成作業'; ctaAct='tasks'; nextLine='下一步：<b>'+escapeHtml(displayHWName(nextHW))+'</b>'; }
+  if(nextHW){ ctaText=(finished+pendingN===0)?'開始寫功課':'繼續完成作業'; ctaAct='tasks'; nextLine='下一步：<b>'+escapeHtml(displayHWName(nextHW))+'</b>'
+    + (scPendN ? '<span class="sc-home-note">✏️ 造句卡已送出，等爸媽批改</span>' : ''); }   /* 功課還沒寫完時按鈕先叫孩子寫功課，造句卡在這裡提一句（2026-10-04） */
   else if(pendingN||scPendN){ ctaText='請家長簽名（'+(pendingN+scPendN)+' 項）'; ctaAct='sign';
     nextLine = !pendingN ? '造句卡送出了，請爸媽在家長後台批改。' : scPendN ? '寫完的功課要請爸媽簽名，造句卡也要請爸媽批改。' : '寫完的功課要請爸媽在家長後台簽名，才算完成。'; }
   else if(studyDueCount){ ctaText='去做讀書計劃（'+studyDueCount+' 項）'; ctaAct='plan'; nextLine='功課都完成了，接著做今天的讀書計劃。'; }
