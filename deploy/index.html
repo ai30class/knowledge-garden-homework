@@ -1126,7 +1126,13 @@ function openSettings(){
   });
 }
 /* 原本在首頁底部的「新的一天（重設功課）」，改版後收進設定選單 */
+/* 要家長密碼：會把已簽名的功課重設成沒寫，孩子可以再申請一次，家長沒注意就再簽一次 +30（2026-10-04 稽核 E6） */
 function newDayReset(){
+  askInput({ title:'🔐 家長密碼', hint:'開始新的一天會把今天的功課重設成沒寫，要家長密碼。', okLabel:'下一步',
+    fields:[{id:'pin', label:'家長密碼', type:'password', inputmode:'numeric', maxlength:6}]
+  }, v=>{ const err=checkPIN(v.pin); if(err) return err; newDayResetConfirm(); });
+}
+function newDayResetConfirm(){
   const c=C();
   askConfirm('開始新的一天？<br><span class="hint">今日功課會重設為未完成。</span>', ()=>{
     allHW().forEach(it=>c.homework[it.id]=false); c.homeworkDate=dateKey();
@@ -1283,6 +1289,27 @@ function tierBadge(tier){
 }
 
 const SAVE_KEY='bloom_homework_v10';
+/* 兩個分頁（或視窗）同時開同一個遊戲：存檔是整份寫入，舊分頁一存就把新分頁的進度整份蓋回去
+   （家長在另一個分頁批改的陽光、紀錄會不見）。另一個分頁改過存檔時，這裡就停止存檔、請使用者重新整理。
+   宣告放在最前面：開機讀檔時就會呼叫 save()，放後面會變成「還沒宣告就使用」（同稽核 A1 的雷）。2026-10-04 稽核 E5 */
+var _otherTabChanged=false, _lastSavedRaw=null;
+function showOtherTabLock(){
+  if(document.getElementById('otherTabLock')) return;
+  const ov=document.createElement('div'); ov.id='otherTabLock';
+  ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:rgba(30,45,40,.82);display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML='<div style="background:#fff;color:#253a36;border-radius:16px;padding:22px 20px;max-width:360px;text-align:center;font:16px/1.7 -apple-system,\'PingFang TC\',sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)">'
+    +'<div style="font-size:40px">🔄</div><h3 style="margin:6px 0 8px;font-size:19px">遊戲在另一個分頁更新了</h3>'
+    +'<p style="margin:0 0 16px;color:#5f6f69">這個遊戲同時開在別的分頁或視窗，那邊剛剛存了新的進度。為了不把新的進度蓋掉，這個分頁先停止存檔，請重新整理。</p>'
+    +'<button type="button" id="otherTabReload" style="width:100%;padding:12px;border:0;border-radius:12px;background:#2f6f4e;color:#fff;font-size:17px;font-weight:700">重新整理</button></div>';
+  (document.body||document.documentElement).appendChild(ov);
+  ov.querySelector('#otherTabReload').onclick=()=>location.reload();
+}
+window.addEventListener('storage', e=>{
+  try{ if(e.storageArea && e.storageArea!==localStorage) return; }catch(_){ return; }
+  if(e.key!==null && e.key!==SAVE_KEY) return;            /* 別的資料（例如還原前的備份）不管；key 是 null＝整個被清空 */
+  if(e.key===SAVE_KEY && e.newValue!==null && e.newValue===_lastSavedRaw) return;
+  _otherTabChanged=true; showOtherTabLock();
+});
 
 /* ---------- IndexedDB 主存層（localStorage 兜底） ---------- */
 const IDB_NAME='bloom_garden_db_v1', IDB_STORE='kv', IDB_KEY=SAVE_KEY;
@@ -2061,7 +2088,7 @@ function openManual(){
     <div class="man-sec">
       <h3>🧭 畫面在哪裡</h3>
       <p>畫面<b>最下面</b>是四個分頁：小花園、讀書計劃、練習場、收藏。<br>
-      <b>右上角的齒輪</b>是設定：切換孩子、自訂首頁、功課難易度（要密碼）、音樂、怎麼玩、關於，還有「進入家長後台」。</p>
+      <b>右上角的齒輪</b>是設定：切換孩子、自訂首頁、功課難易度（要密碼）、音樂、怎麼玩、關於、開始新的一天（要密碼），還有「進入家長後台」。</p>
     </div>
     <div class="man-sec">
       <h3>🎯 這款遊戲在幹嘛</h3>
@@ -2316,9 +2343,11 @@ function load(seed){
   return freshState();
 }
 function save(){
+  if(_otherTabChanged){ showOtherTabLock(); return; }   /* 另一個分頁存過新進度：不准蓋掉（稽核 E5） */
   let raw;
   try{ deepClean(state); raw=JSON.stringify(state); }
   catch(e){ toast('⚠️ 存檔失敗：資料無法序列化'); return; }
+  _lastSavedRaw=raw;
   // localStorage 同步兜底（私密模式可能拋錯，忽略）
   try{ localStorage.setItem(SAVE_KEY, raw); }catch(e){}
   // IndexedDB 主存（異步，比 localStorage 在 PWA 下更持久）
@@ -6556,7 +6585,8 @@ function hideEyeLock(){ const ov=$('#eyeLockOverlay'); if(ov) ov.className=''; }
 const app = $('#app');
 function tabToGroup(tab){
   if(tab==='home'||tab==='practice'||tab==='collection'||tab==='plan') return tab;
-  if(tab==='shop'||tab==='parent'||tab==='custom') return 'collection';
+  if(tab==='parent') return '';   /* 家長後台從右上角齒輪進，不屬於下面四個分頁；原本亮「收藏」（2026-10-04 稽核 E8） */
+  if(tab==='shop'||tab==='custom') return 'collection';
   return 'practice';
 }
 function firstUnfinishedHW(){
@@ -8041,12 +8071,7 @@ function renderHome(){
     } else { wt.style.display='none'; btn.textContent='📅 看整週作息表'; }
   };
   const nd=$('#newDay');
-  if(nd) nd.onclick=()=>{
-    askConfirm('開始新的一天？<br><span class="hint">今日功課會重設為未完成。</span>', ()=>{
-      allHW().forEach(it=>c.homework[it.id]=false); c.homeworkDate=dateKey();
-      c.zombiePush=0; c.zombieDrift=0; c.plantHP=100; c.combo=0; c.routine={}; c.routineDate=dateKey(); save(); renderHome();
-    }, '🔄 開始新的一天');
-  };
+  if(nd) nd.onclick=newDayReset;   /* 目前畫面上沒有這顆按鈕（改版後拿掉）；留著的話也要走家長密碼（稽核 E6） */
 }
 
 /* 練習頁被鎖定 */
@@ -10648,7 +10673,10 @@ function renderParent(){
   const a=c.answers;
   const total=a.right+a.wrong;
   const acc = total? Math.round(a.right/total*100) : 0;
-  const finished = allHW().filter(it=>c.homework[it.id]===true).length;
+  /* 跟首頁一樣只算「自訂首頁」有開的科目；原本首頁寫 1/6、這裡寫 2/7，家長看不懂（2026-10-04 稽核 E8） */
+  const finished = visibleHW().filter(it=>c.homework[it.id]===true).length;
+  const hwTotal = visibleHW().length, hwHidden = allHW().length - hwTotal;
+  const hwHiddenNote = hwHidden ? '（另有 '+hwHidden+' 項的科目在「自訂首頁」關掉了，不算）' : '';
   const week='';
   let weekHtml='';
   for(let i=6;i>=0;i--){ const k=dateKey(-i); const sec=c.timeByDate[k]||0; weekHtml+=`<span class="stat">${k.slice(5)}：${sec?fmt(sec):'0 分 00 秒'}</span>`; }
@@ -10812,7 +10840,7 @@ function renderParent(){
 `【小花園功課台 學習紀錄】
 孩子：${c.name||'（未命名）'}
 日期：${dateKey()}
-今日功課：${finished}/${allHW().length} 完成（需家長簽名）
+今日功課：${finished}/${hwTotal} 完成（需家長簽名）${hwHiddenNote}
 總答題：${total}（答對 ${a.right} / 答錯 ${a.wrong}） 正確率 ${acc}%
 練習時間：今日 ${fmt(todaySec)} / 累計 ${fmt(totalSec)}
 學習雷達（目前程度的答對率）：${radar.rows.filter(r=>r.n).map(r=>reviewModName(r.mod)+' '+r.rate+'%（'+r.n+' 題，'+({weak:'需要加強',ok:'穩定',good:'很熟了',few:'題數不夠'})[r.st]+'）').join('、')||'還沒有資料'}
@@ -10845,7 +10873,7 @@ function renderParent(){
     </div>
     <div class="pgroup" data-cat="stats">
     <div style="margin:6px 0;"><span class="stat">👦 孩子：${escapeHtml(c.name||'（未命名）')}</span>
-      <span class="stat">📝 今日功課：${finished}/${allHW().length}</span>
+      <span class="stat"${hwHidden?' title="'+hwHiddenNote+'"':''}>📝 今日功課：${finished}/${hwTotal}</span>${hwHidden?'<span class="hint" style="display:block;margin:2px 0 0;">'+hwHiddenNote+'</span>':''}
       <span class="stat">☀️ 陽光：${c.sun}</span></div>
     ${radarHTML(c, radar)}
     <details class="rd-all"><summary>全部累計（從開始玩到現在）</summary>
