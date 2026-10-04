@@ -2081,7 +2081,7 @@ function openManual(){
     </div>
     <div class="man-sec">
       <h3>🎮 練習場 & 🏆 收藏</h3>
-      <p>🎮 <b>練習場</b>：國語 / 數學 / 英文 / 知識答題，答對賺陽光；每天一場「每日小考」，星星越多拖延怪退越遠；答錯的題目會進「複習錯題」。國語頁最上面有「✏️ 今日造句卡」：在紙上用指定的詞造句、拍照送出，爸媽批改通過 +10、寫得很棒 +15。<br>
+      <p>🎮 <b>練習場</b>：國語 / 數學 / 英文 / 知識答題，答對賺陽光；每天一場「每日小考」，星星越多拖延怪退越遠；答錯的題目會進「複習錯題」。練習場最上面（每日小考下面）有「✏️ 今日造句卡」：在紙上用指定的詞造句、拍照送出，爸媽批改通過 +10、寫得很棒 +15。<br>
       🏆 <b>收藏</b>：植物圖鑑（點一下就能解鎖、上場）、徽章、家族排行榜、自訂題庫，還有「陽光兌換所」——用陽光兌換真實獎勵（如多看 10 分鐘動畫），兌換後請爸媽確認發放。</p>
     </div>
     <div class="man-sec">
@@ -6270,7 +6270,10 @@ function scBannerHTML(){
     : ['✏️','今日造句卡：'+k.words.join('、'),'去寫'];
   return `<button class="sc-banner ${k.status}" id="scBanner" type="button"><span>${t[0]} ${escapeHtml(t[1])}</span><b>${t[2]} ›</b></button>`;
 }
-function renderSentCard(){
+/* 從哪裡進造句卡，返回就回哪裡（練習場上面的入口 2026-10-04 加；原本只有注音頁有入口） */
+let _scFrom='zhuyin';
+function renderSentCard(from){
+  if(from) _scFrom=from;
   clearQTimer();
   const c=C(); if(!scOn(c)){ showTab('zhuyin'); return; }
   const k=scCard(c);
@@ -6304,9 +6307,9 @@ function renderSentCard(){
   app.innerHTML=`<div class="panel sc-page">
     <h2 class="title-sticker">✏️ 今日造句卡</h2>
     ${body}
-    <div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="scBack" type="button">⬅ 回國語練習</button></div>
+    <div style="text-align:center;margin-top:14px;"><button class="reset-btn" id="scBack" type="button">⬅ ${_scFrom==='practice'?'回練習場':'回國語練習'}</button></div>
   </div>`;
-  $('#scBack').onclick=()=>showTab('zhuyin');
+  $('#scBack').onclick=()=>showTab(_scFrom==='practice'?'practice':'zhuyin');
   const file=$('#scFile');
   if(file) file.onchange=()=>{ const f=file.files&&file.files[0]; if(f) scSubmit(f); };
   const shot=$('#scShot'); if(shot) shot.onclick=()=>file.click();
@@ -6674,6 +6677,7 @@ function renderPracticeHub(){
         <img class="ch-mon" src="assets/monsters/粗心大王/粗心大王_頭像.png" alt=""></div>
       <button class="btn-primary" id="phDq" type="button">${rec?'再挑戰一次':'開始每日小考'}</button>
     </section>
+    ${scBannerHTML()}
     ${grpHTML}
     <div class="quick2">
       <button id="phRv" type="button">${ico('refresh')}<span>複習錯題<small>${reviewCount?('今天 '+reviewCount+' 題'):((C().wrongQuestions||[]).length?'今天複習完了':'沒有錯題')}</small></span></button>
@@ -6682,6 +6686,9 @@ function renderPracticeHub(){
   </div>`;
   $$('.pbtn[data-tab]').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
   $('#phDq').onclick=renderDailyQuiz;
+  /* 造句卡入口：原本只在「注音」頁最上面，家長和孩子照說明書找「國語」找不到（2026-10-04 Janice 試玩）。
+     注音頁會被睡覺鎖擋住，這裡也要擋，不然睡覺鎖可以從這裡繞過 */
+  const scb=$('#scBanner'); if(scb) scb.onclick=()=>{ if(practiceLocked()){ renderLock('zhuyin'); return; } renderSentCard('practice'); };
   $('#phRv').onclick=()=>showTab('review');
   $('#phEx').onclick=()=>showTab('exam');
 }
@@ -7953,7 +7960,7 @@ function renderHome(){
   const qg=$('#qkGarden'); if(qg) qg.onclick=()=>{ const el=$('#secGardenBox'); if(el) el.scrollIntoView({behavior:'smooth', block:'start'}); else showTab('collection'); };
   $$('input[data-hsid]').forEach(inp=>{ inp.onchange=()=>{ toggleStudyItem(inp.dataset.hsid); renderHome(); }; });
   const gob=$('#goOverdue'); if(gob) gob.onclick=()=>showTab('plan');
-  const gsr=$('#goScRedo'); if(gsr) gsr.onclick=()=>{ showTab('zhuyin'); if(currentTab==='zhuyin') renderSentCard(); };
+  const gsr=$('#goScRedo'); if(gsr) gsr.onclick=()=>{ showTab('zhuyin'); if(currentTab==='zhuyin') renderSentCard('zhuyin'); };
   const ps=$('#profileSel'); if(ps) ps.onchange=(e)=>{ state.activeChildId=e.target.value; dailyResetIfNeeded(); save(); renderHome(); };
   const eb=$('#energyBtn'); if(eb){ eb.onclick=useEnergy; tickEnergy(); }
   const tb=$('#ttsBtn'); if(tb) tb.onclick=()=>{ state.tts=!state.tts; save(); renderHome(); };
@@ -10249,7 +10256,7 @@ function renderKnowledge(subject){
     <button class="next-btn" id="knext" style="display:none;">下一題 ▶</button>
     <div style="text-align:center;margin-top:10px;"><button class="reset-btn" id="khome">🌻 回小花園</button></div>
   </div>`;
-  const scb=$('#scBanner'); if(scb) scb.onclick=()=>renderSentCard();
+  const scb=$('#scBanner'); if(scb) scb.onclick=()=>renderSentCard('zhuyin');
   const prog=()=>{ const p=$('#kprog'); if(p) p.textContent='第 '+(idx+1)+' / '+total+' 題　✅ '+right; const m=$('#kmon'); if(m) m.innerHTML=monsterTrack(idx,total); };
   const knowDone=()=>{
     const pct=Math.round(right/total*100);
