@@ -1347,7 +1347,82 @@ function normNums(s){
   (Array.isArray(s.penalties)?s.penalties:[]).forEach(p=>{ if(p && p.kind!=='zero') fix(p,'amount',1,M.sunMax,10,'扣分項目'); });
   /* 撤銷扣分會把 actual 還給孩子：一般扣分最多還「扣分數」，只有「陽光歸零」才可能更多 */
   (Array.isArray(s.penaltyLog)?s.penaltyLog:[]).forEach(p=>{ fix(p,'amount',0,M.sunMax,0,'扣分紀錄'); fix(p,'actual',0,(p && p.kind!=='zero' && typeof p.amount==='number')?p.amount:M.sunMax,0,'扣分紀錄'); });
+  fix(s,'clockMax',0,8.64e15,0,'時間紀錄');
+  fix(s,'clockNetSkew',0,365*DAY,0,'時間紀錄');
+  if(s.clockTamper!==undefined && s.clockTamper!==null && (typeof s.clockTamper!=='object' || Array.isArray(s.clockTamper))){ s.clockTamper=null; fixes.push('時間紀錄'); }
+  if(s.clockTamper){ fix(s.clockTamper,'ms',0,1e13,0,'時間紀錄'); fix(s.clockTamper,'skew',-1e13,1e13,0,'時間紀錄'); }
+  if(s.clockLog!==undefined && !Array.isArray(s.clockLog)){ s.clockLog=[]; fixes.push('時間紀錄'); }
+  if(Array.isArray(s.clockLog)) s.clockLog=s.clockLog.filter(x=>x&&typeof x==='object').slice(0,20);
   return fixes;
+}
+/* 孩子改手機時間繞過睡覺鎖、護眼鎖（2026-10-04 稽核 E4）。純網頁沒辦法完全防，做兩種偵測：
+   ① 記住這台裝置出現過的最晚時間（state.clockMax），現在比它早超過 5 分鐘＝被往回調（Date.now 不受時區影響，出國不會誤判）；
+      往後調跳過護眼鎖，等時間被改回來的那一刻也會抓到。
+   ② 有網路時用 HEAD 問遊戲自己的網站要 Date 標頭，手機比網路時間慢超過 5 分鐘＝被調過（補「先關遊戲、調好時間再開」的漏洞）。
+      HEAD 不經過 service worker（sw.js 只處理 GET），不會拿到快取裡的舊時間；只連 GitHub，不送任何資料。
+   抓到就全畫面擋住，家長輸入密碼才能繼續（Janice 選），家長後台「密碼與安全」留紀錄。宣告放這裡：開機就會用到 */
+const CLOCK_BACK_MS=5*60000, CLOCK_NET_GAP_MS=10*60000;
+var _clockNetLast=0;
+function clockFmt(ms){ const m=Math.max(1,Math.round(ms/60000)); return m>=120 ? '約 '+Math.round(m/60)+' 小時' : '約 '+m+' 分鐘'; }
+function clockTick(){
+  if(!state || typeof state!=='object') return;
+  if(state.clockTamper){ showClockLock(); return; }
+  const now=Date.now(), max=Number(state.clockMax)||0;
+  if(max && now<max-CLOCK_BACK_MS){ clockTampered(max-now,'device',0); return; }
+  if(now>max) state.clockMax=now;
+}
+function clockNetCheck(minGap){
+  const now=Date.now(); const gap=(minGap===undefined)?CLOCK_NET_GAP_MS:minGap;
+  if(_clockNetLast && now>=_clockNetLast && now-_clockNetLast<gap) return;
+  _clockNetLast=now;
+  if(typeof fetch!=='function' || !/^https?:$/.test(location.protocol)) return;
+  const t0=Date.now(), p0=performance.now();
+  fetch(location.pathname+'?clock='+t0, {method:'HEAD', cache:'no-store'}).then(r=>{
+    const net=Date.parse(r.headers.get('Date')||''); if(!isFinite(net)) return;
+    const dev=t0+(performance.now()-p0)/2;
+    const skew=net-dev;                                   /* 正數＝手機比網路慢 */
+    const ok=Number(state.clockNetSkew)||0;              /* 家長確認過的落差 */
+    if(skew<ok){ state.clockNetSkew=Math.max(0,skew); }   /* 手機時間校正回來了，就跟著縮小 */
+    else if(skew-ok>CLOCK_BACK_MS && !state.clockTamper) clockTampered(skew-ok,'net',skew);
+  }).catch(()=>{});
+}
+function clockTampered(ms, src, skew){
+  const now=Date.now();
+  state.clockTamper={at:now, ms:Math.round(ms), src, skew:Math.round(skew||0)};
+  if(!Array.isArray(state.clockLog)) state.clockLog=[];
+  state.clockLog.unshift({at:now, ms:Math.round(ms), src, ok:false}); state.clockLog=state.clockLog.slice(0,20);
+  save(); showClockLock();
+}
+function showClockLock(){
+  if(document.getElementById('clockLock') || !state.clockTamper) return;
+  const t=state.clockTamper;
+  const ov=document.createElement('div'); ov.id='clockLock';
+  ov.style.cssText='position:fixed;inset:0;z-index:2147482000;background:rgba(30,45,40,.9);display:flex;align-items:center;justify-content:center;padding:20px;';
+  ov.innerHTML='<div style="background:#fff;color:#253a36;border-radius:16px;padding:22px 20px;max-width:360px;width:100%;text-align:center;font:16px/1.7 -apple-system,\'PingFang TC\',sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.3)">'
+    +'<div style="font-size:40px">⏰</div><h3 style="margin:6px 0 8px;font-size:19px">手機時間被調過了</h3>'
+    +'<p style="margin:0 0 12px;color:#5f6f69">'+(t.src==='net'?'這台裝置的時間比網路時間慢了':'這台裝置的時間比上次玩的時候早了')+clockFmt(t.ms)+'。為了不讓睡覺鎖、護眼鎖被繞過，請爸媽輸入密碼確認後再繼續。</p>'
+    +'<input id="clockPin" type="password" inputmode="numeric" maxlength="6" placeholder="家長密碼" style="width:100%;box-sizing:border-box;font-size:18px;padding:10px;border:2px solid #b9cfc4;border-radius:10px;text-align:center;margin-bottom:8px">'
+    +'<div id="clockMsg" style="min-height:22px;color:#c0392b;font-size:14px"></div>'
+    +'<button type="button" id="clockOk" style="width:100%;padding:12px;border:0;border-radius:12px;background:#2f6f4e;color:#fff;font-size:17px;font-weight:700">🔐 爸媽確認，繼續</button>'
+    +'<p style="margin:12px 0 0;color:#8a9a93;font-size:13px">如果是手機時間本來就設錯、剛剛才校正，輸入密碼就可以繼續。</p></div>';
+  (document.body||document.documentElement).appendChild(ov);
+  const go=()=>{
+    const err=checkPIN(ov.querySelector('#clockPin').value);
+    if(err){ ov.querySelector('#clockMsg').textContent=err; ov.querySelector('#clockPin').value=''; return; }
+    const cur=state.clockTamper||{};
+    if(cur.src==='net') state.clockNetSkew=Math.max(0, cur.skew||0);
+    state.clockMax=Date.now(); state.clockTamper=null;
+    const lg=(state.clockLog||[]).find(x=>!x.ok); if(lg){ lg.ok=true; lg.okAt=Date.now(); }
+    save(); ov.remove(); try{ toast('✅ 已確認，可以繼續了'); }catch(e){}
+  };
+  ov.querySelector('#clockOk').onclick=go;
+  ov.querySelector('#clockPin').onkeydown=e=>{ if(e.key==='Enter') go(); };
+}
+function clockLogHTML(){
+  const L=(state.clockLog||[]).slice(0,5); if(!L.length) return '';
+  const p2=n=>String(n).padStart(2,'0');
+  return '<h2 style="margin-top:18px;font-size:17px;">⏰ 手機時間紀錄</h2><p class="hint" style="margin:0 0 6px;">孩子把手機時間往回調（想繞過睡覺鎖、護眼鎖）會被擋下，要家長密碼才能繼續。</p><ul style="margin:0;padding-left:20px;font-size:14px;">'
+    + L.map(x=>{ const d=new Date(x.at); return '<li>'+(d.getMonth()+1)+'/'+d.getDate()+' '+p2(d.getHours())+':'+p2(d.getMinutes())+'　'+(x.src==='net'?'比網路時間慢':'時間被往回調')+clockFmt(x.ms)+'　'+(x.ok?'✅ 家長已確認':'⏳ 還沒確認')+'</li>'; }).join('')+'</ul>';
 }
 function showOtherTabLock(){
   if(document.getElementById('otherTabLock')) return;
@@ -2183,6 +2258,7 @@ function openManual(){
       <h3>👨‍👩‍👧 家長後台（右上角齒輪 →「進入家長後台」）</h3>
       <p>分成六類：功課簽名與造句卡批改、真實獎勵、孩子與功課、作息與家規、學習紀錄與雷達（看孩子哪一科需要加強、最常錯哪幾題）、密碼與備份。離開後台或 5 分鐘沒操作會自動上鎖。<br>
       🔐 預設密碼 <b>1234</b>，第一次進去請先改掉。<br>
+      ⏰ 孩子偷改手機時間（想繞過睡覺鎖、護眼鎖），遊戲會擋住，要家長密碼才能繼續。<br>
       ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。備份檔不含家長密碼：換新手機還原後密碼是 1234，記得重新設定。</p>
     </div>
     <div class="man-sec">
@@ -3094,13 +3170,15 @@ function unfinishedCount(){ return visibleHW().filter(it=> C().homework[it.id]!=
 /* 練習時間追蹤 + 護眼提醒 */
 let _saveTick=0, ticksSinceEye=0;
 setInterval(()=>{
+  clockTick();   /* 稽核 E4 */
   if(document.hidden) return;
   const c=C(); const k=dateKey(); c.timeByDate[k]=(c.timeByDate[k]||0)+1;
   ticksSinceEye++;
   if(ticksSinceEye>=1200){ ticksSinceEye=0; toast('👀 看遠方 20 秒，保護眼睛！'); }
   if(++_saveTick>=10){ _saveTick=0; save(); }
 },1000);
-document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); else checkDayRollover(); });
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) save(); else { clockTick(); clockNetCheck(60000); checkDayRollover(); } });
+setTimeout(()=>{ clockTick(); clockNetCheck(0); }, 2000);   /* 稽核 E4：開機檢查一次（等 IndexedDB 那份存檔讀進來） */
 /* 2026-09-28 稽核 B3：主畫面的 App 從背景叫回來不會重新載入，原本隔天還顯示昨天的 ✅、作息獎勵可以再領 */
 let _lastSeenDay=null;
 function checkDayRollover(){
@@ -11196,6 +11274,7 @@ function renderParent(){
       <button class="reset-btn" id="toggleLock">${state.sleepLock?'🔒 睡覺後鎖定：開':'🔓 睡覺後鎖定：關'}</button>
       <button class="reset-btn" id="notifBtn">🔔 通知提醒：${notifStatus}</button>
     </div>
+    ${clockLogHTML()}
 
     <h2 style="margin-top:18px;font-size:17px;">👀 護眼強制休息</h2>
     <p class="hint">孩子連續練習（小考／練習）滿 ${state.quizLimitMin} 分鐘，會自動鎖定螢幕 ${state.restMin} 分鐘，強迫眼睛休息；倒數結束才解鎖（家長可輸入密碼提前解鎖）。</p>
@@ -11484,6 +11563,7 @@ function renderParent(){
       /* 備份檔不放家長密碼：原本明碼存在檔案裡，孩子在下載資料夾就讀得到，家長分享備份也會外流（2026-10-04 稽核 E1）。
          還原時檔案沒有密碼就保留目前裝置的密碼；換新裝置要重新設定 */
       const copy=JSON.parse(JSON.stringify(state)); delete copy.parentPIN; delete copy.pinFails; delete copy.pinLockUntil;
+      delete copy.clockMax; delete copy.clockTamper; delete copy.clockNetSkew; delete copy.clockLog;   /* 稽核 E4：時間紀錄是這台裝置的，不跟著備份走 */
       const data=JSON.stringify(copy); const blob=new Blob([data],{type:'application/json'});
       const url=URL.createObjectURL(blob); const a=document.createElement('a');
       const d=new Date(), pad=n=>String(n).padStart(2,'0');
@@ -11511,6 +11591,8 @@ function renderParent(){
         if(_loadFailed){ toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return; }
         /* 檔案裡有合法密碼才用；沒有的話 load() 會補成 1234，那樣會把家長改過的密碼變回預設，所以保留目前的 */
         ns.parentPIN = /^\d{1,6}$/.test(String(s.parentPIN)) ? String(s.parentPIN) : prevPIN;
+        { const pv=JSON.parse(prevRaw);   /* 稽核 E4：時間紀錄留這台裝置的，不用備份檔裡的 */
+          ns.clockMax=Number(pv.clockMax)||Date.now(); ns.clockNetSkew=Number(pv.clockNetSkew)||0; ns.clockTamper=pv.clockTamper||null; ns.clockLog=Array.isArray(pv.clockLog)?pv.clockLog:[]; }
         state=ns;
         try{ showTab('home'); }
         catch(err){
