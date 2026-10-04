@@ -1016,6 +1016,8 @@
   .sc-typed-w{font-size:13px;font-weight:700;color:#7a6a3a;} .sc-typed p{margin:2px 0 0;font-size:17px;line-height:1.7;}
   .sc-typed mark{background:#fff1b8;border-radius:4px;padding:0 2px;}
   .sc-hist-typed{padding:0 0 6px 8px;} .sc-hist-typed .sc-typed{margin:4px 0;padding:4px 8px;} .sc-hist-typed .sc-typed p{font-size:14px;}
+  .zy-big button{font-size:46px !important;line-height:1.1;min-width:84px;min-height:84px;padding:8px !important;}
+  .q-text.zy-pic{font-size:30px;}
   .sc-home-note{display:block;font-size:13px;color:var(--muted);margin-top:2px;}
   .sc-photo-tip{font-size:12px;color:var(--muted);margin-top:4px;}
   .sc-cap{color:#9a5b00 !important;font-weight:700;}
@@ -5987,6 +5989,17 @@ function speak(text){
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   }catch(e){}
 }
+/* 中文發音給「聽聲音選圖」用（2026-10-04 稽核 D10）：孩子自己按 🔊 的，不受「點讀」開關影響（同 speakEn） */
+function speakZh(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    const u=new SpeechSynthesisUtterance(String(text)); u.lang='zh-TW'; u.rate=.85;
+    const vs=speechSynthesis.getVoices();
+    const tw=vs.find(v=>/zh[-_]TW|Taiwan/i.test(v.lang+' '+v.name)) || vs.find(v=>/zh|cmn/i.test(v.lang));
+    if(tw) u.voice=tw;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  }catch(e){}
+}
 /* 英文發音（2026-09-28 稽核 D8）：speak() 固定用中文語音，念英文會變中文腔。這支用英文語音，不受「點讀」開關影響（孩子自己按的） */
 function speakEn(text){
   try{
@@ -8951,9 +8964,14 @@ function factsL5(){ const r=Math.random();
 
 /* ---------- 閱讀測驗 zhuyin（對應康軒國語） ---------- */
 /* 注音對照表（moedict 國語辭典，CC0 授權），供 L1/L2 為每個漢字標註注音 */
-const BOPOMO={"蘋":"ㄆㄧㄣˊ","果":"ㄍㄨㄛˇ","香":"ㄒㄧㄤ","蕉":"ㄐㄧㄠ","橘":"ㄐㄩˊ","子":"˙ㄗ","西":"ㄒㄧ","瓜":"ㄍㄨㄚ","葡":"ㄆㄨˊ","萄":"ㄊㄠˊ","貓":"ㄇㄠ","狗":"ㄍㄡˇ","鳥":"ㄋㄧㄠˇ","魚":"ㄩˊ","兔":"ㄊㄨˋ","太":"ㄊㄞˋ","陽":"ㄧㄤˊ","月":"ㄩㄝˋ","亮":"ㄌㄧㄤˋ","星":"ㄒㄧㄥ","雲":"ㄩㄣˊ","雨":"ㄩˇ","玻":"ㄅㄛ","坡":"ㄆㄛ","摸":"ㄇㄛ","佛":"ㄈㄛˊ","得":"˙ㄉㄜ","媽":"ㄇㄚ"};
+const BOPOMO={"蘋":"ㄆㄧㄥˊ","果":"ㄍㄨㄛˇ","香":"ㄒㄧㄤ","蕉":"ㄐㄧㄠ","橘":"ㄐㄩˊ","子":"˙ㄗ","西":"ㄒㄧ","瓜":"ㄍㄨㄚ","葡":"ㄆㄨˊ","萄":"ㄊㄠˊ","貓":"ㄇㄠ","狗":"ㄍㄡˇ","鳥":"ㄋㄧㄠˇ","魚":"ㄩˊ","兔":"ㄊㄨˋ","太":"ㄊㄞˋ","陽":"ㄧㄤˊ","月":"ㄩㄝˋ","亮":"ㄌㄧㄤˋ","星":"ㄒㄧㄥ","雲":"ㄩㄣˊ","雨":"ㄩˇ","玻":"ㄅㄛ","坡":"ㄆㄛ","摸":"ㄇㄛ","佛":"ㄈㄛˊ","得":"˙ㄉㄜ","媽":"ㄇㄚ"};
 function zhAnno(s){ let r=''; for(const ch of s){ const b=BOPOMO[ch]; r+= b? ch+'('+b+')' : ch; } return r; }
-function zhuyinL1(){ const r=Math.random();
+function zhuyinL1(){
+  if(typeof ZY_BANK!=='undefined'){ const r=Math.random();
+    if(r<0.4 && _zyListenOK && ('speechSynthesis' in window)) return zyListenQ();
+    return zyPicQ(); }
+  return zhuyinL1Old(); }
+function zhuyinL1Old(){ const r=Math.random();
   if(r<0.4) return {type:'choice', q:'🍎 這個水果叫什麼？', opts:kOpts(zhAnno('蘋果'),[zhAnno('香蕉'),zhAnno('橘子'),zhAnno('西瓜'),zhAnno('葡萄')],4), ans:zhAnno('蘋果'), hint:'紅紅的、脆脆的。'};
   if(r<0.7) return {type:'choice', q:'🐱 這是什麼動物？', opts:kOpts(zhAnno('貓'),[zhAnno('狗'),zhAnno('鳥'),zhAnno('魚'),zhAnno('兔')],4), ans:zhAnno('貓'), hint:'牠會喵喵叫。'};
   return {type:'choice', q:'☀️ 天上會發光、給我們溫暖的是？', opts:kOpts(zhAnno('太陽'),[zhAnno('月亮'),zhAnno('星星'),zhAnno('雲'),zhAnno('雨')],4), ans:zhAnno('太陽'), hint:'白天才出現。'}; }
@@ -8964,11 +8982,42 @@ const BOPOMO_COMPOUND=['ㄨㄥ','ㄩㄥ','ㄧㄢ','ㄧㄣ','ㄨㄢ','ㄩㄢ']; /
 const BOPOMO_SIMPLE=['ㄚ','ㄧ','ㄨ','ㄩ','ㄝ','ㄛ']; // 單一韻符
 const TONE_MARKS=[['ˊ','第二聲'],['ˇ','第三聲'],['ˋ','第四聲'],['˙','輕聲']];
 const BOPOMO_BLENDS=[{parts:'ㄋ ＋ ㄧ ＋ ˇ', ans:'你'},{parts:'ㄏ ＋ ㄠ ＋ ˇ', ans:'好'},{parts:'ㄅ ＋ ㄚ', ans:'八'},{parts:'ㄒㄧㄝ ＋ ˋ', ans:'謝'},{parts:'ㄒㄧㄠ ＋ ˇ', ans:'小'},{parts:'ㄇ ＋ ㄚ', ans:'媽'}];
+/* ZY_BANK:START（2026-10-04 稽核 D10：幼幼看圖選詞、聽聲音選圖，低年級拼讀、聲調；由 d10build.py 從教育部《國語小字典》產生，改資料請改 candidates.json 再重跑） */
+const ZY_BANK={"pics":[{"e":"🍎","w":"蘋果","z":["ㄆㄧㄥˊ","ㄍㄨㄛˇ"],"c":"水果"},{"e":"🍌","w":"香蕉","z":["ㄒㄧㄤ","ㄐㄧㄠ"],"c":"水果"},{"e":"🍉","w":"西瓜","z":["ㄒㄧ","ㄍㄨㄚ"],"c":"水果"},{"e":"🍇","w":"葡萄","z":["ㄆㄨˊ","ㄊㄠˊ"],"c":"水果"},{"e":"🍓","w":"草莓","z":["ㄘㄠˇ","ㄇㄟˊ"],"c":"水果"},{"e":"🍍","w":"鳳梨","z":["ㄈㄥˋ","ㄌㄧˊ"],"c":"水果"},{"e":"🍋","w":"檸檬","z":["ㄋㄧㄥˊ","ㄇㄥˊ"],"c":"水果"},{"e":"🍒","w":"櫻桃","z":["ㄧㄥ","ㄊㄠˊ"],"c":"水果"},{"e":"🥭","w":"芒果","z":["ㄇㄤˊ","ㄍㄨㄛˇ"],"c":"水果"},{"e":"🍐","w":"梨","z":["ㄌㄧˊ"],"c":"水果"},{"e":"🐱","w":"貓","z":["ㄇㄠ"],"c":"動物"},{"e":"🐶","w":"狗","z":["ㄍㄡˇ"],"c":"動物"},{"e":"🐦","w":"鳥","z":["ㄋㄧㄠˇ"],"c":"動物"},{"e":"🐟","w":"魚","z":["ㄩˊ"],"c":"動物"},{"e":"🐰","w":"兔","z":["ㄊㄨˋ"],"c":"動物"},{"e":"🐮","w":"牛","z":["ㄋㄧㄡˊ"],"c":"動物"},{"e":"🐷","w":"豬","z":["ㄓㄨ"],"c":"動物"},{"e":"🐴","w":"馬","z":["ㄇㄚˇ"],"c":"動物"},{"e":"🐑","w":"羊","z":["ㄧㄤˊ"],"c":"動物"},{"e":"🐔","w":"雞","z":["ㄐㄧ"],"c":"動物"},{"e":"🦆","w":"鴨","z":["ㄧㄚ"],"c":"動物"},{"e":"🐒","w":"猴","z":["ㄏㄡˊ"],"c":"動物"},{"e":"🐸","w":"青蛙","z":["ㄑㄧㄥ","ㄨㄚ"],"c":"動物"},{"e":"🦋","w":"蝴蝶","z":["ㄏㄨˊ","ㄉㄧㄝˊ"],"c":"動物"},{"e":"🐝","w":"蜜蜂","z":["ㄇㄧˋ","ㄈㄥ"],"c":"動物"},{"e":"🐼","w":"熊貓","z":["ㄒㄩㄥˊ","ㄇㄠ"],"c":"動物"},{"e":"🐻","w":"熊","z":["ㄒㄩㄥˊ"],"c":"動物"},{"e":"✈️","w":"飛機","z":["ㄈㄟ","ㄐㄧ"],"c":"交通"},{"e":"🚢","w":"輪船","z":["ㄌㄨㄣˊ","ㄔㄨㄢˊ"],"c":"交通"},{"e":"🚀","w":"火箭","z":["ㄏㄨㄛˇ","ㄐㄧㄢˋ"],"c":"交通"},{"e":"🚁","w":"直升機","z":["ㄓˊ","ㄕㄥ","ㄐㄧ"],"c":"交通"},{"e":"☀️","w":"太陽","z":["ㄊㄞˋ","ㄧㄤˊ"],"c":"天空"},{"e":"🌙","w":"月亮","z":["ㄩㄝˋ","ㄌㄧㄤˋ"],"c":"天空"},{"e":"⭐","w":"星星","z":["ㄒㄧㄥ","ㄒㄧㄥ"],"c":"天空"},{"e":"☁️","w":"雲","z":["ㄩㄣˊ"],"c":"天空"},{"e":"🌈","w":"彩虹","z":["ㄘㄞˇ","ㄏㄨㄥˊ"],"c":"天空"},{"e":"❄️","w":"雪","z":["ㄒㄩㄝˇ"],"c":"天空"},{"e":"⚡","w":"閃電","z":["ㄕㄢˇ","ㄉㄧㄢˋ"],"c":"天空"},{"e":"🌳","w":"樹","z":["ㄕㄨˋ"],"c":"大自然"},{"e":"🌸","w":"花","z":["ㄏㄨㄚ"],"c":"大自然"},{"e":"🔥","w":"火","z":["ㄏㄨㄛˇ"],"c":"大自然"},{"e":"🌊","w":"海浪","z":["ㄏㄞˇ","ㄌㄤˋ"],"c":"大自然"},{"e":"🍄","w":"香菇","z":["ㄒㄧㄤ","ㄍㄨ"],"c":"大自然"},{"e":"🌵","w":"仙人掌","z":["ㄒㄧㄢ","ㄖㄣˊ","ㄓㄤˇ"],"c":"大自然"},{"e":"🎈","w":"氣球","z":["ㄑㄧˋ","ㄑㄧㄡˊ"],"c":"東西"},{"e":"📚","w":"書","z":["ㄕㄨ"],"c":"東西"},{"e":"🎒","w":"書包","z":["ㄕㄨ","ㄅㄠ"],"c":"東西"},{"e":"⚽","w":"足球","z":["ㄗㄨˊ","ㄑㄧㄡˊ"],"c":"東西"},{"e":"🚪","w":"門","z":["ㄇㄣˊ"],"c":"東西"},{"e":"👟","w":"鞋","z":["ㄒㄧㄝˊ"],"c":"東西"},{"e":"🕐","w":"時鐘","z":["ㄕˊ","ㄓㄨㄥ"],"c":"東西"},{"e":"🍰","w":"蛋糕","z":["ㄉㄢˋ","ㄍㄠ"],"c":"食物"},{"e":"🥛","w":"牛奶","z":["ㄋㄧㄡˊ","ㄋㄞˇ"],"c":"食物"},{"e":"🍞","w":"麵包","z":["ㄇㄧㄢˋ","ㄅㄠ"],"c":"食物"},{"e":"🍚","w":"米飯","z":["ㄇㄧˇ","ㄈㄢˋ"],"c":"食物"},{"e":"🍦","w":"冰淇淋","z":["ㄅㄧㄥ","ㄑㄧˊ","ㄌㄧㄣˊ"],"c":"食物"},{"e":"🥚","w":"雞蛋","z":["ㄐㄧ","ㄉㄢˋ"],"c":"食物"}],"blends":[{"ch":"八","zy":"ㄅㄚ","parts":"ㄅ ＋ ㄚ","ini":"ㄅ","fin":"ㄚ"},{"ch":"爸","zy":"ㄅㄚˋ","parts":"ㄅ ＋ ㄚ ＋ ˋ","ini":"ㄅ","fin":"ㄚ"},{"ch":"媽","zy":"ㄇㄚ","parts":"ㄇ ＋ ㄚ","ini":"ㄇ","fin":"ㄚ"},{"ch":"馬","zy":"ㄇㄚˇ","parts":"ㄇ ＋ ㄚ ＋ ˇ","ini":"ㄇ","fin":"ㄚ"},{"ch":"怕","zy":"ㄆㄚˋ","parts":"ㄆ ＋ ㄚ ＋ ˋ","ini":"ㄆ","fin":"ㄚ"},{"ch":"爬","zy":"ㄆㄚˊ","parts":"ㄆ ＋ ㄚ ＋ ˊ","ini":"ㄆ","fin":"ㄚ"},{"ch":"他","zy":"ㄊㄚ","parts":"ㄊ ＋ ㄚ","ini":"ㄊ","fin":"ㄚ"},{"ch":"拿","zy":"ㄋㄚˊ","parts":"ㄋ ＋ ㄚ ＋ ˊ","ini":"ㄋ","fin":"ㄚ"},{"ch":"拉","zy":"ㄌㄚ","parts":"ㄌ ＋ ㄚ","ini":"ㄌ","fin":"ㄚ"},{"ch":"沙","zy":"ㄕㄚ","parts":"ㄕ ＋ ㄚ","ini":"ㄕ","fin":"ㄚ"},{"ch":"你","zy":"ㄋㄧˇ","parts":"ㄋ ＋ ㄧ ＋ ˇ","ini":"ㄋ","fin":"ㄧ"},{"ch":"我","zy":"ㄨㄛˇ","parts":"ㄨㄛ ＋ ˇ","ini":"","fin":"ㄨㄛ"},{"ch":"小","zy":"ㄒㄧㄠˇ","parts":"ㄒ ＋ ㄧㄠ ＋ ˇ","ini":"ㄒ","fin":"ㄧㄠ"},{"ch":"米","zy":"ㄇㄧˇ","parts":"ㄇ ＋ ㄧ ＋ ˇ","ini":"ㄇ","fin":"ㄧ"},{"ch":"皮","zy":"ㄆㄧˊ","parts":"ㄆ ＋ ㄧ ＋ ˊ","ini":"ㄆ","fin":"ㄧ"},{"ch":"弟","zy":"ㄉㄧˋ","parts":"ㄉ ＋ ㄧ ＋ ˋ","ini":"ㄉ","fin":"ㄧ"},{"ch":"書","zy":"ㄕㄨ","parts":"ㄕ ＋ ㄨ","ini":"ㄕ","fin":"ㄨ"},{"ch":"魚","zy":"ㄩˊ","parts":"ㄩ ＋ ˊ","ini":"","fin":"ㄩ"},{"ch":"去","zy":"ㄑㄩˋ","parts":"ㄑ ＋ ㄩ ＋ ˋ","ini":"ㄑ","fin":"ㄩ"},{"ch":"七","zy":"ㄑㄧ","parts":"ㄑ ＋ ㄧ","ini":"ㄑ","fin":"ㄧ"},{"ch":"西","zy":"ㄒㄧ","parts":"ㄒ ＋ ㄧ","ini":"ㄒ","fin":"ㄧ"},{"ch":"哥","zy":"ㄍㄜ","parts":"ㄍ ＋ ㄜ","ini":"ㄍ","fin":"ㄜ"},{"ch":"歌","zy":"ㄍㄜ","parts":"ㄍ ＋ ㄜ","ini":"ㄍ","fin":"ㄜ"},{"ch":"河","zy":"ㄏㄜˊ","parts":"ㄏ ＋ ㄜ ＋ ˊ","ini":"ㄏ","fin":"ㄜ"},{"ch":"火","zy":"ㄏㄨㄛˇ","parts":"ㄏ ＋ ㄨㄛ ＋ ˇ","ini":"ㄏ","fin":"ㄨㄛ"},{"ch":"果","zy":"ㄍㄨㄛˇ","parts":"ㄍ ＋ ㄨㄛ ＋ ˇ","ini":"ㄍ","fin":"ㄨㄛ"},{"ch":"花","zy":"ㄏㄨㄚ","parts":"ㄏ ＋ ㄨㄚ","ini":"ㄏ","fin":"ㄨㄚ"},{"ch":"瓜","zy":"ㄍㄨㄚ","parts":"ㄍ ＋ ㄨㄚ","ini":"ㄍ","fin":"ㄨㄚ"},{"ch":"貓","zy":"ㄇㄠ","parts":"ㄇ ＋ ㄠ","ini":"ㄇ","fin":"ㄠ"},{"ch":"刀","zy":"ㄉㄠ","parts":"ㄉ ＋ ㄠ","ini":"ㄉ","fin":"ㄠ"},{"ch":"包","zy":"ㄅㄠ","parts":"ㄅ ＋ ㄠ","ini":"ㄅ","fin":"ㄠ"},{"ch":"跑","zy":"ㄆㄠˇ","parts":"ㄆ ＋ ㄠ ＋ ˇ","ini":"ㄆ","fin":"ㄠ"},{"ch":"草","zy":"ㄘㄠˇ","parts":"ㄘ ＋ ㄠ ＋ ˇ","ini":"ㄘ","fin":"ㄠ"},{"ch":"早","zy":"ㄗㄠˇ","parts":"ㄗ ＋ ㄠ ＋ ˇ","ini":"ㄗ","fin":"ㄠ"},{"ch":"牛","zy":"ㄋㄧㄡˊ","parts":"ㄋ ＋ ㄧㄡ ＋ ˊ","ini":"ㄋ","fin":"ㄧㄡ"},{"ch":"九","zy":"ㄐㄧㄡˇ","parts":"ㄐ ＋ ㄧㄡ ＋ ˇ","ini":"ㄐ","fin":"ㄧㄡ"},{"ch":"手","zy":"ㄕㄡˇ","parts":"ㄕ ＋ ㄡ ＋ ˇ","ini":"ㄕ","fin":"ㄡ"},{"ch":"狗","zy":"ㄍㄡˇ","parts":"ㄍ ＋ ㄡ ＋ ˇ","ini":"ㄍ","fin":"ㄡ"},{"ch":"口","zy":"ㄎㄡˇ","parts":"ㄎ ＋ ㄡ ＋ ˇ","ini":"ㄎ","fin":"ㄡ"},{"ch":"走","zy":"ㄗㄡˇ","parts":"ㄗ ＋ ㄡ ＋ ˇ","ini":"ㄗ","fin":"ㄡ"},{"ch":"山","zy":"ㄕㄢ","parts":"ㄕ ＋ ㄢ","ini":"ㄕ","fin":"ㄢ"},{"ch":"天","zy":"ㄊㄧㄢ","parts":"ㄊ ＋ ㄧㄢ","ini":"ㄊ","fin":"ㄧㄢ"},{"ch":"田","zy":"ㄊㄧㄢˊ","parts":"ㄊ ＋ ㄧㄢ ＋ ˊ","ini":"ㄊ","fin":"ㄧㄢ"},{"ch":"生","zy":"ㄕㄥ","parts":"ㄕ ＋ ㄥ","ini":"ㄕ","fin":"ㄥ"},{"ch":"東","zy":"ㄉㄨㄥ","parts":"ㄉ ＋ ㄨㄥ","ini":"ㄉ","fin":"ㄨㄥ"},{"ch":"冬","zy":"ㄉㄨㄥ","parts":"ㄉ ＋ ㄨㄥ","ini":"ㄉ","fin":"ㄨㄥ"},{"ch":"心","zy":"ㄒㄧㄣ","parts":"ㄒ ＋ ㄧㄣ","ini":"ㄒ","fin":"ㄧㄣ"},{"ch":"星","zy":"ㄒㄧㄥ","parts":"ㄒ ＋ ㄧㄥ","ini":"ㄒ","fin":"ㄧㄥ"},{"ch":"新","zy":"ㄒㄧㄣ","parts":"ㄒ ＋ ㄧㄣ","ini":"ㄒ","fin":"ㄧㄣ"},{"ch":"人","zy":"ㄖㄣˊ","parts":"ㄖ ＋ ㄣ ＋ ˊ","ini":"ㄖ","fin":"ㄣ"},{"ch":"門","zy":"ㄇㄣˊ","parts":"ㄇ ＋ ㄣ ＋ ˊ","ini":"ㄇ","fin":"ㄣ"},{"ch":"本","zy":"ㄅㄣˇ","parts":"ㄅ ＋ ㄣ ＋ ˇ","ini":"ㄅ","fin":"ㄣ"},{"ch":"很","zy":"ㄏㄣˇ","parts":"ㄏ ＋ ㄣ ＋ ˇ","ini":"ㄏ","fin":"ㄣ"},{"ch":"雲","zy":"ㄩㄣˊ","parts":"ㄩㄣ ＋ ˊ","ini":"","fin":"ㄩㄣ"},{"ch":"春","zy":"ㄔㄨㄣ","parts":"ㄔ ＋ ㄨㄣ","ini":"ㄔ","fin":"ㄨㄣ"},{"ch":"三","zy":"ㄙㄢ","parts":"ㄙ ＋ ㄢ","ini":"ㄙ","fin":"ㄢ"},{"ch":"四","zy":"ㄙˋ","parts":"ㄙ ＋ ˋ","ini":"ㄙ","fin":"ㄙ"},{"ch":"五","zy":"ㄨˇ","parts":"ㄨ ＋ ˇ","ini":"","fin":"ㄨ"},{"ch":"十","zy":"ㄕˊ","parts":"ㄕ ＋ ˊ","ini":"ㄕ","fin":"ㄕ"},{"ch":"千","zy":"ㄑㄧㄢ","parts":"ㄑ ＋ ㄧㄢ","ini":"ㄑ","fin":"ㄧㄢ"},{"ch":"半","zy":"ㄅㄢˋ","parts":"ㄅ ＋ ㄢ ＋ ˋ","ini":"ㄅ","fin":"ㄢ"},{"ch":"白","zy":"ㄅㄞˊ","parts":"ㄅ ＋ ㄞ ＋ ˊ","ini":"ㄅ","fin":"ㄞ"},{"ch":"黑","zy":"ㄏㄟ","parts":"ㄏ ＋ ㄟ","ini":"ㄏ","fin":"ㄟ"},{"ch":"飛","zy":"ㄈㄟ","parts":"ㄈ ＋ ㄟ","ini":"ㄈ","fin":"ㄟ"},{"ch":"水","zy":"ㄕㄨㄟˇ","parts":"ㄕ ＋ ㄨㄟ ＋ ˇ","ini":"ㄕ","fin":"ㄨㄟ"},{"ch":"土","zy":"ㄊㄨˇ","parts":"ㄊ ＋ ㄨ ＋ ˇ","ini":"ㄊ","fin":"ㄨ"},{"ch":"木","zy":"ㄇㄨˋ","parts":"ㄇ ＋ ㄨ ＋ ˋ","ini":"ㄇ","fin":"ㄨ"},{"ch":"耳","zy":"ㄦˇ","parts":"ㄦ ＋ ˇ","ini":"","fin":"ㄦ"},{"ch":"牙","zy":"ㄧㄚˊ","parts":"ㄧㄚ ＋ ˊ","ini":"","fin":"ㄧㄚ"},{"ch":"鼻","zy":"ㄅㄧˊ","parts":"ㄅ ＋ ㄧ ＋ ˊ","ini":"ㄅ","fin":"ㄧ"},{"ch":"腳","zy":"ㄐㄧㄠˇ","parts":"ㄐ ＋ ㄧㄠ ＋ ˇ","ini":"ㄐ","fin":"ㄧㄠ"},{"ch":"毛","zy":"ㄇㄠˊ","parts":"ㄇ ＋ ㄠ ＋ ˊ","ini":"ㄇ","fin":"ㄠ"},{"ch":"羊","zy":"ㄧㄤˊ","parts":"ㄧㄤ ＋ ˊ","ini":"","fin":"ㄧㄤ"},{"ch":"雞","zy":"ㄐㄧ","parts":"ㄐ ＋ ㄧ","ini":"ㄐ","fin":"ㄧ"},{"ch":"鴨","zy":"ㄧㄚ","parts":"ㄧㄚ","ini":"","fin":"ㄧㄚ"},{"ch":"鵝","zy":"ㄜˊ","parts":"ㄜ ＋ ˊ","ini":"","fin":"ㄜ"},{"ch":"豬","zy":"ㄓㄨ","parts":"ㄓ ＋ ㄨ","ini":"ㄓ","fin":"ㄨ"},{"ch":"兔","zy":"ㄊㄨˋ","parts":"ㄊ ＋ ㄨ ＋ ˋ","ini":"ㄊ","fin":"ㄨ"},{"ch":"鳥","zy":"ㄋㄧㄠˇ","parts":"ㄋ ＋ ㄧㄠ ＋ ˇ","ini":"ㄋ","fin":"ㄧㄠ"},{"ch":"蟲","zy":"ㄔㄨㄥˊ","parts":"ㄔ ＋ ㄨㄥ ＋ ˊ","ini":"ㄔ","fin":"ㄨㄥ"},{"ch":"樹","zy":"ㄕㄨˋ","parts":"ㄕ ＋ ㄨ ＋ ˋ","ini":"ㄕ","fin":"ㄨ"},{"ch":"葉","zy":"ㄧㄝˋ","parts":"ㄧㄝ ＋ ˋ","ini":"","fin":"ㄧㄝ"},{"ch":"雪","zy":"ㄒㄩㄝˇ","parts":"ㄒ ＋ ㄩㄝ ＋ ˇ","ini":"ㄒ","fin":"ㄩㄝ"},{"ch":"冰","zy":"ㄅㄧㄥ","parts":"ㄅ ＋ ㄧㄥ","ini":"ㄅ","fin":"ㄧㄥ"},{"ch":"杯","zy":"ㄅㄟ","parts":"ㄅ ＋ ㄟ","ini":"ㄅ","fin":"ㄟ"},{"ch":"碗","zy":"ㄨㄢˇ","parts":"ㄨㄢ ＋ ˇ","ini":"","fin":"ㄨㄢ"},{"ch":"筆","zy":"ㄅㄧˇ","parts":"ㄅ ＋ ㄧ ＋ ˇ","ini":"ㄅ","fin":"ㄧ"},{"ch":"桌","zy":"ㄓㄨㄛ","parts":"ㄓ ＋ ㄨㄛ","ini":"ㄓ","fin":"ㄨㄛ"}],"tones":[[{"ch":"媽","zy":"ㄇㄚ","t":1},{"ch":"麻","zy":"ㄇㄚˊ","t":2},{"ch":"馬","zy":"ㄇㄚˇ","t":3},{"ch":"罵","zy":"ㄇㄚˋ","t":4}],[{"ch":"姨","zy":"ㄧˊ","t":2},{"ch":"椅","zy":"ㄧˇ","t":3},{"ch":"意","zy":"ㄧˋ","t":4}],[{"ch":"巴","zy":"ㄅㄚ","t":1},{"ch":"拔","zy":"ㄅㄚˊ","t":2},{"ch":"爸","zy":"ㄅㄚˋ","t":4}],[{"ch":"烏","zy":"ㄨ","t":1},{"ch":"五","zy":"ㄨˇ","t":3},{"ch":"物","zy":"ㄨˋ","t":4}],[{"ch":"汪","zy":"ㄨㄤ","t":1},{"ch":"網","zy":"ㄨㄤˇ","t":3},{"ch":"望","zy":"ㄨㄤˋ","t":4}],[{"ch":"通","zy":"ㄊㄨㄥ","t":1},{"ch":"同","zy":"ㄊㄨㄥˊ","t":2},{"ch":"桶","zy":"ㄊㄨㄥˇ","t":3},{"ch":"痛","zy":"ㄊㄨㄥˋ","t":4}],[{"ch":"搭","zy":"ㄉㄚ","t":1},{"ch":"達","zy":"ㄉㄚˊ","t":2},{"ch":"打","zy":"ㄉㄚˇ","t":3}],[{"ch":"呼","zy":"ㄏㄨ","t":1},{"ch":"胡","zy":"ㄏㄨˊ","t":2},{"ch":"戶","zy":"ㄏㄨˋ","t":4}],[{"ch":"居","zy":"ㄐㄩ","t":1},{"ch":"局","zy":"ㄐㄩˊ","t":2},{"ch":"舉","zy":"ㄐㄩˇ","t":3}],[{"ch":"飛","zy":"ㄈㄟ","t":1},{"ch":"肥","zy":"ㄈㄟˊ","t":2},{"ch":"費","zy":"ㄈㄟˋ","t":4}],[{"ch":"光","zy":"ㄍㄨㄤ","t":1},{"ch":"廣","zy":"ㄍㄨㄤˇ","t":3},{"ch":"逛","zy":"ㄍㄨㄤˋ","t":4}],[{"ch":"刀","zy":"ㄉㄠ","t":1},{"ch":"島","zy":"ㄉㄠˇ","t":3},{"ch":"到","zy":"ㄉㄠˋ","t":4}],[{"ch":"包","zy":"ㄅㄠ","t":1},{"ch":"寶","zy":"ㄅㄠˇ","t":3},{"ch":"抱","zy":"ㄅㄠˋ","t":4}],[{"ch":"湯","zy":"ㄊㄤ","t":1},{"ch":"糖","zy":"ㄊㄤˊ","t":2},{"ch":"躺","zy":"ㄊㄤˇ","t":3},{"ch":"燙","zy":"ㄊㄤˋ","t":4}],[{"ch":"天","zy":"ㄊㄧㄢ","t":1},{"ch":"田","zy":"ㄊㄧㄢˊ","t":2},{"ch":"舔","zy":"ㄊㄧㄢˇ","t":3}],[{"ch":"移","zy":"ㄧˊ","t":2},{"ch":"以","zy":"ㄧˇ","t":3},{"ch":"藝","zy":"ㄧˋ","t":4}],[{"ch":"八","zy":"ㄅㄚ","t":1},{"ch":"拔","zy":"ㄅㄚˊ","t":2},{"ch":"爸","zy":"ㄅㄚˋ","t":4}],[{"ch":"豬","zy":"ㄓㄨ","t":1},{"ch":"竹","zy":"ㄓㄨˊ","t":2},{"ch":"主","zy":"ㄓㄨˇ","t":3},{"ch":"住","zy":"ㄓㄨˋ","t":4}]]};
+/* ZY_BANK:END */
+/* 2026-10-04 稽核 D10：幼幼注音原本只有 3 題、低年級拼讀只有 6 組。資料在上面的 ZY_BANK（d10build.py 從教育部《國語小字典》產生，
+   只收單一讀音的字），改資料請改 vault 的 candidates.json 再重跑，不要手改 */
+let _zyListenOK=false;   /* 只有練習頁有 🔊 按鈕，聽聲音的題目只在那裡出（每日小考、測驗卷不出） */
+const ZY_TONE_NAMES=['輕聲','第一聲','第二聲','第三聲','第四聲'];
+function zyAnno(p){ return [...p.w].map((ch,i)=>ch+'('+p.z[i]+')').join(''); }
+function zyOthers(p, n){ const same=kShuf(ZY_BANK.pics.filter(x=>x.c===p.c && x.w!==p.w)); const other=kShuf(ZY_BANK.pics.filter(x=>x.c!==p.c));
+  return same.concat(other).slice(0,n); }
+function zyPicQ(){ const p=kPick(ZY_BANK.pics); const opts=[p].concat(zyOthers(p,3));
+  return {type:'choice', q:p.e+' 這是什麼？', opts:kShuf(opts.map(zyAnno)), ans:zyAnno(p), zyPic:true, hint:'看圖想一想，再看注音唸唸看。', why:p.e+'＝'+zyAnno(p)}; }
+function zyListenQ(){ const p=kPick(ZY_BANK.pics); const opts=[p].concat(zyOthers(p,3));
+  return {type:'choice', q:'🔊 聽聽看，是哪一個？', opts:kShuf(opts.map(x=>x.e)), ans:p.e, listen:true, say:p.w, hint:'按 🔊 可以再聽一次。', why:p.e+'＝'+zyAnno(p)}; }
+function zyBlendQ(){ const b=kPick(ZY_BANK.blends);
+  const near=kShuf(ZY_BANK.blends.filter(x=>x.ch!==b.ch && x.zy!==b.zy && ((b.ini && x.ini===b.ini) || x.fin===b.fin)));
+  const far=kShuf(ZY_BANK.blends.filter(x=>x.ch!==b.ch && x.zy!==b.zy && !near.includes(x)));
+  const opts=[b.ch].concat(near.concat(far).slice(0,3).map(x=>x.ch));
+  return {type:'choice', q:b.parts+' 拼起來是哪個字？', opts:kShuf(opts), ans:b.ch, hint:'一個一個符號慢慢拼起來唸。', why:b.ch+'＝'+b.zy}; }
+function zyToneQ(){ const g=kPick(ZY_BANK.tones); const it=kPick(g);
+  if(Math.random()<0.5) return {type:'choice', q:'「'+it.ch+'」唸第幾聲？', opts:kShuf(['第一聲','第二聲','第三聲','第四聲']), ans:ZY_TONE_NAMES[it.t], speak:it.ch, hint:'唸唸看，聲音是平的、往上、先下再上，還是往下？', why:it.ch+'＝'+it.zy};
+  return {type:'choice', q:'下面哪一個字唸'+ZY_TONE_NAMES[it.t]+'？', opts:kShuf(g.map(x=>x.ch)), ans:it.ch, hint:'這幾個字聲音一樣，只有聲調不同。', why:g.map(x=>x.ch+x.zy).join('、')}; }
 function zhuyinL2(){ const r=Math.random();
+  if(typeof ZY_BANK!=='undefined'){
+    if(r<0.3) return zyBlendQ();
+    if(r<0.5) return zyToneQ();
+    if(r<0.58) return (_zyListenOK && ('speechSynthesis' in window)) ? zyListenQ() : zyPicQ();
+    return zhuyinL2Old(Math.random());
+  }
+  return zhuyinL2Old(r); }
+function zhuyinL2Old(r){
   if(r<0.2){ const it=kPick(BOPOMO_INITIALS); const pool=BOPOMO_INITIALS.filter(x=>x!==it).map(x=>x[1]); return {type:'choice', q:'注音符號『'+it[0]+'』，發音像下面哪個字？', opts:kOpts(it[1],kShuf(pool).slice(0,3),4), ans:it[1], hint:it[0]+' 讀「'+it[1]+'」。', speak:it[1]}; }
   if(r<0.4){ const ft=kPick(BOPOMO_FINALS); const pool=BOPOMO_FINALS.filter(x=>x!==ft).map(x=>x[1]); return {type:'choice', q:'注音符號『'+ft[0]+'』，發音像下面哪個字？', opts:kOpts(ft[1],kShuf(pool).slice(0,3),4), ans:ft[1], hint:ft[0]+' 讀「'+ft[1]+'」。', speak:ft[1]}; }
   if(r<0.6){ const t=kPick(TONE_MARKS); const pool=TONE_MARKS.filter(x=>x!==t).map(x=>x[1]); return {type:'choice', q:'注音的聲調符號『'+t[0]+'』是？', opts:kOpts(t[1],pool,4), ans:t[1], hint:'一聲不標、二ˊ三ˇ四ˋ、輕聲˙。'}; }
-  if(r<0.8){ const b=kPick(BOPOMO_BLENDS); const pool=BOPOMO_BLENDS.filter(x=>x!==b).map(x=>x.ans); return {type:'choice', q:b.parts+' 拼起來是哪個字？', opts:kOpts(b.ans,kShuf(pool).slice(0,3),4), ans:b.ans, hint:'一個一個符號慢慢拼起來唸唸看。'}; }
+  if(r<0.8){ if(typeof ZY_BANK!=='undefined') return zyBlendQ();   /* 原本 6 組沒對過字典（好是多音字），改用 ZY_BANK 的 88 組 */
+    const b=kPick(BOPOMO_BLENDS); const pool=BOPOMO_BLENDS.filter(x=>x!==b).map(x=>x.ans); return {type:'choice', q:b.parts+' 拼起來是哪個字？', opts:kOpts(b.ans,kShuf(pool).slice(0,3),4), ans:b.ans, hint:'一個一個符號慢慢拼起來唸唸看。'}; }
   const comp=kPick(BOPOMO_COMPOUND); const simple=kShuf(BOPOMO_SIMPLE).slice(0,2);
   return {type:'choice', q:'下面哪一個是由兩個以上韻符合起來的「結合韻」？', opts:kShuf([comp,...simple]), ans:comp, hint:'結合韻是好幾個韻符黏在一起，不是單一個符號。'};
 }
@@ -10354,14 +10403,22 @@ function renderKnowledge(subject){
     $('#kf').textContent=''; $('#kf').className='feedback';
     $('#knext').style.display='none';
     const pl=playLevel(subject);
-    let q; for(let t=0;t<8;t++){ q=genKnowledgeQ(subject, pl.li); if(!seenKQ.has(q.q)){ seenKQ.add(q.q); break; } }
+    _zyListenOK=true;
+    let q; for(let t=0;t<8;t++){ q=genKnowledgeQ(subject, pl.li); const key=q.q+'|'+(q.say||''); if(!seenKQ.has(key)){ seenKQ.add(key); break; } }
+    _zyListenOK=false;
     $('#kq').textContent=q.q;
-    const spk=$('#kqSpk'); if(spk){ if(q.speak){ spk.style.display=''; spk.onclick=()=>speak(q.speak); } else spk.style.display='none'; }
+    const spk=$('#kqSpk'); if(spk){
+      if(q.listen){ spk.style.display=''; spk.onclick=()=>speakZh(q.say); setTimeout(()=>speakZh(q.say), 250); }
+      else if(q.speak){ spk.style.display=''; spk.onclick=()=>speak(q.speak); } else spk.style.display='none'; }
     renderQ(q, { box:$('#kqbox'), moduleKey:subject, sun:meta.sun, fb:$('#kf'), statLi:pl.li,
       stageId:'kstage', hintId:'khint', gradeId:'kgrade', qText:q.q,
+      noLog:!!q.listen, explain:q.listen?q.why:undefined,
+      onWrong: q.listen ? ()=>logWrong(subject, '哪一個是「'+q.say+'」？', '', q.ans, q.opts, {ex:q.why}) : undefined,
       rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
       onDone:(ok)=>{ if(ok) right++; prog(); $('#knext').style.display='inline-block'; } });
     if(pl.tag){ const g=$('#kgrade'); if(g) g.insertAdjacentHTML('afterbegin', stretchBadge(pl.tag)); }
+    /* 幼幼看不懂字：聽聲音選圖的圖片選項、看圖選詞的圖放大（2026-10-04 稽核 D10） */
+    $('#kqbox').classList.toggle('zy-big', !!q.listen); $('#kq').classList.toggle('zy-pic', !!q.zyPic);
     prog();
   };
   $('#knext').onclick=next;
