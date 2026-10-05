@@ -2261,7 +2261,7 @@ function openManual(){
     <div class="man-sec">
       <h3>🌟 三個主角</h3>
       <p>🌿 <b>植物小花園</b>：8 種雨林食蟲植物，用陽光解鎖收藏。<br>
-      😴 <b>拖延怪</b>：從起床時間出發、往睡覺時間逼近；功課寫完、作息準時，牠就被推退。週末還有限定的「週末魔王」，練習連錯 2 題會遇到「粗心大王」帶你複習（每日小考、測驗卷做到一半不會被打斷，做完再複習）。<br>
+      😴 <b>拖延怪</b>：從起床時間出發、往睡覺時間逼近；功課寫完、作息準時，牠就被推退。週末還有限定的「週末魔王」，練習連錯 2 題會遇到「粗心大王」帶你複習（每日小考、測驗卷做到一半不會被打斷；小考做完可以複習剛剛的錯題）。<br>
       ☀️ <b>陽光</b>：遊戲裡的錢幣。寫功課、練習答對、作息打卡都會賺到。</p>
     </div>
     <div class="man-sec">
@@ -2495,6 +2495,9 @@ function load(seed){
       if(!Array.isArray(s.manualHolidays)) s.manualHolidays=[];
       if(!s.homeModules||typeof s.homeModules!=='object') s.homeModules=defaultHomeModules();
       if(!s.activeSubjects||typeof s.activeSubjects!=='object') s.activeSubjects=defaultActiveSubjects();
+      /* 缺的科目補成「開」（2026-10-05 全面找 bug）：預設漏了閱讀測驗（readtest），首頁要 ===true 才顯示，預設功課「閱讀測驗」從第一版起就沒出現過；
+         自訂首頁的勾勾卻是「沒寫 false 就算開」，家長看到是開的。家長自己關掉的（false）照舊 */
+      { const d=defaultActiveSubjects(); Object.keys(d).forEach(k=>{ if(typeof s.activeSubjects[k]!=='boolean') s.activeSubjects[k]=d[k]; }); }
       if(!s.subjectIcons||typeof s.subjectIcons!=='object') s.subjectIcons=defaultSubjectIcons();
       if(!s.subjectNames||typeof s.subjectNames!=='object') s.subjectNames=defaultSubjectNames();
       if(s.bgm===undefined) s.bgm=false;
@@ -2687,7 +2690,7 @@ function defaultHomeModules(){
 }
 /* 科目開關：哪些科目（功課類型）要啟用 */
 function defaultActiveSubjects(){
-  return { chinese:true, math:true, social:true, nature:true, english:true, exam:true, num:true, logic:true, life:true, facts:true, zhuyin:true, science:true, coding:true, custom:true };
+  return { chinese:true, readtest:true, math:true, social:true, nature:true, english:true, exam:true, num:true, logic:true, life:true, facts:true, zhuyin:true, science:true, coding:true, custom:true };
 }
 /* 只回傳「啟用中」的科目功課 */
 /* 名稱有「假日」的功課（預設「假日測驗卷」）只在週六、週日算今天的功課（2026-10-05 Janice 定；原本每天都算，平日沒寫就被睡覺鎖擋）。
@@ -5622,10 +5625,12 @@ function defaultSchedule(){
 /* 功課排進哪些時段（2026-10-05 代試玩）：原本固定 19:00 起每 35 分一項，跟吃飯、洗澡重疊，6 項排到 21:55 超過睡覺時間。
    現在：19:00 起（還在吃飯就從吃完開始），跳過吃飯、洗澡，睡覺前排完；排不下先縮短每項（30→25→20→15 分），
    還是排不下就從放學 16:00 開始排；功課多到怎樣都排不下才照舊依序排 */
-function hwSlots(n){
+/* opt.busy：另外要避開的時段（已經排好的功課）；opt.from：只從這個時間往後排，排不下回傳 null（一天中途補功課用，2026-10-05 全面找 bug） */
+function hwSlots(n, opt){
+  opt=opt||{};
   const r=todayRoutine(); const lim=state.routineLimit||{eat:40,bath:30};
   const sleep=toMin(r.sleep);
-  const busy=[[toMin(r.eat), toMin(r.eat)+(lim.eat||40)], [toMin(r.bath), toMin(r.bath)+(lim.bath||30)]].sort((x,y)=>x[0]-y[0]);
+  const busy=[[toMin(r.eat), toMin(r.eat)+(lim.eat||40)], [toMin(r.bath), toMin(r.bath)+(lim.bath||30)]].concat(opt.busy||[]).sort((x,y)=>x[0]-y[0]);
   const fmt=t=>String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
   const free=start=>{ const segs=[]; let a=start;
     busy.forEach(([b0,b1])=>{ if(b1<=a || b0>=sleep) return; if(b0>a) segs.push([a, Math.min(b0,sleep)]); a=Math.max(a,b1); });
@@ -5633,6 +5638,7 @@ function hwSlots(n){
   const place=(start,step,dur)=>{ const out=[]; for(const [a,b] of free(start)){ let t=a; while(out.length<n && t+dur<=b){ out.push({time:fmt(t), dur}); t+=step; } } return out.length===n?out:null; };
   let start=19*60; busy.forEach(([b0,b1])=>{ if(b0<=start && b1>start) start=b1; });
   const tries=[[35,30],[30,25],[25,20],[20,15]];
+  if(opt.from!=null){ for(const [step,dur] of tries){ const got=place(opt.from,step,dur); if(got) return got; } return null; }
   for(const st of [start, Math.min(start,16*60)]) for(const [step,dur] of tries){ const got=place(st,step,dur); if(got) return got; }
   const out=[]; let t=start; for(let i=0;i<n;i++){ out.push({time:fmt(t), dur:30}); t+=35; } return out;
 }
@@ -5650,9 +5656,15 @@ function ensureSchedule(){
     const before=c.schedule.length;
     c.schedule=c.schedule.filter(x=>x.kind!=='homework' || wantIds.has(x.hwId));
     const have=new Set(c.schedule.filter(x=>x.kind==='homework').map(x=>x.hwId));
+    /* 新加的功課：從現在（最早 16:00）往後找空檔，避開吃飯、洗澡和已排好的功課（2026-10-05 全面找 bug：原本接在最後一項 +35 分，
+       例如 17:00 改年齡換成社會、自然，社會被排到 19:00 撞吃飯）。排不下才照舊接在最後一項後面 */
+    const add=want.filter(it=>!have.has(it.id));
+    const slots = add.length ? hwSlots(add.length, { busy:c.schedule.filter(x=>x.kind==='homework').map(x=>[toMin(x.time), toMin(x.time)+(x.dur||30)]),
+                                                      from:Math.max(16*60, Math.ceil(nowFrameMin()/5)*5) }) : null;
     let t=Math.max(19*60-35, ...c.schedule.filter(x=>x.kind==='homework').map(x=>toMin(x.time)%1440));
-    want.forEach(it=>{ if(have.has(it.id)) return; t+=35;
-      c.schedule.push({id:'sc_hw_'+it.id, label:displayHWName(it), time:String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0'), dur:30, emoji:subjectIcon(it.type), kind:'homework', hwId:it.id}); });
+    add.forEach((it,i)=>{ let time, dur=30;
+      if(slots){ time=slots[i].time; dur=slots[i].dur; } else { t+=35; time=String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); }
+      c.schedule.push({id:'sc_hw_'+it.id, label:displayHWName(it), time, dur, emoji:subjectIcon(it.type), kind:'homework', hwId:it.id}); });
     changed = changed || c.schedule.length!==before || want.some(it=>!have.has(it.id));
   }
   if(changed) save();
@@ -5879,12 +5891,13 @@ function openSchedModal(id){
 let megaUntil=0, heartTimer=null, battleState='playing', battleDismissed=false;
 let _lastZombTick=Date.now();
 /* 拖延怪休息（2026-10-05 代試玩）：①半夜到一天開頭之間——功課照日曆已換成新的一天，時間卻還算前一晚，新功課一打開全部超時；
-   ②第一次使用的那天、已過睡覺時間——家長多半晚上才設定，一打開就是「落後 925 分鐘、10 項超時」。回傳要顯示的文字，不用休息回傳 '' */
+   ②第一次使用的那天（整天）——家長多半晚上才設定，一打開就是「落後 925 分鐘、10 項超時」；預設作息下功課從 16:00 排，下午裝好也馬上超時
+     （2026-10-05 全面找 bug，Janice 選整天；原本只在過了睡覺時間才休息）。回傳要顯示的文字，不用休息回傳 '' */
 function zombieRest(){
   const d=new Date(), cal=d.getHours()*60+d.getMinutes();
   if(cal < dayFrameStart()) return '🌙 夜深了，拖延怪也去睡了。起床後牠才會再出發，先好好休息！';
   const c=C();
-  if(c.since && c.since===dateKey() && nowFrameMin() >= toMin(todayRoutine().sleep)) return '🌱 今天是第一天，先熟悉一下！明天起床後拖延怪才會出發。';
+  if(c.since && c.since===dateKey()) return '🌱 今天是第一天，先熟悉一下！明天起床後拖延怪才會出發。';
   return '';
 }
 function updateZombie(unfinished){
@@ -6179,7 +6192,9 @@ function logWrong(moduleKey, qText, yourAns, correct, opts, ctx){
   if(c.wrongStreak>=2 && _carelessHold){
     /* 每日小考、測驗卷、練 5 題、考前錯題做到一半不跳：原本直接換頁，小考作廢、拿不到星星陽光（2026-10-05 代試玩） */
     c.wrongStreak=0; save();
-    setTimeout(()=>toast('🤴 粗心大王偷偷提醒：慢慢看題目～做完再一起複習錯題'), 900);
+    /* 測驗卷沒有「做完」、練 5 題結束頁沒有複習按鈕，原本都寫「做完再一起複習」（2026-10-05 全面找 bug） */
+    const tail = _carelessHold==='quiz' ? '做完再一起複習錯題' : '答錯的題目收進錯題本了，之後會再複習';
+    setTimeout(()=>toast('🤴 粗心大王偷偷提醒：慢慢看題目～'+tail), 900);
   } else if(c.wrongStreak>=2){
     c.wrongStreak=0; save();
     /* 1.2 秒內點進造句卡的話不跳，不然孩子拍照送出到一半會被換成錯題複習（2026-09-28 D9 第二批） */
@@ -6188,7 +6203,7 @@ function logWrong(moduleKey, qText, yourAns, correct, opts, ctx){
 }
 
 /* 粗心大王暫停：每日小考、測驗卷、練 5 題、考前錯題開始時設 true，showTab()、小考結算、錯題複習開始時設回 false。
-   用 var：showTab 開機就會跑 */
+   每日小考設 'quiz'（結算頁有複習按鈕，提醒文字不同）。用 var：showTab 開機就會跑 */
 var _carelessHold=false;
 /* ---------- 點讀發音 ---------- */
 function speak(text){
@@ -10846,7 +10861,7 @@ function dailyQuizStatusHTML(){
   </div>`;
 }
 function renderDailyQuiz(){
-  _carelessHold=true;
+  _carelessHold='quiz';   /* 只有每日小考的結算頁有「複習剛剛答錯的題目」，粗心大王的提醒要分開寫 */
   const li=levelIdx(); const total=Math.min(15, liveDiff().quiz + 4);
   const pool=[]; const seenQ=new Set();
   for(let i=0;i<total;i++){
@@ -11115,7 +11130,9 @@ function renderParent(){
   /* 跟首頁一樣只算「自訂首頁」有開的科目；原本首頁寫 1/6、這裡寫 2/7，家長看不懂（2026-10-04 稽核 E8） */
   const finished = visibleHW().filter(it=>c.homework[it.id]===true).length;
   const hwTotal = visibleHW().length, hwHidden = allHW().length - hwTotal;
-  const hwHiddenNote = hwHidden ? '（另有 '+hwHidden+' 項的科目在「自訂首頁」關掉了，不算）' : '';
+  /* 不算的分兩種寫（2026-10-05 全面找 bug）：原本平日的「假日測驗卷」也被寫成「在自訂首頁關掉了」，家長以為自己設錯 */
+  const hwOff = allHW().filter(it=>state.activeSubjects[it.type]!==true).length, hwWeekend = hwHidden - hwOff;
+  const hwHiddenNote = hwHidden ? '（另有 '+[hwOff?hwOff+' 項的科目在「自訂首頁」關掉了':'', hwWeekend?hwWeekend+' 項假日功課只在週六、週日算':''].filter(Boolean).join('、')+'，不算）' : '';
   const week='';
   let weekHtml='';
   for(let i=6;i>=0;i--){ const k=dateKey(-i); const sec=c.timeByDate[k]||0; weekHtml+=`<span class="stat">${k.slice(5)}：${sec?fmt(sec):'0 分 00 秒'}</span>`; }
