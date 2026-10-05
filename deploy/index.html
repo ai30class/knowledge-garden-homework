@@ -1025,6 +1025,12 @@
   .sc-hist{margin:12px 0 0;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:#fff;} .sc-hist summary{cursor:pointer;font-weight:700;}
   .sc-hrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px;}
   .sc-lightbox{flex-direction:column;gap:12px;} .sc-lightbox img{max-width:94vw;max-height:80vh;border-radius:10px;background:#fff;}
+.wk-list{margin-top:6px}
+.wk-day{border-top:1px solid var(--line);padding:8px 0}
+.wk-name{font-weight:800;font-size:14px;margin-bottom:4px}
+.wk-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px 10px}
+.wk-f{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);min-width:0}
+.wk-f input.in{width:100%;max-width:none;min-width:0;padding:8px 8px;font-size:15px;box-sizing:border-box}
 .home-sign-mini{border:0;background:#fff4e5;color:#7a4100;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px;display:inline-block}
 </style>
 </head>
@@ -11276,14 +11282,12 @@ function renderParent(){
   let weekRows='';
   for(let i=0;i<7;i++){
     const rr=state.weekRoutine[i]||defaultWeekRoutine()[i];
-    weekRows+=`<tr>
-      <td style="padding:4px;text-align:left;">${dayNames[i]}</td>
-      <td style="padding:4px;"><input class="in" type="time" id="w${i}_wake" value="${rr.wake}" style="max-width:90px;"></td>
-      <td style="padding:4px;"><input class="in" type="time" id="w${i}_home" value="${rr.home||defaultWeekRoutine()[i].home}" style="max-width:90px;"></td>
-      <td style="padding:4px;"><input class="in" type="time" id="w${i}_eat" value="${rr.eat}" style="max-width:90px;"></td>
-      <td style="padding:4px;"><input class="in" type="time" id="w${i}_bath" value="${rr.bath}" style="max-width:90px;"></td>
-      <td style="padding:4px;"><input class="in" type="time" id="w${i}_sleep" value="${rr.sleep}" style="max-width:90px;"></td>
-    </tr>`;
+    /* 2026-10-05：原本是一列 6 格的表格、每格時間 90px（扣掉框線內距只剩約 60px），手機上時間被截成「上午／下午」還要橫向捲動。
+       改成每天一塊：星期在上、5 個時間自動換行（手機一排 2 個、電腦一排 5 個），id 不變 */
+    const wf=(k,lab,v)=>`<label class="wk-f"><span>${lab}</span><input class="in" type="time" id="w${i}_${k}" value="${v}"></label>`;
+    weekRows+=`<div class="wk-day"><div class="wk-name">${dayNames[i]}</div><div class="wk-fields">
+      ${wf('wake','🌞 起床',rr.wake)}${wf('home','🏠 到家',rr.home||defaultWeekRoutine()[i].home)}${wf('eat','🍚 吃飯',rr.eat)}${wf('bath','🛁 洗澡',rr.bath)}${wf('sleep','💤 睡覺',rr.sleep)}
+    </div></div>`;
   }
   /* 自訂扣分項：每一列＝一個家規，右邊「扣」直接對目前選到的孩子執行 */
   const pens=penaltyList();
@@ -11458,11 +11462,9 @@ function renderParent(){
     <div class="pgroup" data-cat="rules">
     <h2 style="margin-top:18px;font-size:17px;">📅 每週作息設定（星期一到日）</h2>
     <p class="hint">每天各自設定 起床 / 到家 / 吃飯 / 洗澡 / 睡覺。起床＝拖延怪出發、睡覺＝拖延怪截止（自動聯動）。<b>到家</b>＝放學（或安親班）回到家的時間，功課最早從這個時間開始排；兄弟姊妹時間不同就填比較晚的。</p>
-    <div style="overflow-x:auto;">
-    <table style="border-collapse:collapse;width:100%;font-size:13px;">
-      <tr><th style="padding:4px;text-align:left;">星期</th><th style="padding:4px;">🌞 起床</th><th style="padding:4px;">🏠 到家</th><th style="padding:4px;">🍚 吃飯</th><th style="padding:4px;">🛁 洗澡</th><th style="padding:4px;">💤 睡覺</th></tr>
+    <div class="wk-list">
       ${weekRows}
-    </table></div>
+    </div>
     <div style="margin-top:10px;"><button class="next-btn" id="saveWeek">💾 儲存整週作息</button></div>
 
     <h2 style="margin-top:18px;font-size:17px;">⏱ 作息扣分設定</h2>
