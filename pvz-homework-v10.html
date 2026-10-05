@@ -1338,6 +1338,7 @@ function normNums(s){
   fix(s,'studyMs',0,DAY,0,'練習時間');
   fix(s,'pinFails',0,1000,0,'密碼錯誤次數');
   fix(s,'pinLockUntil',0,now+M.pinMaxSec*1000,0,'密碼鎖時間');
+  fix(s,'startedAt',0,now+DAY,0,'開始使用時間'); fix(s,'lastBackupAt',0,now+DAY,0,'備份時間');
   if(s.routineLimit && typeof s.routineLimit==='object'){ fix(s.routineLimit,'eat',1,600,40,'作息設定'); fix(s.routineLimit,'bath',1,600,30,'作息設定'); }
   fix(s,'routineStep',1,600,5,'作息設定');
   fix(s,'routinePenalty',1,M.dayCap,5,'作息設定');
@@ -2292,7 +2293,8 @@ function openManual(){
       <p>分成六類：功課簽名與造句卡批改、真實獎勵、孩子與功課、作息與家規、學習紀錄與雷達（看孩子哪一科需要加強、最常錯哪幾題）、密碼與備份。離開後台或 5 分鐘沒操作會自動上鎖。<br>
       🔐 預設密碼 <b>1234</b>，第一次進去請先改掉。<br>
       ⏰ 孩子偷改手機時間（想繞過睡覺鎖、護眼鎖），遊戲會擋住，要家長密碼才能繼續。<br>
-      ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。備份檔不含家長密碼：換新手機還原後密碼是 1234，記得重新設定。</p>
+      ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。備份檔不含家長密碼：換新手機還原後密碼是 1234，記得重新設定。太久沒備份（超過 7 天），家長後台會提醒。<br>
+      💬 遇到問題或有建議：家長後台最下面「回報問題／給建議」，用 LINE 告訴作者。</p>
     </div>
     <div class="man-sec">
       <h3>📱 裝到手機桌面（像 APP 一樣）</h3>
@@ -2397,7 +2399,8 @@ function freshState(){
     routineLimit:{eat:40,bath:30}, routineStep:5, routinePenalty:5,
     penalties: defaultPenalties(), penaltyLog:[],
     schedule:[], scheduleDate:'', schedCheckin:5, schedOnTime:10,
-    studyPlan:{items:[]}
+    studyPlan:{items:[]},
+    startedAt:Date.now(), lastBackupAt:0   /* 備份提醒（2026-10-05）：開始使用的時間、上次按「一鍵備份」的時間 */
   };
 }
 /* _loadFailed 用 var：load() 在開機時就會被呼叫，比這一行的位置早 */
@@ -2431,6 +2434,8 @@ function load(seed){
         if(s.routine){ s.weekRoutine={}; for(let i=0;i<7;i++) s.weekRoutine[i]={...d[i], ...s.routine}; }
         else s.weekRoutine=d;
       }
+      /* 舊存檔沒有「到家」時間（2026-10-05 加）：補預設值。格式不對的也換成預設，不然功課排程會算出 NaN */
+      { const d=defaultWeekRoutine(); for(let i=0;i<7;i++){ const r=s.weekRoutine&&s.weekRoutine[i]; if(r && typeof r==='object' && !/^\d{2}:\d{2}$/.test(String(r.home||''))) r.home=d[i].home; } }
       if(!Array.isArray(s.homeworkList)){
         const def=defaultHomeworkList(); const old=s.homework||{};
         const nd={}; def.forEach(it=>{ nd[it.id]=!!(old[it.name]||old[it.type]); });
@@ -2502,6 +2507,8 @@ function load(seed){
       if(!s.subjectNames||typeof s.subjectNames!=='object') s.subjectNames=defaultSubjectNames();
       if(s.bgm===undefined) s.bgm=false;
       if(s.notifiedDate===undefined) s.notifiedDate='';
+      if(s.startedAt===undefined) s.startedAt=0;   /* 舊存檔：當成很久以前開始用，沒備份過就提醒（2026-10-05 備份提醒） */
+      if(s.lastBackupAt===undefined) s.lastBackupAt=0;
       if(typeof s.sentCardOn!=='boolean') s.sentCardOn=true;   /* 造句卡（2026-09-28 稽核 D9 第二批） */
       s.children.forEach(scNormChild);
       _loadFixes=normNums(s);   /* 稽核 E7：放在所有預設值補完之後 */
@@ -2680,8 +2687,9 @@ function dateKey(offset=0){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function defaultWeekRoutine(){
-  const wk={wake:'07:00', eat:'18:30', bath:'20:00', sleep:'21:00'};
-  const we={wake:'08:30', eat:'18:30', bath:'20:30', sleep:'21:30'};
+  /* home＝放學到家（2026-10-05 Janice 定：平日 17:00、週末 16:00）：功課最早從這個時間排 */
+  const wk={wake:'07:00', home:'17:00', eat:'18:30', bath:'20:00', sleep:'21:00'};
+  const we={wake:'08:30', home:'16:00', eat:'18:30', bath:'20:30', sleep:'21:30'};
   return {0:{...wk},1:{...wk},2:{...wk},3:{...wk},4:{...wk},5:{...we},6:{...we}};
 }
 /* 首頁可顯示的模組（家長/孩子都能自訂） */
@@ -5624,7 +5632,7 @@ function defaultSchedule(){
 }
 /* 功課排進哪些時段（2026-10-05 代試玩）：原本固定 19:00 起每 35 分一項，跟吃飯、洗澡重疊，6 項排到 21:55 超過睡覺時間。
    現在：19:00 起（還在吃飯就從吃完開始），跳過吃飯、洗澡，睡覺前排完；排不下先縮短每項（30→25→20→15 分），
-   還是排不下就從放學 16:00 開始排；功課多到怎樣都排不下才照舊依序排 */
+   還是排不下就從「到家」時間開始排（2026-10-05 前是固定 16:00）；功課多到怎樣都排不下才從到家時間依序排 */
 /* opt.busy：另外要避開的時段（已經排好的功課）；opt.from：只從這個時間往後排，排不下回傳 null（一天中途補功課用，2026-10-05 全面找 bug） */
 function hwSlots(n, opt){
   opt=opt||{};
@@ -5636,11 +5644,13 @@ function hwSlots(n, opt){
     busy.forEach(([b0,b1])=>{ if(b1<=a || b0>=sleep) return; if(b0>a) segs.push([a, Math.min(b0,sleep)]); a=Math.max(a,b1); });
     if(a<sleep) segs.push([a,sleep]); return segs; };
   const place=(start,step,dur)=>{ const out=[]; for(const [a,b] of free(start)){ let t=a; while(out.length<n && t+dur<=b){ out.push({time:fmt(t), dur}); t+=step; } } return out.length===n?out:null; };
-  let start=19*60; busy.forEach(([b0,b1])=>{ if(b0<=start && b1>start) start=b1; });
+  /* 最早從「到家」排（2026-10-05：原本固定 16:00，晚回家的孩子每天下午一打開就超時） */
+  const home=toMin(r.home||'16:00');
+  let start=Math.max(19*60, home); busy.forEach(([b0,b1])=>{ if(b0<=start && b1>start) start=b1; });
   const tries=[[35,30],[30,25],[25,20],[20,15]];
   if(opt.from!=null){ for(const [step,dur] of tries){ const got=place(opt.from,step,dur); if(got) return got; } return null; }
-  for(const st of [start, Math.min(start,16*60)]) for(const [step,dur] of tries){ const got=place(st,step,dur); if(got) return got; }
-  const out=[]; let t=start; for(let i=0;i<n;i++){ out.push({time:fmt(t), dur:30}); t+=35; } return out;
+  for(const st of [start, Math.min(start,home)]) for(const [step,dur] of tries){ const got=place(st,step,dur); if(got) return got; }
+  const out=[]; let t=Math.min(start,home); for(let i=0;i<n;i++){ out.push({time:fmt(t), dur:30}); t+=35; } return out;
 }
 /* 2026-09-28 稽核 B5：今日行程改成每個孩子各一份（c.schedule）。原本全家共用 state.schedule，
    功課那幾列取自「當天第一個打開的孩子」，妹妹的行程會出現哥哥的功課，被算成逾期、拖延怪一直逼近。
@@ -5656,11 +5666,11 @@ function ensureSchedule(){
     const before=c.schedule.length;
     c.schedule=c.schedule.filter(x=>x.kind!=='homework' || wantIds.has(x.hwId));
     const have=new Set(c.schedule.filter(x=>x.kind==='homework').map(x=>x.hwId));
-    /* 新加的功課：從現在（最早 16:00）往後找空檔，避開吃飯、洗澡和已排好的功課（2026-10-05 全面找 bug：原本接在最後一項 +35 分，
+    /* 新加的功課：從現在（最早到家時間）往後找空檔，避開吃飯、洗澡和已排好的功課（2026-10-05 全面找 bug：原本接在最後一項 +35 分，
        例如 17:00 改年齡換成社會、自然，社會被排到 19:00 撞吃飯）。排不下才照舊接在最後一項後面 */
     const add=want.filter(it=>!have.has(it.id));
     const slots = add.length ? hwSlots(add.length, { busy:c.schedule.filter(x=>x.kind==='homework').map(x=>[toMin(x.time), toMin(x.time)+(x.dur||30)]),
-                                                      from:Math.max(16*60, Math.ceil(nowFrameMin()/5)*5) }) : null;
+                                                      from:Math.max(toMin(todayRoutine().home||'16:00'), Math.ceil(nowFrameMin()/5)*5) }) : null;
     let t=Math.max(19*60-35, ...c.schedule.filter(x=>x.kind==='homework').map(x=>toMin(x.time)%1440));
     add.forEach((it,i)=>{ let time, dur=30;
       if(slots){ time=slots[i].time; dur=slots[i].dur; } else { t+=35; time=String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); }
@@ -8328,12 +8338,12 @@ function renderHome(){
     if(wt.style.display==='none'){
       const days=['星期一','星期二','星期三','星期四','星期五','星期六','星期日'];
       let html='<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;">';
-      html+='<tr><th style="text-align:left;padding:5px;border-bottom:2px solid #d8c98f;">星期</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">🌞 起床</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">🍚 吃飯</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">🛁 洗澡</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">💤 睡覺</th></tr>';
+      html+='<tr><th style="text-align:left;padding:5px;border-bottom:2px solid #d8c98f;">星期</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">🌞 起床</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">🏠 到家</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">🍚 吃飯</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">🛁 洗澡</th><th style="padding:5px;border-bottom:2px solid #d8c98f;">💤 睡覺</th></tr>';
       for(let i=0;i<7;i++){
         const rr=state.weekRoutine[i]||defaultWeekRoutine()[i];
         const isT=i===todayWeekdayIndex();
         const bg=isT?'background:#fff7d6;':'';
-        html+=`<tr style="${bg}"><td style="text-align:left;padding:5px;${isT?'font-weight:800;':''}">${days[i]}${isT?'(今天)':''}</td><td style="text-align:center;padding:5px;">${rr.wake}</td><td style="text-align:center;padding:5px;">${rr.eat}</td><td style="text-align:center;padding:5px;">${rr.bath}</td><td style="text-align:center;padding:5px;">${rr.sleep}</td></tr>`;
+        html+=`<tr style="${bg}"><td style="text-align:left;padding:5px;${isT?'font-weight:800;':''}">${days[i]}${isT?'(今天)':''}</td><td style="text-align:center;padding:5px;">${rr.wake}</td><td style="text-align:center;padding:5px;">${rr.home||defaultWeekRoutine()[i].home}</td><td style="text-align:center;padding:5px;">${rr.eat}</td><td style="text-align:center;padding:5px;">${rr.bath}</td><td style="text-align:center;padding:5px;">${rr.sleep}</td></tr>`;
       }
       html+='</table></div>';
       wt.innerHTML=html; wt.style.display='block'; btn.textContent='📅 收起整週作息表';
@@ -11102,6 +11112,20 @@ function findPendingRedemption(rewardId){
   for(let i=list.length-1;i>=0;i--){ if(list[i].rewardId===rewardId && list[i].status==='pending') return list[i]; }
   return null;
 }
+/* 備份提醒（2026-10-05 Janice 定，跟 Janice's Charis 同規則）：從沒備份過且用滿 3 天、或上次備份超過 7 天 → 家長後台提醒。
+   只看「一鍵備份」按下的時間（state.lastBackupAt）；還原備份檔時會帶回檔案裡的時間 */
+const BACKUP_REMIND_DAYS=7, BACKUP_FIRST_DAYS=3;
+function backupStatus(){
+  const daysSince=t=>Math.round((new Date(dateKey()) - new Date(dateKeyOf(new Date(t))))/86400000);
+  const at=state.lastBackupAt||0;
+  if(!at){
+    const used = state.startedAt ? daysSince(state.startedAt) : 999;
+    return { warn: used>=BACKUP_FIRST_DAYS, short:'還沒備份過', text:'還沒備份過。進度只存在這台裝置，換手機或清除瀏覽器資料就會不見，按下面的按鈕存一份。' };
+  }
+  const d=daysSince(at), when= d<=0?'今天': d===1?'昨天': d+' 天前';
+  if(d>=BACKUP_REMIND_DAYS) return { warn:true, short:'已經 '+d+' 天沒備份了', text:'已經 '+d+' 天沒備份了。進度只存在這台裝置，換手機或清除瀏覽器資料就會不見，按下面的按鈕存一份。' };
+  return { warn:false, short:'上次備份：'+when, text:'✓ 上次備份：'+when };
+}
 function renderParent(){
   if(!parentUnlocked){
     app.innerHTML = `
@@ -11255,6 +11279,7 @@ function renderParent(){
     weekRows+=`<tr>
       <td style="padding:4px;text-align:left;">${dayNames[i]}</td>
       <td style="padding:4px;"><input class="in" type="time" id="w${i}_wake" value="${rr.wake}" style="max-width:90px;"></td>
+      <td style="padding:4px;"><input class="in" type="time" id="w${i}_home" value="${rr.home||defaultWeekRoutine()[i].home}" style="max-width:90px;"></td>
       <td style="padding:4px;"><input class="in" type="time" id="w${i}_eat" value="${rr.eat}" style="max-width:90px;"></td>
       <td style="padding:4px;"><input class="in" type="time" id="w${i}_bath" value="${rr.bath}" style="max-width:90px;"></td>
       <td style="padding:4px;"><input class="in" type="time" id="w${i}_sleep" value="${rr.sleep}" style="max-width:90px;"></td>
@@ -11313,7 +11338,7 @@ function renderParent(){
     {k:'setup', t:'孩子、功課與題庫', d: state.children.length+' 位孩子・功課清單 '+allHW().length+' 項'},
     {k:'rules', t:'作息與家規', d:'每週作息、超時扣分、自訂扣分項、放假'},
     {k:'stats', t:'學習紀錄與雷達', d:(radar.weak.length?(radar.weak.length+' 科需要加強・'):'')+'正確率 '+acc+'%・今天練習 '+fmt(todaySec), warn: radar.weak.length>0},
-    {k:'security', t:'密碼、安全與備份', d: state.parentPIN==='1234'?'還在用預設密碼，建議修改':'睡覺鎖'+(state.sleepLock?'開':'關')+'・護眼鎖'+(state.eyeRestOn?'開':'關'), warn: state.parentPIN==='1234'}
+    {k:'security', t:'密碼、安全與備份', d: (backupStatus().warn?'⚠️ '+backupStatus().short+'・':'')+(state.parentPIN==='1234'?'還在用預設密碼，建議修改':'睡覺鎖'+(state.sleepLock?'開':'關')+'・護眼鎖'+(state.eyeRestOn?'開':'關')), warn: state.parentPIN==='1234' || backupStatus().warn}
   ];
   if(parentCat && !PCATS.some(p=>p.k===parentCat)) parentCat=null;
   const curCat=PCATS.find(p=>p.k===parentCat);
@@ -11326,6 +11351,8 @@ function renderParent(){
     </div>
     <div class="phub"${curCat?' hidden':''}>
       ${PCATS.map(p=>`<button class="pcard${p.warn?' warn':''}" data-pcat="${p.k}" type="button"><span><b>${p.t}</b><small>${escapeHtml(p.d)}</small></span>${ico('chevron','chev')}</button>`).join('')}
+      <!-- 回報問題（2026-10-05 Janice 定放家長後台，孩子看不到）：只是連到 LINE 官方帳號的連結，不加任何追蹤程式（ai30class.github.io 同源規矩） -->
+      <a class="pcard" id="pFeedback" href="${CREATOR_INFO.line}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit;"><span><b>💬 回報問題／給建議</b><small>用 LINE 告訴作者：在哪一頁、按了什麼、孩子幾年級，可以的話附截圖</small></span>${ico('chevron','chev')}</a>
     </div>
     <div class="pgroup" data-cat="stats">
     <div style="margin:6px 0;"><span class="stat">👦 孩子：${escapeHtml(c.name||'（未命名）')}</span>
@@ -11418,6 +11445,7 @@ function renderParent(){
     <div style="margin-top:18px;background:linear-gradient(135deg,#e9f8ef,#e3f1ff);border:2px solid #2e9e5b;border-radius:14px;padding:14px;">
       <div style="font-size:18px;font-weight:800;color:#1b7a40;margin-bottom:3px;">🛡 一鍵備份 / 還原</div>
       <p class="hint" style="margin:0 0 10px;color:#3a6b4a;">每次更新前先備份一次：換手機、清快取、或分享連結變動時，都能從檔案還原。檔案只存在你自己的裝置，不上傳。<b>備份檔不含家長密碼</b>：在原本的裝置還原會保留現在的密碼；換新手機還原後，密碼是預設的 1234，請到「密碼與安全」重新設定。</p>
+      ${(()=>{ const b=backupStatus(); return b.warn ? '<div id="backupWarn" style="background:#fff4e5;color:#7a4100;border-radius:10px;padding:8px 12px;margin:0 0 10px;font-weight:700;font-size:14px;">⚠️ '+b.text+'</div>' : '<p id="backupWarn" class="hint" style="margin:0 0 8px;'+(state.lastBackupAt?'color:#2e7d32;':'')+'">'+b.text+'</p>'; })()}
       <button id="exportBtn" style="width:100%;font-size:16px;font-weight:800;padding:14px;border:none;border-radius:10px;background:#2e9e5b;color:#fff;cursor:pointer;box-shadow:0 3px 0 #1b7a40;">💾 一鍵備份（下載存檔檔案）</button>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">
         <input type="file" id="importFile" accept="application/json" style="display:none;">
@@ -11429,10 +11457,10 @@ function renderParent(){
     </div>
     <div class="pgroup" data-cat="rules">
     <h2 style="margin-top:18px;font-size:17px;">📅 每週作息設定（星期一到日）</h2>
-    <p class="hint">每天各自設定 起床 / 吃飯 / 洗澡 / 睡覺。起床＝拖延怪出發、睡覺＝拖延怪截止（自動聯動）。</p>
+    <p class="hint">每天各自設定 起床 / 到家 / 吃飯 / 洗澡 / 睡覺。起床＝拖延怪出發、睡覺＝拖延怪截止（自動聯動）。<b>到家</b>＝放學（或安親班）回到家的時間，功課最早從這個時間開始排；兄弟姊妹時間不同就填比較晚的。</p>
     <div style="overflow-x:auto;">
     <table style="border-collapse:collapse;width:100%;font-size:13px;">
-      <tr><th style="padding:4px;text-align:left;">星期</th><th style="padding:4px;">🌞 起床</th><th style="padding:4px;">🍚 吃飯</th><th style="padding:4px;">🛁 洗澡</th><th style="padding:4px;">💤 睡覺</th></tr>
+      <tr><th style="padding:4px;text-align:left;">星期</th><th style="padding:4px;">🌞 起床</th><th style="padding:4px;">🏠 到家</th><th style="padding:4px;">🍚 吃飯</th><th style="padding:4px;">🛁 洗澡</th><th style="padding:4px;">💤 睡覺</th></tr>
       ${weekRows}
     </table></div>
     <div style="margin-top:10px;"><button class="next-btn" id="saveWeek">💾 儲存整週作息</button></div>
@@ -11693,6 +11721,7 @@ function renderParent(){
     try{
       /* 備份檔不放家長密碼：原本明碼存在檔案裡，孩子在下載資料夾就讀得到，家長分享備份也會外流（2026-10-04 稽核 E1）。
          還原時檔案沒有密碼就保留目前裝置的密碼；換新裝置要重新設定 */
+      state.lastBackupAt=Date.now(); save();   /* 備份提醒（2026-10-05）：記這次備份的時間，檔案裡也帶著 */
       const copy=JSON.parse(JSON.stringify(state)); delete copy.parentPIN; delete copy.pinFails; delete copy.pinLockUntil;
       delete copy.clockMax; delete copy.clockTamper; delete copy.clockNetSkew; delete copy.clockLog;   /* 稽核 E4：時間紀錄是這台裝置的，不跟著備份走 */
       const data=JSON.stringify(copy); const blob=new Blob([data],{type:'application/json'});
@@ -11703,6 +11732,7 @@ function renderParent(){
       a.href=url; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
       const tip=$('#backupTip'); if(tip) tip.textContent='✅ 已下載：'+fname+'（請留好在手機/電腦裡）';
       toast('💾 備份檔已下載');
+      const bw=$('#backupWarn'); if(bw){ bw.outerHTML='<p id="backupWarn" class="hint" style="margin:0 0 8px;color:#2e7d32;">✓ 上次備份：今天</p>'; }
     }catch(e){ toast('⚠️ 備份失敗：'+e.message); }
   };
   $('#importBtn').onclick=()=>$('#importFile').click();
@@ -11743,9 +11773,9 @@ function renderParent(){
   const sw=$('#saveWeek'); if(sw) sw.onclick=()=>{
     const wr=defaultWeekRoutine();
     for(let i=0;i<7;i++){
-      const wake=$('#w'+i+'_wake').value, eat=$('#w'+i+'_eat').value, bath=$('#w'+i+'_bath').value, sleep=$('#w'+i+'_sleep').value;
-      if(!wake||!eat||!bath||!sleep){ toast('請把星期'+(i+1)+'的四個時間都填好'); return; }
-      wr[i]={wake,eat,bath,sleep};
+      const wake=$('#w'+i+'_wake').value, home=$('#w'+i+'_home').value, eat=$('#w'+i+'_eat').value, bath=$('#w'+i+'_bath').value, sleep=$('#w'+i+'_sleep').value;
+      if(!wake||!home||!eat||!bath||!sleep){ toast('請把'+['星期一','星期二','星期三','星期四','星期五','星期六','星期日'][i]+'的五個時間都填好'); return; }
+      wr[i]={wake,home,eat,bath,sleep};
     }
     state.weekRoutine=wr; save(); goodSound(); toast('📅 整週作息已儲存'); renderParent();
   };
