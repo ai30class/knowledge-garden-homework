@@ -1031,7 +1031,7 @@
 .wk-name{font-weight:800;font-size:14px;margin-bottom:4px}
 .wk-fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px 10px}
 .wk-f{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted);min-width:0}
-.wk-f input.in{width:100%;max-width:none;min-width:0;padding:8px 8px;font-size:15px;box-sizing:border-box}
+.wk-f input.in{width:100%;max-width:100%;min-width:0;padding:8px 8px;font-size:15px;box-sizing:border-box;-webkit-appearance:none;appearance:none;display:block;text-align:center}   /* iPhone Safari 的時間欄有最小寬度，右欄會超出卡片（2026-10-06 模擬器發現） */
 .home-sign-mini{border:0;background:#fff4e5;color:#7a4100;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:700;cursor:pointer;margin-top:6px;display:inline-block}
 </style>
 </head>
