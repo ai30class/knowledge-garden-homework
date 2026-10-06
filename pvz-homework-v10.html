@@ -2298,6 +2298,7 @@ function openManual(){
       <h3>👨‍👩‍👧 家長後台（右上角齒輪 →「進入家長後台」）</h3>
       <p>分成六類：功課簽名與造句卡批改、真實獎勵、孩子與功課、作息與家規、學習紀錄與雷達（看孩子哪一科需要加強、最常錯哪幾題）、密碼與備份。離開後台或 5 分鐘沒操作會自動上鎖。<br>
       🔐 預設密碼 <b>1234</b>，第一次進去請先改掉。<br>
+      🏖 寒暑假：在「作息與家規」填開始、結束日期，期間首頁換成寒暑假功課清單，開學自動換回，不用每天按放假。<br>
       ⏰ 孩子偷改手機時間（想繞過睡覺鎖、護眼鎖），遊戲會擋住，要家長密碼才能繼續。<br>
       ⭐ <b>一鍵備份</b>：把存檔下載成檔案。換手機、清快取時，都能從檔案還原。備份檔不含家長密碼：換新手機還原後密碼是 1234，記得重新設定。太久沒備份（超過 7 天），家長後台會提醒。<br>
       💬 遇到問題或有建議：家長後台最下面「回報問題／給建議」，用 LINE 告訴作者。</p>
@@ -2406,7 +2407,7 @@ function freshState(){
     penalties: defaultPenalties(), penaltyLog:[],
     schedule:[], scheduleDate:'', schedCheckin:5, schedOnTime:10,
     studyPlan:{items:[]},
-    startedAt:Date.now(), lastBackupAt:0   /* 備份提醒（2026-10-05）：開始使用的時間、上次按「一鍵備份」的時間 */
+    startedAt:Date.now(), lastBackupAt:0, vacation:null   /* 備份提醒（2026-10-05）：開始使用的時間、上次按「一鍵備份」的時間 */
   };
 }
 /* _loadFailed 用 var：load() 在開機時就會被呼叫，比這一行的位置早 */
@@ -2515,6 +2516,11 @@ function load(seed){
       if(s.notifiedDate===undefined) s.notifiedDate='';
       if(s.startedAt===undefined) s.startedAt=0;   /* 舊存檔：當成很久以前開始用，沒備份過就提醒（2026-10-05 備份提醒） */
       if(s.lastBackupAt===undefined) s.lastBackupAt=0;
+      /* 寒暑假（2026-10-06）：格式不對（備份檔被改過）就當沒設定 */
+      { const v=s.vacation, ok=d=>typeof d==='string' && /^\d{4}-\d{2}-\d{2}$/.test(d);
+        if(!v || typeof v!=='object' || !ok(v.start) || !ok(v.end) || v.start>v.end) s.vacation=null;
+        else s.vacation={ name: (typeof v.name==='string' && v.name.trim()) ? v.name.trim().slice(0,8) : '寒假', start:v.start, end:v.end }; }
+      (s.children||[]).forEach(ch=>{ if(ch && ch.vacHomeworkList!==undefined && !Array.isArray(ch.vacHomeworkList)) delete ch.vacHomeworkList; });
       if(typeof s.sentCardOn!=='boolean') s.sentCardOn=true;   /* 造句卡（2026-09-28 稽核 D9 第二批） */
       s.children.forEach(scNormChild);
       _loadFixes=normNums(s);   /* 稽核 E7：放在所有預設值補完之後 */
@@ -3212,8 +3218,16 @@ function toggleStudyItem(id){
   save();
 }
 /* ---------- 功課清單 ---------- */
-function allHW(){ const c=C(); return (c && Array.isArray(c.homeworkList)) ? c.homeworkList : state.homeworkList; }
-function hwListOf(ch){ return Array.isArray(ch.homeworkList) ? ch.homeworkList : state.homeworkList; }
+/* ---------- 寒暑假（2026-10-06 Janice 定）----------
+   state.vacation={name,start,end}：全家一組日期（YYYY-MM-DD，含頭尾），家長照學校行事曆填，遊戲不預設日期。
+   期間首頁功課換成每個孩子各自的 c.vacHomeworkList（預設「寒假作業」或「暑假作業」＋「閱讀」），作息每天用週末那一排
+   （todayRoutine），拖延怪照常追；國定假日照舊放假；過了結束日自動換回平常清單 */
+function vacationOn(key){ const v=state.vacation; if(!v||!v.start||!v.end) return ''; const k=key||dateKey(); return (k>=v.start && k<=v.end) ? (v.name||'寒暑假') : ''; }
+function vacDefaultList(){ const nm=(state.vacation&&state.vacation.name)||'寒假';
+  return [{id:'v_hw', name:(/暑/.test(nm)?'暑假':'寒假')+'作業', type:'exam'}, {id:'v_read', name:'閱讀', type:'readtest'}]; }
+function vacHWOf(ch){ if(!Array.isArray(ch.vacHomeworkList) || !ch.vacHomeworkList.length) ch.vacHomeworkList=vacDefaultList(); return ch.vacHomeworkList; }
+function allHW(){ const c=C(); if(c && vacationOn()) return vacHWOf(c); return (c && Array.isArray(c.homeworkList)) ? c.homeworkList : state.homeworkList; }
+function hwListOf(ch){ if(vacationOn()) return vacHWOf(ch); return Array.isArray(ch.homeworkList) ? ch.homeworkList : state.homeworkList; }
 function hwItem(id){ return allHW().find(x=>x.id===id); }
 function tabForType(t){ return HW_TYPES[t] ? HW_TYPES[t].tab : 'home'; }
 function firstHWIdForTab(tab){
@@ -5590,7 +5604,7 @@ function isHolidayToday(){ return isHolidayOn(dateKey()); }
 
 /* ---------- 每週作息 / 拖延怪計時逼近 ---------- */
 function todayWeekdayIndex(){ return (new Date().getDay()+6)%7; }
-function todayRoutine(){ const wr=state.weekRoutine||defaultWeekRoutine(); return wr[todayWeekdayIndex()]; }
+function todayRoutine(){ const wr=state.weekRoutine||defaultWeekRoutine(); return wr[vacationOn() ? 5 : todayWeekdayIndex()]; }   /* 寒暑假每天用週末（星期六）那一排（2026-10-06） */
 function zombieBounds(){
   const r=todayRoutine();
   return {startMin:toMin(r.wake), endMin:toMin(r.sleep)};
@@ -6851,10 +6865,11 @@ function firstUnfinishedHW(){
   const c=C();
   return visibleHW().find(it=>c.homework[it.id]!==true && c.homework[it.id]!=='pending')||null;
 }
+var hwEditVac=null;   /* 家長後台功課清單正在編輯哪一份（null＝自動：寒暑假期間編寒暑假清單）。離開後台重設（2026-10-06） */
 function showTab(tab, hwId){
   clearQTimer(); _diffSubj=null; _carelessHold=false;   /* 2026-09-28 稽核 B11：原本答題到一半回首頁，約 25 秒後會自動算一題錯、跳出粗心大王蓋住首頁 */
   /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
-  if(tab!=='parent'){ parentUnlocked=false; parentCat=null; scRestoreChild(); }
+  if(tab!=='parent'){ parentUnlocked=false; parentCat=null; scRestoreChild(); hwEditVac=null; }
   if(tab!=='plan') _planUnlockUntil=0;
   refreshSunCount();
   const _ec=state.eyeRestUntil;
@@ -8232,6 +8247,7 @@ function renderHome(){
   <div class="home2">
     <div class="greet"><h1>${escapeHtml(name)}，${hello}！</h1><p>${tip}</p></div>
     ${hol?`<div class="alert2 holiday">${ico('flag')}<span style="flex:1;"><b>今天是「${escapeHtml(hol)}」</b>學校功課可以休息，自由練習照樣能賺陽光。</span></div>`:''}
+    ${(()=>{ const vn=vacationOn(); if(!vn||hol) return ''; const e=state.vacation.end.split('-'); return `<div class="alert2 holiday">${ico('flag')}<span style="flex:1;"><b>🏖 ${escapeHtml(vn)}中（到 ${+e[1]}/${+e[2]}）</b>今天的功課是${escapeHtml(vn)}清單，開學那天會自動換回來。</span></div>`; })()}
     ${penaltyBanner}
     ${scRedoBanner}
     ${overdueBanner}
@@ -11215,9 +11231,15 @@ function renderParent(){
         <button class="reset-btn" id="signNO${it.id}">↩ 退回</button></div></div>`).join('')
     : '<p style="color:#9a7b2e;">目前沒有等待簽名的功課 🎉</p>';
 
-  /* 功課清單自訂 */
-  let hwMgmt='<div style="margin-top:8px;">';
-  allHW().forEach((it,idx)=>{
+  /* 功課清單自訂。寒暑假（2026-10-06）：「平常｜寒暑假」兩份清單切換編輯，預設編輯今天用的那份 */
+  if(hwEditVac===null) hwEditVac=!!vacationOn();
+  const EL = hwEditVac ? vacHWOf(c) : (Array.isArray(c.homeworkList) ? c.homeworkList : (c.homeworkList=JSON.parse(JSON.stringify(state.homeworkList||defaultHomeworkList()))));
+  let hwMgmt=`<div class="seg-hw" style="display:flex;gap:6px;margin:8px 0 4px;">
+      <button type="button" class="${hwEditVac?'reset-btn':'next-btn'}" id="hwEdNormal">平常</button>
+      <button type="button" class="${hwEditVac?'next-btn':'reset-btn'}" id="hwEdVac">🏖 寒暑假</button></div>
+    <p class="hint" style="margin:0 0 4px;">${hwEditVac?'正在編輯<b>寒暑假清單</b>（寒暑假期間首頁用這份）':'正在編輯<b>平常清單</b>'}${vacationOn()?'。今天是'+escapeHtml(vacationOn())+'，首頁用寒暑假清單。':''}</p>
+    <div style="margin-top:8px;">`;
+  EL.forEach((it,idx)=>{
     const opts=Object.keys(HW_TYPES).map(t=>`<option value="${t}" ${t===it.type?'selected':''}>${HW_TYPES[t].label}</option>`).join('');
     hwMgmt+=`<div class="reward" style="align-items:center;">
       <div style="flex:1;display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
@@ -11226,7 +11248,7 @@ function renderParent(){
       </div>
       <div style="display:flex;gap:4px;flex-wrap:wrap;">
         <button class="reset-btn" id="up${it.id}" ${idx===0?'disabled':''}>⬆</button>
-        <button class="reset-btn" id="dn${it.id}" ${idx===allHW().length-1?'disabled':''}>⬇</button>
+        <button class="reset-btn" id="dn${it.id}" ${idx===EL.length-1?'disabled':''}>⬇</button>
         <button class="reset-btn" id="delhw${it.id}">🗑 刪除</button>
       </div>
     </div>`;
@@ -11467,6 +11489,18 @@ function renderParent(){
     </div>
     <div style="margin-top:10px;"><button class="next-btn" id="saveWeek">💾 儲存整週作息</button></div>
 
+    <h2 style="margin-top:18px;font-size:17px;">🏖 寒暑假</h2>
+    <p class="hint">寒暑假期間，首頁的功課換成「寒暑假清單」（在「孩子、功課與題庫 → 功課清單設定」切換到「寒暑假」編輯），每天都用星期六那一排作息，拖延怪照常追；國定假日照舊放假。過了結束日自動換回平常清單。日期請照學校行事曆填，全家共用一組日期。</p>
+    ${(()=>{ const v=state.vacation, today=dateKey(), md=d=>{ const a=d.split('-'); return +a[1]+'/'+(+a[2]); };
+      const st = !v ? '目前沒有設定寒暑假。' : vacationOn() ? '🏖 '+escapeHtml(v.name)+'中（'+md(v.start)+'～'+md(v.end)+'）' : (today<v.start ? escapeHtml(v.name)+' '+md(v.start)+' 開始（到 '+md(v.end)+'）' : escapeHtml(v.name)+'已結束（'+md(v.start)+'～'+md(v.end)+'），可以設定下一次');
+      return `<p style="font-weight:700;margin:6px 0;">${st}</p>
+      <div class="wk-fields" style="max-width:560px;">
+        <label class="wk-f"><span>名稱</span><select class="in" id="vacName"><option${(!v||!/暑/.test(v.name))?' selected':''}>寒假</option><option${(v&&/暑/.test(v.name))?' selected':''}>暑假</option></select></label>
+        <label class="wk-f"><span>開始</span><input class="in" type="date" id="vacStart" value="${v?v.start:''}"></label>
+        <label class="wk-f"><span>結束</span><input class="in" type="date" id="vacEnd" value="${v?v.end:''}"></label>
+      </div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><button class="next-btn" id="saveVac">💾 儲存寒暑假</button>${v?'<button class="reset-btn" id="clearVac">清除寒暑假</button>':''}</div>`; })()}
+
     <h2 style="margin-top:18px;font-size:17px;">⏱ 作息扣分設定</h2>
     <p class="hint">孩子首頁點「開始」再點「完成」某項作息，系統會算花了多少分鐘。超過允許時間就扣陽光（例如吃飯吃太久）。</p>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
@@ -11594,15 +11628,18 @@ function renderParent(){
     toast((c.sentWords.length?'✅ 已儲存 '+c.sentWords.length+' 個語詞':'✅ 已清空，改從詞卡抽詞')+(skip?'。⚠️ '+skip:''), skip?6000:2000);
   };
 
-  /* handlers：功課清單 */
-  allHW().forEach((it,idx)=>{
+  /* handlers：功課清單（EL＝正在編輯的那份：平常或寒暑假） */
+  const hen=$('#hwEdNormal'), hev=$('#hwEdVac');
+  if(hen) hen.onclick=()=>{ hwEditVac=false; renderParent(); };
+  if(hev) hev.onclick=()=>{ hwEditVac=true; renderParent(); };
+  EL.forEach((it,idx)=>{
     const n=$('#hwN'+it.id); if(n) n.onchange=()=>{ it.name=n.value.trim()||it.name; save(); renderParent(); };
     const t=$('#hwT'+it.id); if(t) t.onchange=()=>{ it.type=t.value; save(); renderParent(); };
-    const up=$('#up'+it.id); if(up && idx>0) up.onclick=()=>{ const a=allHW(); [a[idx-1],a[idx]]=[a[idx],a[idx-1]]; save(); renderParent(); };
-    const dn=$('#dn'+it.id); if(dn && idx<allHW().length-1) dn.onclick=()=>{ const a=allHW(); [a[idx+1],a[idx]]=[a[idx],a[idx+1]]; save(); renderParent(); };
+    const up=$('#up'+it.id); if(up && idx>0) up.onclick=()=>{ [EL[idx-1],EL[idx]]=[EL[idx],EL[idx-1]]; save(); renderParent(); };
+    const dn=$('#dn'+it.id); if(dn && idx<EL.length-1) dn.onclick=()=>{ [EL[idx+1],EL[idx]]=[EL[idx],EL[idx+1]]; save(); renderParent(); };
     const del=$('#delhw'+it.id); if(del) del.onclick=()=>{
-      if(allHW().length<=1){ toast('至少要保留一項功課喔！'); return; }
-      delete c.homework[it.id]; c.homeworkList=allHW().filter(x=>x.id!==it.id);
+      if(EL.length<=1){ toast('至少要保留一項功課喔！'); return; }
+      delete c.homework[it.id]; const rest=EL.filter(x=>x.id!==it.id); if(hwEditVac) c.vacHomeworkList=rest; else c.homeworkList=rest;
       if(currentHWId===it.id) currentHWId=null; save(); renderParent();
     };
   });
@@ -11610,15 +11647,28 @@ function renderParent(){
     const nm=$('#newHwName').value.trim(); const ty=$('#newHwType').value;
     if(!nm){ toast('請填寫功課名稱'); return; }
     const id='h'+Date.now();
-    allHW().push({id,name:nm,type:ty}); c.homework[id]=false; save(); renderParent();
+    EL.push({id,name:nm,type:ty}); c.homework[id]=false; save(); renderParent();
   };
+  /* handlers：寒暑假日期 */
+  const svac=$('#saveVac'); if(svac) svac.onclick=()=>{
+    const name=$('#vacName').value, start=$('#vacStart').value, end=$('#vacEnd').value;
+    if(!start||!end){ toast('請填開始和結束日期'); return; }
+    if(end<start){ toast('結束日期要在開始日期之後'); return; }
+    if((new Date(end)-new Date(start))/86400000 > 100){ toast('寒暑假超過 100 天，請確認日期有沒有填錯'); return; }
+    const was=state.vacation;
+    state.vacation={name, start, end};
+    /* 寒暑假清單還是預設（沒改過）的話，名稱跟著換（寒假作業 ↔ 暑假作業） */
+    state.children.forEach(ch=>{ const l=ch.vacHomeworkList; if(Array.isArray(l) && l.length===2 && l[0].id==='v_hw' && /^(寒|暑)假作業$/.test(l[0].name) && l[1].id==='v_read') l[0].name=(/暑/.test(name)?'暑假':'寒假')+'作業'; });
+    save(); goodSound(); toast('🏖 '+name+'已設定：'+start.slice(5).replace('-','/')+'～'+end.slice(5).replace('-','/')); renderParent();
+  };
+  const cvac=$('#clearVac'); if(cvac) cvac.onclick=()=>askConfirm('清除寒暑假設定？<br><span class="hint">寒暑假清單會留著，下次設定日期時再用。</span>', ()=>{ state.vacation=null; save(); toast('↩ 已清除寒暑假'); renderParent(); });
   if(editingRewardId){ const er=state.rewards.find(x=>x.id===editingRewardId); if(er){ const n=$('#rName'),cc2=$('#rCost'); if(n) n.value=er.name; if(cc2) cc2.value=er.cost; } }
 
   /* handlers：自訂題庫 */
   state.customBanks.forEach(b=>{
     const d=$('#delbank'+b.id); if(d) d.onclick=()=>{
       state.customBanks=state.customBanks.filter(x=>x.id!==b.id);
-      state.children.forEach(ch=>{ if(Array.isArray(ch.homeworkList)) ch.homeworkList=ch.homeworkList.filter(x=>!(x.type==='custom'&&x.bankId===b.id)); });
+      state.children.forEach(ch=>{ if(Array.isArray(ch.homeworkList)) ch.homeworkList=ch.homeworkList.filter(x=>!(x.type==='custom'&&x.bankId===b.id)); if(Array.isArray(ch.vacHomeworkList)) ch.vacHomeworkList=ch.vacHomeworkList.filter(x=>!(x.type==='custom'&&x.bankId===b.id)); });
       state.homeworkList=state.homeworkList.filter(x=>!(x.type==='custom'&&x.bankId===b.id));
       save(); renderParent();
     };
