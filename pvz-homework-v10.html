@@ -1025,6 +1025,7 @@
   .sc-hist{margin:12px 0 0;border:1px solid var(--line);border-radius:12px;padding:8px 12px;background:#fff;} .sc-hist summary{cursor:pointer;font-weight:700;}
   .sc-hrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:14px;}
   .sc-lightbox{flex-direction:column;gap:12px;} .sc-lightbox img{max-width:94vw;max-height:80vh;border-radius:10px;background:#fff;}
+.tl-mk.tl-mini .tl-ic,.tl-mk.tl-mini .tl-t{display:none}
 .wk-list{margin-top:6px}
 .wk-day{border-top:1px solid var(--line);padding:8px 0}
 .wk-name{font-weight:800;font-size:14px;margin-bottom:4px}
@@ -6029,7 +6030,10 @@ function renderTimeline(g){
   const aw=g.aw; if(!aw){ el.innerHTML=''; return; }
   const c=C();
   const hhmm=(m)=>{ m=((Math.round(m)%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
-  let marks='';
+  /* 行程太擠時只讓一部分顯示圖示＋時間，其餘只留小圓點（2026-10-06：到家改 17:00 後功課集中在傍晚，
+     圖示和時間標籤全疊在左邊看不清）。優先序：還沒做、時間最近的 → 其他；兩個標籤至少隔 TL_LABEL_GAP%（點圓點看得到名稱） */
+  const TL_LABEL_GAP=13;
+  const items=[];
   mySchedule().forEach(it=>{
     const m=toMin(it.time);
     if(m < aw.start-5 || m > aw.end+5) return;
@@ -6037,9 +6041,16 @@ function renderTimeline(g){
     const status=st.status||'todo';
     const late = status!=='done' && g.nowMin > m+(it.dur||0);
     const cls = status==='done'?'done':status==='checked'?'checked':(late?'overdue todo':'todo');
-    marks += `<div class="tl-mk ${cls}" style="left:${tlX(m)}%;" title="${escapeHtml(it.label)} ${escapeHtml(it.time)}">
-      <span class="tl-ic">${status==='done'?'✅':(it.emoji||'📌')}</span>
-      <span class="tl-t">${it.time}</span><span class="tl-dot"></span></div>`;
+    items.push({it, m, x:tlX(m), status, cls});
+  });
+  const prio=o=> (o.status!=='done' && o.m+(o.it.dur||0)>=g.nowMin) ? o.m-g.nowMin : 100000+Math.abs(o.m-g.nowMin);
+  const shown=[];
+  items.slice().sort((p,q)=>prio(p)-prio(q)).forEach(o=>{ if(shown.every(x=>Math.abs(x-o.x)>=TL_LABEL_GAP)){ o.show=true; shown.push(o.x); } });
+  let marks='';
+  items.forEach(o=>{
+    marks += `<div class="tl-mk ${o.cls}${o.show?'':' tl-mini'}" style="left:${o.x}%;" title="${escapeHtml(o.it.label)} ${escapeHtml(o.it.time)}">
+      <span class="tl-ic">${o.status==='done'?'✅':(o.it.emoji||'📌')}</span>
+      <span class="tl-t">${o.it.time}</span><span class="tl-dot"></span></div>`;
   });
   const nowPct=tlX(g.nowMin);
   const frontPct=laneX(g.doneR);
