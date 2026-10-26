@@ -686,6 +686,8 @@
   }
   nav.tabs .tab-btn:hover, nav.tabs .tab-btn:active{ transform:none; box-shadow:none; }
   nav.tabs .tab-btn:active{ background:var(--green-soft); }
+  /* 還沒輸入名字（開場畫面）時，下方分頁變淡、不能點（2026-10-26） */
+  body.kg-noname nav.tabs .tab-btn{ opacity:.4; }
   nav.tabs .tab-btn .ti{ width:24px; height:24px; }
   nav.tabs .tab-btn.active{ background:none; color:var(--green); font-weight:700; box-shadow:none; }
   nav.tabs .tab-btn.active::after{ content:""; position:absolute; bottom:3px; width:22px; height:3px; border-radius:999px; background:var(--green); }
@@ -6887,6 +6889,7 @@ function firstUnfinishedHW(){
 }
 var hwEditVac=null;   /* 家長後台功課清單正在編輯哪一份（null＝自動：寒暑假期間編寒暑假清單）。離開後台重設（2026-10-06） */
 function showTab(tab, hwId){
+  syncNameLock();
   clearQTimer(); _diffSubj=null; _carelessHold=false;   /* 2026-09-28 稽核 B11：原本答題到一半回首頁，約 25 秒後會自動算一題錯、跳出粗心大王蓋住首頁 */
   /* 離開家長後台就上鎖。原本解鎖後切回首頁，孩子再點「家長後台」不用密碼就能進去（2026-09-28 稽核 A4） */
   if(tab!=='parent'){ parentUnlocked=false; parentCat=null; scRestoreChild(); hwEditVac=null; }
@@ -8177,6 +8180,7 @@ function bindMoveBanner(){
 
 /* 開場引導：名字 → 4 張世界觀引導卡（含進度點） */
 function renderOnboarding(){
+  syncNameLock();
   const TOUR=[
     { e:'🌻', t:'這是你的小花園', b:'你種下的食蟲植物，會一起對抗想偷走專注力的「拖延怪」。把牠們打退，花園就長得越好！' },
     { e:'✍️', t:'寫功課 → 賺陽光', b:'完成今天的功課並請爸媽簽名，就能獲得陽光；簽名前，也可以點首頁的植物「發射露珠」把拖延怪打退！' },
@@ -8206,7 +8210,7 @@ function renderOnboarding(){
       $('#startBtn').onclick=()=>{
         const n=$('#nameInput').value.trim();
         if(!n){ badSound(); toast('請先輸入名字喔！'); return; }
-        _onboardStarted=true; C().name=n; save(); goodSound(); step=1; paint();
+        _onboardStarted=true; C().name=n; save(); syncNameLock(); goodSound(); step=1; paint();
       };
       $('#nameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#startBtn').click(); });
     } else {
@@ -12077,7 +12081,9 @@ function weekChartSVG(c){
 }
 
 /* ---------- 啟動 ---------- */
-$$('.tab-btn').forEach(b=> b.onclick=()=>showTab(b.dataset.tab));
+/* 2026-10-26：還沒輸入名字就點下方分頁，會跳過開場、變成沒名字的「小朋友」→ 先擋住，請孩子回開場輸入名字 */
+function syncNameLock(){ document.body.classList.toggle('kg-noname', !C().name); }
+$$('.tab-btn').forEach(b=> b.onclick=()=>{ if(!C().name){ badSound(); toast('請先輸入名字喔！'); return; } showTab(b.dataset.tab); });
 paintIcons(); { const sb=$('#settingsBtn'); if(sb) sb.onclick=openSettings; }
 applyActiveSubjects();
 applySubjectIcons();
