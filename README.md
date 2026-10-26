@@ -18,6 +18,8 @@ L1 幼幼(3-5) / L2 低年級(6-8) 不限時；L3~L5(國中) 限時，題庫量�
 - 或部署 `deploy/` 目錄（含 `manifest.json` / `sw.js` / `icon-512.png`）啟用 PWA 安裝
 
 ## 線上版
-https://ai30class.github.io/knowledge-garden-homework/
+https://garden.ai30class.com/（2026-10-26 起，Cloudflare，`wrangler deploy` 部署 `deploy/`）
+
+舊網址 https://ai30class.github.io/knowledge-garden-homework/（GitHub Pages `docs/`）搬家過渡期保留，首頁有搬家橫幅。
 
 > 本專案為原創 IP，植物造型與名稱皆為雨林食蟲植物原創設計。
