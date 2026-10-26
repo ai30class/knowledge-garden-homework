@@ -1299,6 +1299,11 @@ function tierBadge(tier){
 }
 
 const SAVE_KEY='bloom_homework_v10';
+/* 搬家（2026-10-26 Janice 定）：新網址 garden.ai30class.com，跟同在 ai30class.github.io 的 Charis 分開（同源規矩 E2）。
+   舊網址照常能玩、首頁加搬家橫幅；資料用備份檔搬（iPhone 加到主畫面的 App 跟 Safari 的資料是分開的，不能自動搬）。
+   本機測試用 ?oldsite=1 假裝是舊網址 */
+const NEW_SITE_URL='https://garden.ai30class.com/';
+const IS_OLD_SITE=/(^|\.)github\.io$/.test(location.hostname) || /[?&]oldsite=1\b/.test(location.search);
 /* 兩個分頁（或視窗）同時開同一個遊戲：存檔是整份寫入，舊分頁一存就把新分頁的進度整份蓋回去
    （家長在另一個分頁批改的陽光、紀錄會不見）。另一個分頁改過存檔時，這裡就停止存檔、請使用者重新整理。
    宣告放在最前面：開機讀檔時就會呼叫 save()，放後面會變成「還沒宣告就使用」（同稽核 A1 的雷）。2026-10-04 稽核 E5 */
@@ -8051,6 +8056,93 @@ function gardenPlantClick(p){
 /* 在哪一頁操作植物就重畫哪一頁（原本一律重畫首頁，在收藏頁點會跳走） */
 function rerenderGardenView(){ refreshSunCount(); if(currentTab==='collection') renderCollection(); else renderHome(); }
 
+/* 一鍵備份：下載存檔檔案，回傳檔名（2026-10-26 從家長後台抽出來，搬家橫幅也用同一份） */
+function downloadBackupFile(){
+  /* 備份檔不放家長密碼：原本明碼存在檔案裡，孩子在下載資料夾就讀得到，家長分享備份也會外流（2026-10-04 稽核 E1）。
+     還原時檔案沒有密碼就保留目前裝置的密碼；換新裝置要重新設定 */
+  state.lastBackupAt=Date.now(); save();   /* 備份提醒（2026-10-05）：記這次備份的時間，檔案裡也帶著 */
+  const copy=JSON.parse(JSON.stringify(state)); delete copy.parentPIN; delete copy.pinFails; delete copy.pinLockUntil;
+  delete copy.clockMax; delete copy.clockTamper; delete copy.clockNetSkew; delete copy.clockLog;   /* 稽核 E4：時間紀錄是這台裝置的，不跟著備份走 */
+  const data=JSON.stringify(copy); const blob=new Blob([data],{type:'application/json'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  const d=new Date(), pad=n=>String(n).padStart(2,'0');
+  const stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds());
+  const fname='知識小花園-備份-'+stamp+'.json';
+  a.href=url; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  return fname;
+}
+/* 從備份檔還原（家長後台、開場畫面「從舊版搬過來」共用） */
+function restoreFromBackupFile(f){
+  const rd=new FileReader();
+  /* 2026-09-28 稽核 A2：原本不檢查內容、也不先問就直接覆蓋；格式不完整的檔案會把存檔清空，甚至讓後台再也打不開 */
+  rd.onload=()=>{
+    let s; try{ s=JSON.parse(rd.result); }catch(err){ toast('⚠️ 讀取失敗：這不是小花園的備份檔'); return; }
+    const kids=(s&&typeof s==='object'&&Array.isArray(s.children)) ? s.children.filter(ch=>ch&&typeof ch==='object'&&!Array.isArray(ch)) : [];
+    if(!kids.length){ toast('⚠️ 檔案格式不正確：找不到孩子的資料'); return; }
+    const names=kids.map(ch=>escapeHtml(String(ch.name||'（未命名）').slice(0,20))).join('、');
+    /* 2026-10-26：還沒建立任何孩子（新網址第一次打開、開場畫面）時沒有進度可蓋，改用搬家的說法，不要嚇到家長 */
+    const isFresh=!state.children.some(ch=>ch&&ch.name);
+    const msg=isFresh
+      ? '要把這個檔案的資料<b>搬過來</b>嗎？<br>檔案裡有 '+kids.length+' 位孩子：'+names
+      : '要用這個備份檔<b>覆蓋目前所有進度</b>嗎？<br>檔案裡有 '+kids.length+' 位孩子：'+names+'<br><span class="hint">目前的進度會被取代。不確定的話，先按「一鍵備份」把現在的進度也存一份。</span>';
+    askConfirm(msg, ()=>{
+      const prevRaw=JSON.stringify(state), prevPIN=state.parentPIN;
+      const ns=load(s); const fixed=_loadFixes.slice();
+      if(_loadFailed){ toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return; }
+      /* 檔案裡有合法密碼才用；沒有的話 load() 會補成 1234，那樣會把家長改過的密碼變回預設，所以保留目前的 */
+      ns.parentPIN = /^\d{1,6}$/.test(String(s.parentPIN)) ? String(s.parentPIN) : prevPIN;
+      { const pv=JSON.parse(prevRaw);   /* 稽核 E4：時間紀錄留這台裝置的，不用備份檔裡的 */
+        ns.clockMax=Number(pv.clockMax)||Date.now(); ns.clockNetSkew=Number(pv.clockNetSkew)||0; ns.clockTamper=pv.clockTamper||null; ns.clockLog=Array.isArray(pv.clockLog)?pv.clockLog:[]; }
+      state=ns; _onboardStarted=true;   /* 開場畫面還原時，擋住 IDB 非同步讀檔把還原的資料蓋回去 */
+      try{ showTab('home'); }
+      catch(err){
+        state=load(JSON.parse(prevRaw));
+        try{ showTab('home'); }catch(_){}
+        toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return;
+      }
+      parentUnlocked=false; save();
+      if(fixed.length){ const names=[...new Set(fixed)]; toast('✅ 存檔已還原。備份檔裡有 '+fixed.length+' 個數字不合理，已自動修正（'+names.slice(0,4).join('、')+(names.length>4?' 等':'')+'）', 9000); }
+      else toast('✅ 存檔已還原');
+      if(state.parentPIN==='1234') setTimeout(()=>toast('🔑 備份檔不含家長密碼，現在是預設的 1234，請到家長後台「密碼與安全」重新設定', 8000), 3000);
+    }, isFresh?'搬過來':'確定還原');
+  };
+  rd.readAsText(f);
+}
+
+/* 搬家說明（2026-10-26）：舊網址首頁橫幅按「怎麼搬」打開。三步：下載搬家檔 → 新網址加到主畫面 → 從新圖示打開選「從舊版搬過來」 */
+function showMoveGuide(){
+  const ov=document.createElement('div'); ov.className='modal-ov';
+  ov.innerHTML=`<div class="modal" style="max-height:88vh;overflow:auto;">
+    <h3>🏡 小花園搬新家了</h3>
+    <p style="line-height:1.8;margin:8px 0 0;">新網址：<b>garden.ai30class.com</b><br>舊網址還能繼續玩，但之後會關掉。照下面三步，就能把孩子的陽光、植物、功課設定全部帶過去：</p>
+    <ol style="line-height:1.8;margin:12px 0 0;padding-left:22px;text-align:left;">
+      <li><b>下載搬家檔</b>（存在這台手機裡）<br><button class="next-btn" id="mvDl" style="margin:6px 0;">💾 下載搬家檔</button><span id="mvDlTip" class="hint" style="display:block;"></span></li>
+      <li><b>用 Safari／Chrome 打開新網址，加到主畫面</b><br><a class="reset-btn" id="mvGo" href="${NEW_SITE_URL}" target="_blank" rel="noopener" style="display:inline-block;margin:6px 0;text-decoration:none;">🌱 打開新網址</a></li>
+      <li><b>從主畫面的新圖示打開</b>，按「📦 從舊版搬過來」，選剛剛的搬家檔</li>
+    </ol>
+    <p class="hint" style="line-height:1.7;margin:10px 0 0;">搬家檔不含家長密碼，搬完請到家長後台「密碼與安全」重新設定；造句卡拍的照片也不會跟著搬（照片只存在這台手機）。確認新網址的資料都在，再把舊的主畫面圖示刪掉。</p>
+    <button class="reset-btn" id="mvClose" style="width:100%;margin-top:14px;">關閉</button>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.querySelector('#mvClose').onclick=close;
+  ov.onclick=(e)=>{ if(e.target===ov) close(); };
+  ov.querySelector('#mvDl').onclick=()=>{
+    try{ const fname=downloadBackupFile(); ov.querySelector('#mvDlTip').textContent='✅ 已下載：'+fname; toast('💾 搬家檔已下載'); }
+    catch(e){ toast('⚠️ 下載失敗：'+e.message); }
+  };
+}
+function moveBannerHTML(){
+  if(!IS_OLD_SITE) return '';
+  try{ if(localStorage.getItem('kg_move_snooze')===dateKey(0)) return ''; }catch(_){}
+  return `<div class="alert2 holiday" id="moveBanner">${ico('flag')}<span style="flex:1;"><b>🏡 小花園搬新家了：garden.ai30class.com</b>舊網址之後會關掉，請爸媽花一分鐘把資料搬過去。
+    <span style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="next-btn" id="moveHow" style="padding:6px 14px;font-size:14px;">怎麼搬？</button><button class="reset-btn" id="moveLater" style="padding:6px 14px;font-size:14px;">今天先不要</button></span></span></div>`;
+}
+function bindMoveBanner(){
+  const h=$('#moveHow'); if(h) h.onclick=showMoveGuide;
+  const l=$('#moveLater'); if(l) l.onclick=()=>{ try{ localStorage.setItem('kg_move_snooze', dateKey(0)); }catch(_){} const b=$('#moveBanner'); if(b) b.remove(); };
+}
+
 /* 開場引導：名字 → 4 張世界觀引導卡（含進度點） */
 function renderOnboarding(){
   const TOUR=[
@@ -8070,7 +8162,15 @@ function renderOnboarding(){
           <input id="nameInput" class="name-input" placeholder="輸入你的名字" maxlength="10">
         </div>
         <button class="next-btn" id="startBtn">🌱 開始種花園</button>
+        ${IS_OLD_SITE?`<div class="alert2 holiday" style="margin-top:18px;">${ico('flag')}<span style="flex:1;"><b>小花園搬新家了</b>請到新網址開始，之後就不用再搬一次。<br><a class="next-btn" href="${NEW_SITE_URL}" style="display:inline-block;margin-top:8px;padding:6px 14px;font-size:14px;text-decoration:none;">🌱 到新網址 garden.ai30class.com</a></span></div>`:''}
+        <div style="margin-top:22px;border-top:1px dashed #d9d2bf;padding-top:14px;">
+          <p class="hint" style="margin:0 0 8px;">${IS_OLD_SITE?'已經有小花園的備份檔？':'用過舊網址的小花園？有搬家檔或備份檔的話，可以把資料帶過來'}</p>
+          <input type="file" id="obImportFile" accept="application/json,.json" style="display:none;">
+          <button class="reset-btn" id="obImport">📦 ${IS_OLD_SITE?'從備份檔還原':'從舊版搬過來'}</button>
+        </div>
       </div>`;
+      $('#obImport').onclick=()=>$('#obImportFile').click();
+      $('#obImportFile').onchange=(e)=>{ const f=e.target.files[0]; e.target.value=''; if(f) restoreFromBackupFile(f); };
       $('#startBtn').onclick=()=>{
         const n=$('#nameInput').value.trim();
         if(!n){ badSound(); toast('請先輸入名字喔！'); return; }
@@ -8259,6 +8359,7 @@ function renderHome(){
     <div class="greet"><h1>${escapeHtml(name)}，${hello}！</h1><p>${tip}</p></div>
     ${hol?`<div class="alert2 holiday">${ico('flag')}<span style="flex:1;"><b>今天是「${escapeHtml(hol)}」</b>學校功課可以休息，自由練習照樣能賺陽光。</span></div>`:''}
     ${(()=>{ const vn=vacationOn(); if(!vn||hol) return ''; const e=state.vacation.end.split('-'); return `<div class="alert2 holiday">${ico('flag')}<span style="flex:1;"><b>🏖 ${escapeHtml(vn)}中（到 ${+e[1]}/${+e[2]}）</b>今天的功課是${escapeHtml(vn)}清單，開學那天會自動換回來。</span></div>`; })()}
+    ${moveBannerHTML()}
     ${penaltyBanner}
     ${scRedoBanner}
     ${overdueBanner}
@@ -8339,6 +8440,7 @@ function renderHome(){
   updateClock();
   /* 優先序：學校功課 → 讀書計劃 → 練習場（加分） */
   const hsm=$('#homeSignMini'); if(hsm) hsm.onclick=()=>{ showTab('parent'); parentCat='sign'; };   /* 2026-10-05 代試玩：功課沒全寫完時首頁沒有簽名入口 */
+  bindMoveBanner();
   const cta=$('#ctaStart'); if(cta) cta.onclick=()=>{
     if(ctaAct==='tasks') renderTodayTasks();
     else if(ctaAct==='sign'){ showTab('parent'); parentCat='sign'; }
@@ -11782,55 +11884,14 @@ function renderParent(){
   /* handlers：備份 / 還原 */
   $('#exportBtn').onclick=()=>{
     try{
-      /* 備份檔不放家長密碼：原本明碼存在檔案裡，孩子在下載資料夾就讀得到，家長分享備份也會外流（2026-10-04 稽核 E1）。
-         還原時檔案沒有密碼就保留目前裝置的密碼；換新裝置要重新設定 */
-      state.lastBackupAt=Date.now(); save();   /* 備份提醒（2026-10-05）：記這次備份的時間，檔案裡也帶著 */
-      const copy=JSON.parse(JSON.stringify(state)); delete copy.parentPIN; delete copy.pinFails; delete copy.pinLockUntil;
-      delete copy.clockMax; delete copy.clockTamper; delete copy.clockNetSkew; delete copy.clockLog;   /* 稽核 E4：時間紀錄是這台裝置的，不跟著備份走 */
-      const data=JSON.stringify(copy); const blob=new Blob([data],{type:'application/json'});
-      const url=URL.createObjectURL(blob); const a=document.createElement('a');
-      const d=new Date(), pad=n=>String(n).padStart(2,'0');
-      const stamp=d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'-'+pad(d.getHours())+pad(d.getMinutes())+pad(d.getSeconds());
-      const fname='知識小花園-備份-'+stamp+'.json';
-      a.href=url; a.download=fname; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      const fname=downloadBackupFile();
       const tip=$('#backupTip'); if(tip) tip.textContent='✅ 已下載：'+fname+'（請留好在手機/電腦裡）';
       toast('💾 備份檔已下載');
       const bw=$('#backupWarn'); if(bw){ bw.outerHTML='<p id="backupWarn" class="hint" style="margin:0 0 8px;color:#2e7d32;">✓ 上次備份：今天</p>'; }
     }catch(e){ toast('⚠️ 備份失敗：'+e.message); }
   };
   $('#importBtn').onclick=()=>$('#importFile').click();
-  $('#importFile').onchange=(e)=>{
-    const f=e.target.files[0]; if(!f) return;
-    const rd=new FileReader();
-    /* 2026-09-28 稽核 A2：原本不檢查內容、也不先問就直接覆蓋；格式不完整的檔案會把存檔清空，甚至讓後台再也打不開 */
-    rd.onload=()=>{
-      e.target.value='';
-      let s; try{ s=JSON.parse(rd.result); }catch(err){ toast('⚠️ 讀取失敗：這不是小花園的備份檔'); return; }
-      const kids=(s&&typeof s==='object'&&Array.isArray(s.children)) ? s.children.filter(ch=>ch&&typeof ch==='object'&&!Array.isArray(ch)) : [];
-      if(!kids.length){ toast('⚠️ 檔案格式不正確：找不到孩子的資料'); return; }
-      const names=kids.map(ch=>escapeHtml(String(ch.name||'（未命名）').slice(0,20))).join('、');
-      askConfirm('要用這個備份檔<b>覆蓋目前所有進度</b>嗎？<br>檔案裡有 '+kids.length+' 位孩子：'+names+'<br><span class="hint">目前的進度會被取代。不確定的話，先按「一鍵備份」把現在的進度也存一份。</span>', ()=>{
-        const prevRaw=JSON.stringify(state), prevPIN=state.parentPIN;
-        const ns=load(s); const fixed=_loadFixes.slice();
-        if(_loadFailed){ toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return; }
-        /* 檔案裡有合法密碼才用；沒有的話 load() 會補成 1234，那樣會把家長改過的密碼變回預設，所以保留目前的 */
-        ns.parentPIN = /^\d{1,6}$/.test(String(s.parentPIN)) ? String(s.parentPIN) : prevPIN;
-        { const pv=JSON.parse(prevRaw);   /* 稽核 E4：時間紀錄留這台裝置的，不用備份檔裡的 */
-          ns.clockMax=Number(pv.clockMax)||Date.now(); ns.clockNetSkew=Number(pv.clockNetSkew)||0; ns.clockTamper=pv.clockTamper||null; ns.clockLog=Array.isArray(pv.clockLog)?pv.clockLog:[]; }
-        state=ns;
-        try{ showTab('home'); }
-        catch(err){
-          state=load(JSON.parse(prevRaw));
-          try{ showTab('home'); }catch(_){}
-          toast('⚠️ 備份檔內容有問題，沒有還原，目前進度保持不變'); return;
-        }
-        parentUnlocked=false; save();
-        if(fixed.length){ const names=[...new Set(fixed)]; toast('✅ 存檔已還原。備份檔裡有 '+fixed.length+' 個數字不合理，已自動修正（'+names.slice(0,4).join('、')+(names.length>4?' 等':'')+'）', 9000); }
-        else toast('✅ 存檔已還原');
-      }, '確定還原');
-    };
-    rd.readAsText(f);
-  };
+  $('#importFile').onchange=(e)=>{ const f=e.target.files[0]; e.target.value=''; if(f) restoreFromBackupFile(f); };
 
   /* handlers：每週作息 / 放假 */
   const sw=$('#saveWeek'); if(sw) sw.onclick=()=>{
