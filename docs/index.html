@@ -1542,12 +1542,13 @@ const HW_TYPES={
   zhuyin:{label:'📗 閱讀測驗',tab:'zhuyin'},
   science:{label:'🧪 自然科學',tab:'science'},
   coding:{label:'💻 程式思維',tab:'coding'},
-  custom:{label:'📚 自訂題庫',tab:'custom'}
+  custom:{label:'📚 自訂題庫',tab:'custom'},
+  lessonbank:{label:'📒 國語課文題',tab:'lessonbank'}
 };
-const SUBJECT_NAMES={chinese:'國語',math:'數學',social:'社會',nature:'自然',english:'英文',exam:'測驗卷',num:'數感心算',logic:'邏輯推理',life:'生活常識',facts:'百科小知識',zhuyin:'國語', readtest:'閱讀測驗',science:'自然科學',coding:'程式思維',custom:'自訂題庫'};
-const SUBJECT_DESC={chinese:'注音練習',math:'算術',social:'閱讀理解',nature:'閱讀理解',english:'單字',exam:'混合測驗',num:'數感心算',logic:'邏輯推理',life:'生活常識',facts:'百科小知識',zhuyin:'注音·詞語·成語', readtest:'閱讀理解',science:'觀察實作',coding:'邏輯運算',custom:'題庫'};
+const SUBJECT_NAMES={chinese:'國語',math:'數學',social:'社會',nature:'自然',english:'英文',exam:'測驗卷',num:'數感心算',logic:'邏輯推理',life:'生活常識',facts:'百科小知識',zhuyin:'國語', readtest:'閱讀測驗',science:'自然科學',coding:'程式思維',custom:'自訂題庫',lessonbank:'國語課文題'};
+const SUBJECT_DESC={chinese:'注音練習',math:'算術',social:'閱讀理解',nature:'閱讀理解',english:'單字',exam:'混合測驗',num:'數感心算',logic:'邏輯推理',life:'生活常識',facts:'百科小知識',zhuyin:'注音·詞語·成語', readtest:'閱讀理解',science:'觀察實作',coding:'邏輯運算',custom:'題庫',lessonbank:'依課本出題'};
 function defaultSubjectIcons(){
-  return { chinese:'📘', math:'➕', social:'🏘️', nature:'🔬', english:'🔤', exam:'📝', num:'🧮', logic:'🧩', life:'🧠', facts:'🌍', zhuyin:'📗', readtest:'📖', science:'🧪', coding:'💻', custom:'📚' };
+  return { chinese:'📘', math:'➕', social:'🏘️', nature:'🔬', english:'🔤', exam:'📝', num:'🧮', logic:'🧩', life:'🧠', facts:'🌍', zhuyin:'📗', readtest:'📖', science:'🧪', coding:'💻', custom:'📚', lessonbank:'📒' };
 }
 function subjectIcon(t){ return (state.subjectIcons && state.subjectIcons[t]) || defaultSubjectIcons()[t] || '📘'; }
 function subjectName(t){ return (state.subjectNames && state.subjectNames[t]) || SUBJECT_NAMES[t] || t; }
@@ -1560,12 +1561,12 @@ function displayHWName(it){
   if(it.name && it.name!==def) return it.name;
   return subjectName(it.type);
 }
-function defaultSubjectNames(){ return {chinese:'國語',math:'數學',social:'社會',nature:'自然',english:'英文',exam:'測驗卷',num:'數感心算',logic:'邏輯推理',life:'生活常識',facts:'百科小知識',zhuyin:'國語', readtest:'閱讀測驗',science:'自然科學',coding:'程式思維',custom:'自訂題庫'}; }
+function defaultSubjectNames(){ return {chinese:'國語',math:'數學',social:'社會',nature:'自然',english:'英文',exam:'測驗卷',num:'數感心算',logic:'邏輯推理',life:'生活常識',facts:'百科小知識',zhuyin:'國語', readtest:'閱讀測驗',science:'自然科學',coding:'程式思維',custom:'自訂題庫',lessonbank:'國語課文題'}; }
 /* 依自訂圖示更新頂部科目按鈕 */
 function applySubjectIcons(){
   $$('.tab-btn[data-subject]').forEach(b=>{ const t=b.dataset.subject; b.textContent = subjectIcon(t)+' '+subjectName(t); });
 }
-const PRACTICE_TABS=['readtest','math','social','nature','english','enword','engrammar','enreading','exam','num','logic','life','facts','zhuyin','science','coding','dailyquiz','custom','review'];
+const PRACTICE_TABS=['readtest','math','social','nature','english','enword','engrammar','enreading','exam','num','logic','life','facts','zhuyin','science','coding','dailyquiz','custom','review','lessonbank'];
 
 /* 預設功課清單（2026-10-05 Janice 定）：幼幼、低年級（L1、L2）沒有社會、自然科（108 課綱低年級上「生活」），
    改成一項「生活」（練習連到生活常識）。不帶程度＝舊的完整清單（舊存檔遷移、相容用） */
@@ -1915,7 +1916,7 @@ function renderFill(cfg){
     else if(!quizCount(ok)) renderQuizDone(quizSess);
   };
   go.onclick=submit;
-  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') submit(); });
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing && e.keyCode!==229) submit(); });   /* 注音輸入法按 Enter 是選字，不算送出 */
   setTimeout(()=>{ try{ inp.focus(); }catch(e){} },60);
   if(cfg.timed!==false) startQTimer(()=>{ go.disabled=true; inp.disabled=true; inp.classList.add('ng'); timeoutMiss(cfg, correctVal, [correctVal]); }, cfg.timeMul);
 }
@@ -6492,6 +6493,7 @@ function scNormChild(ch){
       id:str(e.id).replace(/[^\w-]/g,'').slice(0,40), date:str(e.date).slice(0,10), words:words(e.words), grade:e.grade==='great'?'great':'ok',
       sun:Math.max(0,Math.min(15,Number(e.sun)||0)), photo:e.photo===true, at:Number(e.at)||0,
       typed:Array.isArray(e.typed)?e.typed.slice(0,5).map(x=>str(x).slice(0,80)):[] })).slice(-60) : [];
+  ch.textbook=cleanTextbook(ch.textbook);
   ch.sentWords=Array.isArray(ch.sentWords) ? ch.sentWords.filter(w=>typeof w==='string'&&w).map(w=>w.slice(0,8)).slice(0,30) : [];
 }
 function scOn(c){ c=c||C(); return state.sentCardOn!==false && !!SC_WORDS_BY_LEVEL[childLevel(c)]; }
@@ -6921,6 +6923,7 @@ function showTab(tab, hwId){
   else if(tab==='enreading') renderEnglish('reading');
   else if(tab==='exam') renderExam();
   else if(tab==='custom') renderCustom();
+  else if(tab==='lessonbank') renderLessonBank();
   else if(tab==='num') renderKnowledge('num');
   else if(tab==='logic') renderKnowledge('logic');
   else if(tab==='life') renderKnowledge('life');
@@ -7036,7 +7039,7 @@ function renderPracticeHub(){
   /* 2026-09-28 UI 改版：上面是今日挑戰（每日小考），下面四組科目，最後是複習錯題與測驗卷 */
   const c=C(); const rec=(c.quizLog||{})[dateKey()];
   const groups=[
-    {title:'國語', sub:'注音、閱讀、社會自然', items:[['zhuyin','注音'],['readtest','閱讀測驗'],['social','社會'],['nature','自然']]},
+    {title:'國語', sub:'注音、閱讀、社會自然', items:[['zhuyin','注音'],['lessonbank','課文題'],['readtest','閱讀測驗'],['social','社會'],['nature','自然']]},
     {title:'數學', sub:'計算、數感與邏輯', items:[['math','數學'],['num','數感'],['logic','邏輯'],['coding','程式思維']]},
     {title:'英文', sub:'單字、文法與閱讀', items:[['enword','英文單字','🔤'],['engrammar','英文文法','📝'],['enreading','英文閱讀','📖']]},
     {title:'知識', sub:'生活、百科與科學', items:[['life','生活常識'],['facts','百科'],['science','自然科學']]}
@@ -7866,6 +7869,8 @@ function openLessonModal(subjectId, fixedMaterial){
     const d=textbookLessons(tbPub.value, tbGrade.value, tbSubj.value, tbSem.value);
     if(!d){ badSound(); toast('這個組合目前沒有課本資料'); return; }
     ov.querySelector('#lsNames').value = d.n.join('\n');
+    /* 國語課本還沒設定時，順手記下這個孩子用哪一版（課文題照這個出題）；已設定的不覆蓋 */
+    if(tbSubj.value==='國語' && !C().textbook){ C().textbook=cleanTextbook({pub:tbPub.value, grade:tbGrade.value}); save(); }
     /* 只有這本教材還沒有任何課次時才從第 1 課開始；已有課次就沿用接續編號，
        否則會跟既有課號撞號、被當成重複而整批略過 */
     if(!exist.length) ov.querySelector('#lsStart').value = 1;
@@ -11126,6 +11131,109 @@ function renderDailyQuiz(){
   renderOne();
 }
 
+/* ---------- 國語課文題（2026-10-27）----------
+   題庫每一冊一個資料檔（assets/bank/），孩子的課本設定是那一版才下載；題目全部自編、不放課文，讀音查教育部辭典。
+   孩子的課本：c.textbook={pub,grade}（家長後台設定，或讀書計劃帶入國語課本時自動記下）；學期依日期判斷。
+   題型：read 閱讀理解／pick 字音字義／word 詞語運用＝四選一（選項打亂）；fix 改錯字／sound 看注音寫字＝打一個字（acc 是可接受的寫法） */
+const LESSON_BANKS={'康軒|6年級|國語|上':'assets/bank/knsh-g6-zh-1.json'};
+const TB_GRADES=['1年級','2年級','3年級','4年級','5年級','6年級'];
+const LB_TYPES=[['all','全部題型'],['read','閱讀理解'],['fix','改錯字'],['sound','看注音寫字'],['pick','字音字義'],['word','詞語運用']];
+const LB_ROUND=10;
+const LB_LEARN_URL='https://math.ai30class.com/';   /* 答錯時的「看不懂？」連結：只連首頁，不帶題目（2026-10-27 Janice 選） */
+function cleanTextbook(t){
+  if(!t || typeof t!=='object') return null;
+  const pub=String(t.pub||''), grade=String(t.grade||'');
+  /* 讀存檔時（state=load()）就會呼叫，那時下面的常數還沒建好，所以這裡直接寫清單 */
+  return (['康軒','南一','翰林'].includes(pub) && /^[1-6]年級$/.test(grade)) ? {pub, grade} : null;
+}
+function curSemester(d){ const m=(d||new Date()).getMonth()+1; return (m>=8||m===1)?'上':'下'; }
+function lessonBankUrl(tb){ return tb? (LESSON_BANKS[tb.pub+'|'+tb.grade+'|國語|'+curSemester()]||'') : ''; }
+function lessonBankList(){ return Object.keys(LESSON_BANKS).map(k=>{ const [p,g,,s]=k.split('|'); return p+' '+g+s+'學期'; }).join('、'); }
+const _lbCache={};
+function loadLessonBank(url){
+  if(_lbCache[url]) return Promise.resolve(_lbCache[url]);
+  return fetch(url).then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
+    .then(d=>{ if(!d || !Array.isArray(d.lessons)) throw new Error('bad'); _lbCache[url]=d; return d; });
+}
+let lbLesson=null, lbType='all';
+function renderLessonBank(){
+  const c=C(); const tb=c.textbook;
+  const head=`<h2>${subjectIcon('lessonbank')} 國語課文題</h2>`;
+  if(!tb){
+    app.innerHTML=`<div class="panel">${head}<div class="story">還沒設定國語課本喔！<br>請爸媽到「家長後台 → 孩子、功課與題庫 → 國語課本」選出版社和年級，就會出你課本的題目。</div>
+      <button class="reset-btn" id="lbBack" type="button">↩ 回練習場</button></div>`;
+    $('#lbBack').onclick=()=>showTab('practice'); return;
+  }
+  const url=lessonBankUrl(tb); const sem=curSemester();
+  if(!url){
+    app.innerHTML=`<div class="panel">${head}<div class="story">🌱 <b>${escapeHtml(tb.pub+' '+tb.grade+sem+'學期')}</b>的課文題還在準備中，做好了就會出現在這裡！<br><span class="hint">目前有：${lessonBankList()}</span></div>
+      <button class="reset-btn" id="lbBack" type="button">↩ 回練習場</button></div>`;
+    $('#lbBack').onclick=()=>showTab('practice'); return;
+  }
+  if(!_lbCache[url]){
+    app.innerHTML=`<div class="panel">${head}<p class="hint">題庫下載中…</p></div>`;
+    loadLessonBank(url).then(()=>{ if(currentTab==='lessonbank') renderLessonBank(); }).catch(()=>{
+      if(currentTab!=='lessonbank') return;
+      app.innerHTML=`<div class="panel">${head}<div class="story">題庫下載不下來，請確認有連上網路再試一次。（下載過一次之後，沒網路也能練）</div>
+        <button class="next-btn" id="lbRetry" type="button">🔄 再試一次</button> <button class="reset-btn" id="lbBack" type="button">↩ 回練習場</button></div>`;
+      $('#lbRetry').onclick=renderLessonBank; $('#lbBack').onclick=()=>showTab('practice');
+    });
+    return;
+  }
+  const bank=_lbCache[url];
+  if(lbLesson==null || !bank.lessons[lbLesson]){
+    app.innerHTML=`<div class="panel">${head}<p class="hint">${escapeHtml(tb.pub+' '+tb.grade+sem+'學期')}・選一課開始練習（每課 100 題，每回 ${LB_ROUND} 題）。題目要搭配課本作答喔！</p>
+      <div id="lbList"></div></div>`;
+    const list=$('#lbList');
+    bank.lessons.forEach((l,i)=>{
+      const b=document.createElement('button'); b.className='hw-card'; b.type='button';
+      b.innerHTML=`<span>第 ${i+1} 課　${escapeHtml(l.n)}</span><span>去練習 →</span>`;
+      b.onclick=()=>{ lbLesson=i; renderLessonBank(); };
+      list.appendChild(b);
+    });
+    return;
+  }
+  const les=bank.lessons[lbLesson];
+  app.innerHTML=`<div class="panel">${head}
+    <div class="rv-meta"><span class="q-grade">📘 第 ${lbLesson+1} 課 ${escapeHtml(les.n)}</span><button class="reset-btn" id="lbPick" type="button">換一課</button></div>
+    <div class="lb-types" style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0;">${LB_TYPES.map(([k,t])=>`<button class="${k===lbType?'next-btn':'reset-btn'}" data-lbt="${k}" type="button">${t}</button>`).join('')}</div>
+    <div id="lbBox"></div></div>`;
+  $('#lbPick').onclick=()=>{ lbLesson=null; renderLessonBank(); };
+  $$('[data-lbt]').forEach(b=>b.onclick=()=>{ lbType=b.dataset.lbt; renderLessonBank(); });
+  lessonRound(les);
+}
+function lbQObj(it){
+  if(it.t==='fix')   return {type:'fill', q:'找出【 】裡的錯字，寫出正確的字：\n'+it.q, ans:it.a, accept:it.acc||[it.a]};
+  if(it.t==='sound') return {type:'fill', q:'看注音，寫出括號裡的國字：\n'+it.q, ans:it.a, accept:it.acc||[it.a]};
+  return {type:'choice', q:it.q, opts:[it.a].concat(it.o||[]), ans:it.a, why:it.ex};
+}
+function lessonRound(les){
+  const pool=les.q.filter(x=>lbType==='all'||x.t===lbType);
+  const queue=kShuf(pool).slice(0,LB_ROUND);
+  let i=0, right=0;
+  const one=()=>{
+    const box=$('#lbBox'); if(!box) return;
+    if(i>=queue.length){
+      box.innerHTML=`<div style="text-align:center;"><p style="font-size:18px;font-weight:800;">這回 ${queue.length} 題，答對 ${right} 題 ${right===queue.length?'🎉':''}</p>
+        <button class="next-btn" id="lbAgain" type="button">再練一回</button> <button class="reset-btn" id="lbPick2" type="button">換一課</button></div>`;
+      $('#lbAgain').onclick=()=>lessonRound(les); $('#lbPick2').onclick=()=>{ lbLesson=null; renderLessonBank(); }; return;
+    }
+    const q=lbQObj(queue[i]);
+    box.innerHTML=`<div class="hint">第 ${i+1}/${queue.length} 題・${(LB_TYPES.find(t=>t[0]===queue[i].t)||[,''])[1]}</div>
+      <div class="q-row"><span class="q-text" style="white-space:pre-line;">${escapeHtml(q.q)}</span></div>
+      <div class="choices" id="lbQ"></div><div class="feedback" id="lbF"></div>
+      <button class="next-btn" id="lbN" style="display:none;" type="button">${i+1<queue.length?'下一題 ▶':'看結果 ▶'}</button>`;
+    renderQ(q, { box:$('#lbQ'), moduleKey:'lessonbank', sun:4, fb:$('#lbF'), timed:false, qText:q.q,
+      rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
+      onDone:(ok)=>{
+        if(ok) right++;
+        else $('#lbF').insertAdjacentHTML('beforeend', `<div class="hint" style="margin-top:6px;">看不懂？<a href="${LB_LEARN_URL}" target="_blank" rel="noopener">到「看懂了教室」看動畫解說 ↗</a>　也可以翻課本再讀一次。</div>`);
+        const nb=$('#lbN'); nb.style.display='inline-block'; nb.onclick=()=>{ i++; one(); };
+      } });
+  };
+  one();
+}
+
 /* 自訂題庫 */
 function renderCustom(){
   const item = currentHWId? hwItem(currentHWId):null;
@@ -11577,6 +11685,14 @@ function renderParent(){
       <p class="hint" style="margin:4px 0 0;">有填的詞會先出（批改通過的詞不會再出），不夠再從詞卡抽。每個詞最多 8 個字、最多 30 個。低年級建議填課本上的語詞，詞卡的詞偏中年級程度。</p>
     </div>
 
+    <h2 style="margin-top:18px;font-size:17px;">📒 國語課本（課文題）</h2>
+    <p class="hint">選 <b>${escapeHtml(c.name||'孩子')}</b> 用的國語課本，練習場的「課文題」就只出這一版的題目（學期依日期自動判斷：8 月～1 月上學期、2～7 月下學期）。在讀書計劃帶入國語課本時也會自動記下。目前有題庫：${lessonBankList()}。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <select id="tbcPub" class="in" style="max-width:110px;"><option value="">未設定</option>${textbookPublishers().map(p=>`<option value="${p}"${c.textbook&&c.textbook.pub===p?' selected':''}>${p}</option>`).join('')}</select>
+      <select id="tbcGrade" class="in" style="max-width:110px;">${TB_GRADES.map(g=>`<option value="${g}"${c.textbook&&c.textbook.grade===g?' selected':''}>${g}</option>`).join('')}</select>
+      <button class="next-btn" id="tbcSave" type="button">儲存課本</button>
+    </div>
+
     <h2 style="margin-top:18px;font-size:17px;">📅 讀書計劃</h2>
     <p class="hint">科目、教材、課次與考試排程都在「📅 讀書計劃」分頁裡設定（不放在這裡，才不用兩個地方來回跑）。目前 <b>${escapeHtml(c.name||'孩子')}</b> 有 ${studySubjectsOf(c.id).length} 科、${studyItemsOf(c.id).length} 課、${examsOf(c.id).length} 個考試。</p>
     <div style="margin-top:8px;"><button class="reset-btn" id="goPlanTab">📅 開啟讀書計劃</button></div>
@@ -11769,6 +11885,10 @@ function renderParent(){
     const waiting=state.sentCardOn!==false ? (state.children||[]).filter(o=>o.sentCard && o.sentCard.status==='pending') : [];
     if(waiting.length) askConfirm('還有 '+waiting.map(o=>escapeHtml(o.name||'孩子')).join('、')+' 的造句卡在等批改。關掉後看不到、也不能批改，重新打開才會回來。確定要關嗎？', flip, '確定關掉');
     else flip(); };
+  const tbcS=$('#tbcSave'); if(tbcS) tbcS.onclick=()=>{
+    const pub=$('#tbcPub').value; c.textbook = pub? cleanTextbook({pub, grade:$('#tbcGrade').value}) : null; save(); renderParent();
+    toast(c.textbook? ('✅ 已設定：'+c.textbook.pub+' '+c.textbook.grade+(lessonBankUrl(c.textbook)?'':'（這一版題庫還在準備中）')) : '已改成未設定', 3000);
+  };
   const scW=$('#scWordsSave'); if(scW) scW.onclick=()=>{
     const pw=scParseWords($('#scWords').value); c.sentWords=pw.words;
     if(c.sentCard && c.sentCard.status==='todo') c.sentCard=null;   /* 還沒送出的卡換成新語詞 */
