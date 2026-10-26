@@ -8114,7 +8114,7 @@ function showMoveGuide(){
   const ov=document.createElement('div'); ov.className='modal-ov';
   ov.innerHTML=`<div class="modal" style="max-height:88vh;overflow:auto;">
     <h3>🏡 小花園搬新家了</h3>
-    <p style="line-height:1.8;margin:8px 0 0;">新網址：<b>garden.ai30class.com</b><br>舊網址還能繼續玩，但之後會關掉。照下面三步，就能把孩子的陽光、植物、功課設定全部帶過去：</p>
+    <p style="line-height:1.8;margin:8px 0 0;">新網址：<b>garden.ai30class.com</b><br>舊網址 <b>11/16（一）起停用</b>，之後不能再玩、只能下載資料，請在那之前搬好。照下面三步，就能把孩子的陽光、植物、功課設定全部帶過去：</p>
     <ol style="line-height:1.8;margin:12px 0 0;padding-left:22px;text-align:left;">
       <li><b>下載搬家檔</b>（存在這台手機裡）<br><button class="next-btn" id="mvDl" style="margin:6px 0;">💾 下載搬家檔</button><span id="mvDlTip" class="hint" style="display:block;"></span></li>
       <li><b>用 Safari／Chrome 打開新網址，加到主畫面</b><br><a class="reset-btn" id="mvGo" href="${NEW_SITE_URL}" target="_blank" rel="noopener" style="display:inline-block;margin:6px 0;text-decoration:none;">🌱 打開新網址</a></li>
@@ -8135,7 +8135,7 @@ function showMoveGuide(){
 function moveBannerHTML(){
   if(!IS_OLD_SITE) return '';
   try{ if(localStorage.getItem('kg_move_snooze')===dateKey(0)) return ''; }catch(_){}
-  return `<div class="alert2 holiday" id="moveBanner">${ico('flag')}<span style="flex:1;"><b>🏡 小花園搬新家了：garden.ai30class.com</b>舊網址之後會關掉，請爸媽花一分鐘把資料搬過去。
+  return `<div class="alert2 holiday" id="moveBanner">${ico('flag')}<span style="flex:1;"><b>🏡 小花園搬新家了：garden.ai30class.com</b>舊網址 <b style="display:inline;color:#c0392b;">11/16（一）起停用</b>，之後不能再玩、只能下載資料，請爸媽在那之前花一分鐘把資料搬過去。
     <span style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="next-btn" id="moveHow" style="padding:6px 14px;font-size:14px;">怎麼搬？</button><button class="reset-btn" id="moveLater" style="padding:6px 14px;font-size:14px;">今天先不要</button></span></span></div>`;
 }
 function bindMoveBanner(){
@@ -8162,7 +8162,7 @@ function renderOnboarding(){
           <input id="nameInput" class="name-input" placeholder="輸入你的名字" maxlength="10">
         </div>
         <button class="next-btn" id="startBtn">🌱 開始種花園</button>
-        ${IS_OLD_SITE?`<div class="alert2 holiday" style="margin-top:18px;">${ico('flag')}<span style="flex:1;"><b>小花園搬新家了</b>請到新網址開始，之後就不用再搬一次。<br><a class="next-btn" href="${NEW_SITE_URL}" style="display:inline-block;margin-top:8px;padding:6px 14px;font-size:14px;text-decoration:none;">🌱 到新網址 garden.ai30class.com</a></span></div>`:''}
+        ${IS_OLD_SITE?`<div class="alert2 holiday" style="margin-top:18px;">${ico('flag')}<span style="flex:1;"><b>小花園搬新家了</b>舊網址 11/16（一）起停用，請到新網址開始，之後就不用再搬一次。<br><a class="next-btn" href="${NEW_SITE_URL}" style="display:inline-block;margin-top:8px;padding:6px 14px;font-size:14px;text-decoration:none;">🌱 到新網址 garden.ai30class.com</a></span></div>`:''}
         <div style="margin-top:22px;border-top:1px dashed #d9d2bf;padding-top:14px;">
           <p class="hint" style="margin:0 0 8px;">${IS_OLD_SITE?'已經有小花園的備份檔？':'用過舊網址的小花園？有搬家檔或備份檔的話，可以把資料帶過來'}</p>
           <input type="file" id="obImportFile" accept="application/json,.json" style="display:none;">
