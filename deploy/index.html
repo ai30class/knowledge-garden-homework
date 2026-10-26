@@ -1303,7 +1303,11 @@ const SAVE_KEY='bloom_homework_v10';
    舊網址照常能玩、首頁加搬家橫幅；資料用備份檔搬（iPhone 加到主畫面的 App 跟 Safari 的資料是分開的，不能自動搬）。
    本機測試用 ?oldsite=1 假裝是舊網址 */
 const NEW_SITE_URL='https://garden.ai30class.com/';
-const IS_OLD_SITE=/(^|\.)github\.io$/.test(location.hostname) || /[?&]oldsite=1\b/.test(location.search);
+const IS_OLD_SITE=/(^|\.)github\.io$/.test(location.hostname) || /[?&]oldsite=(1|closed)\b/.test(location.search);
+/* 舊網址停用（2026-10-26 Janice 定）：2026-11-16 起舊網址不能再玩，整個畫面蓋上「搬家專用頁」，只剩下載資料＋到新網址；舊站永遠不刪。
+   寫在程式裡、按日期自動切換，不用當天手動換檔（家長手機有離線快取，換檔不一定馬上生效）。本機測試用 ?oldsite=closed */
+const OLD_SITE_STOP='2026-11-16';
+const OLD_SITE_CLOSED=IS_OLD_SITE && (/[?&]oldsite=closed\b/.test(location.search) || dateKey(0)>=OLD_SITE_STOP);
 /* 兩個分頁（或視窗）同時開同一個遊戲：存檔是整份寫入，舊分頁一存就把新分頁的進度整份蓋回去
    （家長在另一個分頁批改的陽光、紀錄會不見）。另一個分頁改過存檔時，這裡就停止存檔、請使用者重新整理。
    宣告放在最前面：開機讀檔時就會呼叫 save()，放後面會變成「還沒宣告就使用」（同稽核 A1 的雷）。2026-10-04 稽核 E5 */
@@ -8138,6 +8142,34 @@ function moveBannerHTML(){
   return `<div class="alert2 holiday" id="moveBanner">${ico('flag')}<span style="flex:1;"><b>🏡 小花園搬新家了：garden.ai30class.com</b>舊網址 <b style="display:inline;color:#c0392b;">11/16（一）起停用</b>，之後不能再玩、只能下載資料，請爸媽在那之前花一分鐘把資料搬過去。
     <span style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"><button class="next-btn" id="moveHow" style="padding:6px 14px;font-size:14px;">怎麼搬？</button><button class="reset-btn" id="moveLater" style="padding:6px 14px;font-size:14px;">今天先不要</button></span></span></div>`;
 }
+/* 舊網址停用後的搬家專用頁：固定蓋在最上層，底下遊戲畫面重畫也不影響；孩子名單在 IndexedDB 載入後再更新一次 */
+function showOldSiteClosed(){
+  let ov=document.getElementById('oldClosed');
+  if(!ov){
+    ov=document.createElement('div'); ov.id='oldClosed';
+    ov.style.cssText='position:fixed;inset:0;z-index:2147483000;background:#fdf8ec;overflow:auto;padding:24px 16px;';
+    document.body.appendChild(ov);
+  }
+  const kids=(state.children||[]).filter(c=>c&&c.name).map(c=>escapeHtml(String(c.name).slice(0,20)));
+  ov.innerHTML=`<div style="max-width:440px;margin:0 auto;text-align:center;line-height:1.8;">
+    <div style="font-size:56px;">🏡</div>
+    <h2 style="margin:4px 0 8px;">小花園已經搬到新網址</h2>
+    <p style="margin:0 0 4px;">這個舊網址從 11/16 起停用，不能再玩了。<br>新網址：<b>garden.ai30class.com</b></p>
+    ${kids.length?`<div class="card" style="text-align:left;margin:18px 0;padding:14px 16px;">
+      <b>這台手機裡還有資料：</b>${kids.join('、')}<br>
+      <span class="hint">照下面兩步，就能把陽光、植物、功課設定帶到新網址：</span>
+      <ol style="margin:8px 0 0;padding-left:22px;">
+        <li><b>下載搬家檔</b><br><button class="next-btn" id="ocDl" style="margin:6px 0;">💾 下載搬家檔</button><span id="ocDlTip" class="hint" style="display:block;"></span></li>
+        <li><b>打開新網址、加到主畫面</b>，從新圖示打開後按「📦 從舊版搬過來」，選剛剛的搬家檔</li>
+      </ol>
+      <p class="hint" style="margin:8px 0 0;">搬家檔不含家長密碼，搬完請到家長後台「密碼與安全」重新設定；造句卡的照片不會跟著搬。</p>
+    </div>`:`<p class="hint" style="margin:18px 0;">這台手機裡沒有小花園的資料，直接到新網址開始就可以了。</p>`}
+    <a class="next-btn" href="${NEW_SITE_URL}" style="display:inline-block;padding:10px 22px;font-size:17px;text-decoration:none;">🌱 到新網址 garden.ai30class.com</a>
+    <p class="hint" style="margin:16px 0 0;">確認新網址的資料都在，再把舊的主畫面圖示刪掉。</p>
+  </div>`;
+  const dl=ov.querySelector('#ocDl');
+  if(dl) dl.onclick=()=>{ try{ const f=downloadBackupFile(); ov.querySelector('#ocDlTip').textContent='✅ 已下載：'+f; }catch(e){ ov.querySelector('#ocDlTip').textContent='⚠️ 下載失敗，請再按一次'; } };
+}
 function bindMoveBanner(){
   const h=$('#moveHow'); if(h) h.onclick=showMoveGuide;
   const l=$('#moveLater'); if(l) l.onclick=()=>{ try{ localStorage.setItem('kg_move_snooze', dateKey(0)); }catch(_){} const b=$('#moveBanner'); if(b) b.remove(); };
@@ -12050,12 +12082,13 @@ paintIcons(); { const sb=$('#settingsBtn'); if(sb) sb.onclick=openSettings; }
 applyActiveSubjects();
 applySubjectIcons();
 function bootApp(){
+  if(OLD_SITE_CLOSED){ showOldSiteClosed(); return; }
   if(!C().name){ renderOnboarding(); }
   else { showTab('home'); playIntro(); }
 }
 bootApp();
 /* 若上次背景音樂是開啟的，則在使用者第一次互動時自動續播（瀏覽器需手勢才能播放） */
-if(state.bgm){
+if(state.bgm && !OLD_SITE_CLOSED){
   const resumeBgm=()=>{ startBgm(); document.removeEventListener('pointerdown',resumeBgm); };
   document.addEventListener('pointerdown',resumeBgm);
 }
@@ -12067,7 +12100,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 /* 啟動後以 IndexedDB 為優先載入（比 localStorage 在 PWA 下更持久） */
-window.addEventListener('load', () => { hydrateFromIDB(); setTimeout(()=>{ try{ scCleanPhotos(); }catch(e){} }, 3000); });
+window.addEventListener('load', () => { hydrateFromIDB(); if(OLD_SITE_CLOSED) setTimeout(showOldSiteClosed,600); setTimeout(()=>{ try{ scCleanPhotos(); }catch(e){} }, 3000); });
 </script>
 </body>
 </html>
