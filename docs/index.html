@@ -214,8 +214,8 @@
   .q-timer b{position:absolute;right:8px;top:0;font-size:11px;color:#4a3d17;font-weight:900;line-height:15px;text-shadow:0 1px 0 rgba(255,255,255,.7);}
   .q-timer.warn i{background:linear-gradient(90deg,#f4a63a,#e0741b);}
   .q-timer.crit i{background:linear-gradient(90deg,#ef6f5c,#c0392b);}
-  .fill-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0;}
-  .fill-in{flex:1;min-width:120px;font-size:26px;font-weight:900;text-align:center;padding:12px 10px;border-radius:14px;border:3px solid #cfe3b0;background:#fffdf3;color:#3f3418;letter-spacing:1px;}
+  .fill-row{display:flex;width:100%;box-sizing:border-box;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0;}
+  .fill-in{flex:1;min-width:0;width:100%;font-size:26px;font-weight:900;text-align:center;padding:12px 10px;border-radius:14px;border:3px solid #cfe3b0;background:#fffdf3;color:#3f3418;letter-spacing:1px;}
   .fill-in:focus{outline:none;border-color:#7dc855;box-shadow:0 0 0 4px #d9f2c8;}
   .fill-in.ok{border-color:#4ea63b;background:#eafbe7;}
   .fill-in.ng{border-color:#c0392b;background:#fdecea;}
@@ -11135,7 +11135,8 @@ function renderDailyQuiz(){
    題庫每一冊一個資料檔（assets/bank/），孩子的課本設定是那一版才下載；題目全部自編、不放課文，讀音查教育部辭典。
    孩子的課本：c.textbook={pub,grade}（家長後台設定，或讀書計劃帶入國語課本時自動記下）；學期依日期判斷。
    題型：read 閱讀理解／shape 字形辨別／pick 字音字義／word 詞語運用＝四選一（選項打亂）；fix 改錯字／sound 看注音寫字＝打一個字（acc 是可接受的寫法） */
-/* 一～五上：2026-10-27 依教育百科 115 學年官方生字表＋教育部辭典核對；沒有課文原文可核對，閱讀理解先不放（.md 裡保留） */
+/* 一～六上：2026-10-27 依教育百科 115 學年官方生字表＋教育部辭典核對；一～五上沒有新版課文原文可核對，閱讀理解先不放（.md 裡保留）。
+   六上 2026-10-28 起放閱讀理解：照 115 課本照片逐題對過（第 6 課重寫、第 1～4、9 課修題），每課 100 題 */
 const LESSON_BANKS={
   '康軒|1年級|國語|上':'assets/bank/knsh-g1-zh-1.json', '康軒|2年級|國語|上':'assets/bank/knsh-g2-zh-1.json',
   '康軒|3年級|國語|上':'assets/bank/knsh-g3-zh-1.json', '康軒|4年級|國語|上':'assets/bank/knsh-g4-zh-1.json',
@@ -11151,7 +11152,8 @@ function cleanTextbook(t){
   return (['康軒','南一','翰林'].includes(pub) && /^[1-6]年級$/.test(grade)) ? {pub, grade} : null;
 }
 function curSemester(d){ const m=(d||new Date()).getMonth()+1; return (m>=8||m===1)?'上':'下'; }
-function lessonBankUrl(tb){ return tb? (LESSON_BANKS[tb.pub+'|'+tb.grade+'|國語|'+curSemester()]||'') : ''; }
+const LB_VER='20261028a';   /* 題庫內容改了就換這個版本號：瀏覽器、離線快取才不會繼續用舊題目 */
+function lessonBankUrl(tb){ const u=tb? (LESSON_BANKS[tb.pub+'|'+tb.grade+'|國語|'+curSemester()]||'') : ''; return u? u+'?v='+LB_VER : ''; }
 function lessonBankList(){ return Object.keys(LESSON_BANKS).map(k=>{ const [p,g,,s]=k.split('|'); return p+' '+g+s+'學期'; }).join('、'); }
 const _lbCache={};
 function loadLessonBank(url){
