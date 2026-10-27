@@ -12209,8 +12209,11 @@ function weekChartSVG(c){
 
 /* ---------- 啟動 ---------- */
 /* 2026-10-26：還沒輸入名字就點下方分頁，會跳過開場、變成沒名字的「小朋友」→ 先擋住，請孩子回開場輸入名字 */
-function syncNameLock(){ document.body.classList.toggle('kg-noname', !C().name); }
-$$('.tab-btn').forEach(b=> b.onclick=()=>{ if(!C().name){ badSound(); toast('請先輸入名字喔！'); return; } showTab(b.dataset.tab); });
+/* 只有開場畫面（所有孩子都還沒名字）才鎖下方分頁。2026-10-27 改：原本看「目前的孩子」有沒有名字，
+   搬家檔裡選中的孩子沒填名字時，資料都在、分頁卻全被鎖住點不了（Janice 回報） */
+function noNamedChild(){ return !(state.children||[]).some(c=>c && c.name); }
+function syncNameLock(){ document.body.classList.toggle('kg-noname', noNamedChild()); }
+$$('.tab-btn').forEach(b=> b.onclick=()=>{ if(noNamedChild()){ badSound(); toast('請先輸入名字喔！'); return; } showTab(b.dataset.tab); });
 paintIcons(); { const sb=$('#settingsBtn'); if(sb) sb.onclick=openSettings; }
 applyActiveSubjects();
 applySubjectIcons();
