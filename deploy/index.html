@@ -11138,13 +11138,14 @@ function renderDailyQuiz(){
 /* 一～六上：2026-10-27 依教育百科 115 學年官方生字表＋教育部辭典核對；一～五上沒有新版課文原文可核對，閱讀理解先不放（.md 裡保留）。
    六上 2026-10-28 起放閱讀理解：照 115 課本照片逐題對過（第 6 課重寫、第 1～4、9 課修題），每課 100 題。
    同日加補題（對照三份段考常考題型）：rad 部首／idiom 成語情境／struct 詞語結構／conj 關聯詞／write 寫作手法（不分課、每課都有），全部四選一，每課 123 題。
-   同日晚加 essay 課外短文（12 篇 44 題，不分課），題目先顯示短文，每課 167 題 */
+   同日晚加 essay 課外短文（12 篇 44 題，不分課），題目先顯示短文，每課 167 題
+   2026-10-29 加 spot 一段話找錯字（每課 3 段、每段 3 個錯字，不標位置），每課 170 題 */
 const LESSON_BANKS={
   '康軒|1年級|國語|上':'assets/bank/knsh-g1-zh-1.json', '康軒|2年級|國語|上':'assets/bank/knsh-g2-zh-1.json',
   '康軒|3年級|國語|上':'assets/bank/knsh-g3-zh-1.json', '康軒|4年級|國語|上':'assets/bank/knsh-g4-zh-1.json',
   '康軒|5年級|國語|上':'assets/bank/knsh-g5-zh-1.json', '康軒|6年級|國語|上':'assets/bank/knsh-g6-zh-1.json'};
 const TB_GRADES=['1年級','2年級','3年級','4年級','5年級','6年級'];
-const LB_TYPES=[['all','全部題型'],['read','閱讀理解'],['fix','改錯字'],['sound','看注音寫字'],['shape','字形辨別'],['pick','字音字義'],['word','詞語運用'],['rad','部首'],['idiom','成語情境'],['struct','詞語結構'],['conj','關聯詞'],['write','寫作手法'],['essay','課外短文']];   /* shape＝低年級（1、2 年級全部選擇題，每課 50 題） */
+const LB_TYPES=[['all','全部題型'],['read','閱讀理解'],['fix','改錯字'],['sound','看注音寫字'],['shape','字形辨別'],['pick','字音字義'],['word','詞語運用'],['rad','部首'],['idiom','成語情境'],['struct','詞語結構'],['conj','關聯詞'],['write','寫作手法'],['essay','課外短文'],['spot','一段話找錯字']];   /* shape＝低年級（1、2 年級全部選擇題，每課 50 題） */
 const LB_ROUND=10;
 const LB_LEARN_URL='https://math.ai30class.com/';   /* 答錯時的「看不懂？」連結：只連首頁，不帶題目（2026-10-27 Janice 選） */
 function cleanTextbook(t){
@@ -11154,7 +11155,7 @@ function cleanTextbook(t){
   return (['康軒','南一','翰林'].includes(pub) && /^[1-6]年級$/.test(grade)) ? {pub, grade} : null;
 }
 function curSemester(d){ const m=(d||new Date()).getMonth()+1; return (m>=8||m===1)?'上':'下'; }
-const LB_VER='20261028c';   /* 題庫內容改了就換這個版本號：瀏覽器、離線快取才不會繼續用舊題目 */
+const LB_VER='20261029a';   /* 題庫內容改了就換這個版本號：瀏覽器、離線快取才不會繼續用舊題目 */
 function lessonBankUrl(tb){ const u=tb? (LESSON_BANKS[tb.pub+'|'+tb.grade+'|國語|'+curSemester()]||'') : ''; return u? u+'?v='+LB_VER : ''; }
 function lessonBankList(){ return Object.keys(LESSON_BANKS).map(k=>{ const [p,g,,s]=k.split('|'); return p+' '+g+s+'學期'; }).join('、'); }
 const _lbCache={};
@@ -11221,6 +11222,53 @@ function lbQObj(it){
   if(it.t==='sound') return {type:'fill', q:'看注音，寫出括號裡的國字：\n'+it.q, ans:it.a, accept:it.acc||[it.a]};
   return {type:'choice', q:it.q, opts:[it.a].concat(it.o||[]), ans:it.a, why:it.ex};
 }
+/* 一段話找錯字（2026-10-29）：短文每個字都能點，點到錯字就寫正確的字；點到沒錯的字只提示、不算錯；
+   全部改對才算答對。沒改對的錯字各自記進錯題本（用【】標出來的改錯字題，錯題複習照一般填空出） */
+function lbSpot(it, box, fb, onDone){
+  const chars=[...it.q], err={}; it.e.forEach(([k,a,b])=>{ err[k]={a,b,st:0,your:''}; });
+  const total=it.e.length; let cur=null, ended=false;
+  box.innerHTML=`<div class="hint">這段話有 <b>${total}</b> 個錯字，點出來，再寫出正確的字。（已找到 <b id="spN">0</b>/${total}）</div>
+    <div class="lb-passage lb-spot" style="text-align:left;font-size:20px;line-height:2.1;background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.12);border-radius:10px;padding:8px 10px;margin:6px 0 10px;overflow-wrap:anywhere;">${chars.map((c,k)=>/[\u3400-\u9fff]/.test(c)?`<span class="sp-ch" data-k="${k}" style="cursor:pointer;border-radius:4px;padding:2px 1px;">${escapeHtml(c)}</span>`:escapeHtml(c)).join('')}</div>
+    <div id="spAsk"></div>
+    <button class="reset-btn" id="spGive" type="button" style="margin-top:8px;">找不到了，看答案</button>`;
+  const ask=box.querySelector('#spAsk'), span=k=>box.querySelector(`.sp-ch[data-k="${k}"]`);
+  const show=(k)=>{ const e=err[k], el=span(k); el.style.cursor='default';
+    el.innerHTML=`<s style="color:#999;">${escapeHtml(e.a)}</s><b style="color:${e.st===1?'#2e7d32':'#c0392b'};">${escapeHtml(e.b)}</b>`;
+    el.style.background=e.st===1?'rgba(46,125,50,.15)':'rgba(192,57,43,.12)'; };
+  const finish=()=>{
+    if(ended) return; ended=true; ask.innerHTML=''; box.querySelector('#spGive').style.display='none';
+    box.querySelectorAll('.sp-ch').forEach(el=>{ el.onclick=null; if(!err[el.dataset.k]) el.style.cursor='default'; });
+    const ok=Object.values(err).every(e=>e.st===1); box.querySelector('#spN').textContent=Object.values(err).filter(e=>e.st===1).length;
+    if(ok){ const ps=practiceSun(4,'lessonbank'); goodSound(); addSun(ps); onCorrect(ps); record('lessonbank',true); fb.textContent='🎉 '+total+' 個錯字全部找到、改對了！'; }
+    else { badSound(); record('lessonbank',false);
+      /* 一段只算錯一次：粗心大王看連錯次數，前面幾個字先把連錯壓住，最後一個再照原本的次數加 1 */
+      const c=C(), ws=c.wrongStreak||0, miss=Object.keys(err).filter(k=>err[k].st!==1);
+      miss.forEach((k,j)=>{ const e=err[k]; c.wrongStreak= j<miss.length-1? -1 : ws;
+        const qt='找出【 】裡的錯字，寫出正確的字：\n'+chars.map((c,j)=>j==k?'【'+c+'】':c).join('');
+        logWrong('lessonbank', qt, e.your||'（沒找到）', e.b, [e.b], {type:'fill', accept:[e.b]}); });
+      fb.textContent='💡 紅色的是沒找到或沒改對的字，正確的字寫在旁邊。'; }
+    onDone(ok);
+  };
+  const found=()=>{ box.querySelector('#spN').textContent=Object.values(err).filter(e=>e.st).length; if(Object.values(err).every(e=>e.st)) finish(); };
+  box.querySelectorAll('.sp-ch').forEach(el=>el.onclick=()=>{
+    if(ended) return; const k=el.dataset.k, e=err[k];
+    if(!e){ el.style.background='rgba(0,0,0,.12)'; setTimeout(()=>{ if(!err[k]) el.style.background=''; },600); fb.textContent=`「${el.textContent}」這個字沒有錯喔，再找找看。`; return; }
+    if(e.st) return;
+    if(cur!=null && err[cur] && !err[cur].st) span(cur).style.background='';
+    cur=k; el.style.background='rgba(255,193,7,.45)'; fb.textContent='';
+    ask.innerHTML=`<div class="fill-row"><span style="font-size:18px;font-weight:800;">「${escapeHtml(e.a)}」要改成：</span>
+      <input class="fill-in" id="spIn" type="text" placeholder="寫字" autocomplete="off" style="max-width:8em;"><button class="fill-go" id="spGo" type="button">送出 ✔</button></div>`;
+    const inp=ask.querySelector('#spIn');
+    const go=()=>{ const v=normAns(inp.value); if(v===''){ badSound(); toast('先寫下正確的字喔～'); inp.focus(); return; }
+      e.your=inp.value.trim(); e.st= v===normAns(e.b)?1:2; ask.innerHTML=''; cur=null; show(k);
+      if(e.st===1){ goodSound(); fb.textContent='✅ 改對了！'; } else { badSound(); fb.textContent=`❌ 「${e.a}」應該改成「${e.b}」。`; }
+      found(); };
+    ask.querySelector('#spGo').onclick=go;
+    inp.addEventListener('keydown',ev=>{ if(ev.key==='Enter' && !ev.isComposing && ev.keyCode!==229) go(); });
+    setTimeout(()=>{ try{ inp.focus(); }catch(x){} },60);
+  });
+  box.querySelector('#spGive').onclick=()=>{ Object.keys(err).forEach(k=>{ if(!err[k].st){ err[k].st=2; show(k); } }); finish(); };
+}
 function lessonRound(les){
   const pool=les.q.filter(x=>lbType==='all'||x.t===lbType);
   const queue=kShuf(pool).slice(0,LB_ROUND);
@@ -11231,6 +11279,13 @@ function lessonRound(les){
       box.innerHTML=`<div style="text-align:center;"><p style="font-size:18px;font-weight:800;">這回 ${queue.length} 題，答對 ${right} 題 ${right===queue.length?'🎉':''}</p>
         <button class="next-btn" id="lbAgain" type="button">再練一回</button> <button class="reset-btn" id="lbPick2" type="button">換一課</button></div>`;
       $('#lbAgain').onclick=()=>lessonRound(les); $('#lbPick2').onclick=()=>{ lbLesson=null; renderLessonBank(); }; return;
+    }
+    if(queue[i].t==='spot'){
+      box.innerHTML=`<div class="hint">第 ${i+1}/${queue.length} 題・一段話找錯字</div><div id="lbQ"></div><div class="feedback" id="lbF"></div>
+        <button class="next-btn" id="lbN" style="display:none;" type="button">${i+1<queue.length?'下一題 ▶':'看結果 ▶'}</button>`;
+      lbSpot(queue[i], $('#lbQ'), $('#lbF'), ok=>{ if(ok) right++;
+        const nb=$('#lbN'); nb.style.display='inline-block'; nb.onclick=()=>{ i++; one(); }; });
+      return;
     }
     const q=lbQObj(queue[i]);
     box.innerHTML=`<div class="hint">第 ${i+1}/${queue.length} 題・${(LB_TYPES.find(t=>t[0]===queue[i].t)||[,''])[1]}</div>
