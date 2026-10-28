@@ -11136,13 +11136,14 @@ function renderDailyQuiz(){
    孩子的課本：c.textbook={pub,grade}（家長後台設定，或讀書計劃帶入國語課本時自動記下）；學期依日期判斷。
    題型：read 閱讀理解／shape 字形辨別／pick 字音字義／word 詞語運用＝四選一（選項打亂）；fix 改錯字／sound 看注音寫字＝打一個字（acc 是可接受的寫法） */
 /* 一～六上：2026-10-27 依教育百科 115 學年官方生字表＋教育部辭典核對；一～五上沒有新版課文原文可核對，閱讀理解先不放（.md 裡保留）。
-   六上 2026-10-28 起放閱讀理解：照 115 課本照片逐題對過（第 6 課重寫、第 1～4、9 課修題），每課 100 題 */
+   六上 2026-10-28 起放閱讀理解：照 115 課本照片逐題對過（第 6 課重寫、第 1～4、9 課修題），每課 100 題。
+   同日加補題（對照三份段考常考題型）：rad 部首／idiom 成語情境／struct 詞語結構／conj 關聯詞／write 寫作手法（不分課、每課都有），全部四選一，每課 123 題 */
 const LESSON_BANKS={
   '康軒|1年級|國語|上':'assets/bank/knsh-g1-zh-1.json', '康軒|2年級|國語|上':'assets/bank/knsh-g2-zh-1.json',
   '康軒|3年級|國語|上':'assets/bank/knsh-g3-zh-1.json', '康軒|4年級|國語|上':'assets/bank/knsh-g4-zh-1.json',
   '康軒|5年級|國語|上':'assets/bank/knsh-g5-zh-1.json', '康軒|6年級|國語|上':'assets/bank/knsh-g6-zh-1.json'};
 const TB_GRADES=['1年級','2年級','3年級','4年級','5年級','6年級'];
-const LB_TYPES=[['all','全部題型'],['read','閱讀理解'],['fix','改錯字'],['sound','看注音寫字'],['shape','字形辨別'],['pick','字音字義'],['word','詞語運用']];   /* shape＝低年級（1、2 年級全部選擇題，每課 50 題） */
+const LB_TYPES=[['all','全部題型'],['read','閱讀理解'],['fix','改錯字'],['sound','看注音寫字'],['shape','字形辨別'],['pick','字音字義'],['word','詞語運用'],['rad','部首'],['idiom','成語情境'],['struct','詞語結構'],['conj','關聯詞'],['write','寫作手法']];   /* shape＝低年級（1、2 年級全部選擇題，每課 50 題） */
 const LB_ROUND=10;
 const LB_LEARN_URL='https://math.ai30class.com/';   /* 答錯時的「看不懂？」連結：只連首頁，不帶題目（2026-10-27 Janice 選） */
 function cleanTextbook(t){
@@ -11152,7 +11153,7 @@ function cleanTextbook(t){
   return (['康軒','南一','翰林'].includes(pub) && /^[1-6]年級$/.test(grade)) ? {pub, grade} : null;
 }
 function curSemester(d){ const m=(d||new Date()).getMonth()+1; return (m>=8||m===1)?'上':'下'; }
-const LB_VER='20261028a';   /* 題庫內容改了就換這個版本號：瀏覽器、離線快取才不會繼續用舊題目 */
+const LB_VER='20261028b';   /* 題庫內容改了就換這個版本號：瀏覽器、離線快取才不會繼續用舊題目 */
 function lessonBankUrl(tb){ const u=tb? (LESSON_BANKS[tb.pub+'|'+tb.grade+'|國語|'+curSemester()]||'') : ''; return u? u+'?v='+LB_VER : ''; }
 function lessonBankList(){ return Object.keys(LESSON_BANKS).map(k=>{ const [p,g,,s]=k.split('|'); return p+' '+g+s+'學期'; }).join('、'); }
 const _lbCache={};
