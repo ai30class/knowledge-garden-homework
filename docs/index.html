@@ -11137,13 +11137,14 @@ function renderDailyQuiz(){
    題型：read 閱讀理解／shape 字形辨別／pick 字音字義／word 詞語運用＝四選一（選項打亂）；fix 改錯字／sound 看注音寫字＝打一個字（acc 是可接受的寫法） */
 /* 一～六上：2026-10-27 依教育百科 115 學年官方生字表＋教育部辭典核對；一～五上沒有新版課文原文可核對，閱讀理解先不放（.md 裡保留）。
    六上 2026-10-28 起放閱讀理解：照 115 課本照片逐題對過（第 6 課重寫、第 1～4、9 課修題），每課 100 題。
-   同日加補題（對照三份段考常考題型）：rad 部首／idiom 成語情境／struct 詞語結構／conj 關聯詞／write 寫作手法（不分課、每課都有），全部四選一，每課 123 題 */
+   同日加補題（對照三份段考常考題型）：rad 部首／idiom 成語情境／struct 詞語結構／conj 關聯詞／write 寫作手法（不分課、每課都有），全部四選一，每課 123 題。
+   同日晚加 essay 課外短文（12 篇 44 題，不分課），題目先顯示短文，每課 167 題 */
 const LESSON_BANKS={
   '康軒|1年級|國語|上':'assets/bank/knsh-g1-zh-1.json', '康軒|2年級|國語|上':'assets/bank/knsh-g2-zh-1.json',
   '康軒|3年級|國語|上':'assets/bank/knsh-g3-zh-1.json', '康軒|4年級|國語|上':'assets/bank/knsh-g4-zh-1.json',
   '康軒|5年級|國語|上':'assets/bank/knsh-g5-zh-1.json', '康軒|6年級|國語|上':'assets/bank/knsh-g6-zh-1.json'};
 const TB_GRADES=['1年級','2年級','3年級','4年級','5年級','6年級'];
-const LB_TYPES=[['all','全部題型'],['read','閱讀理解'],['fix','改錯字'],['sound','看注音寫字'],['shape','字形辨別'],['pick','字音字義'],['word','詞語運用'],['rad','部首'],['idiom','成語情境'],['struct','詞語結構'],['conj','關聯詞'],['write','寫作手法']];   /* shape＝低年級（1、2 年級全部選擇題，每課 50 題） */
+const LB_TYPES=[['all','全部題型'],['read','閱讀理解'],['fix','改錯字'],['sound','看注音寫字'],['shape','字形辨別'],['pick','字音字義'],['word','詞語運用'],['rad','部首'],['idiom','成語情境'],['struct','詞語結構'],['conj','關聯詞'],['write','寫作手法'],['essay','課外短文']];   /* shape＝低年級（1、2 年級全部選擇題，每課 50 題） */
 const LB_ROUND=10;
 const LB_LEARN_URL='https://math.ai30class.com/';   /* 答錯時的「看不懂？」連結：只連首頁，不帶題目（2026-10-27 Janice 選） */
 function cleanTextbook(t){
@@ -11153,14 +11154,17 @@ function cleanTextbook(t){
   return (['康軒','南一','翰林'].includes(pub) && /^[1-6]年級$/.test(grade)) ? {pub, grade} : null;
 }
 function curSemester(d){ const m=(d||new Date()).getMonth()+1; return (m>=8||m===1)?'上':'下'; }
-const LB_VER='20261028b';   /* 題庫內容改了就換這個版本號：瀏覽器、離線快取才不會繼續用舊題目 */
+const LB_VER='20261028c';   /* 題庫內容改了就換這個版本號：瀏覽器、離線快取才不會繼續用舊題目 */
 function lessonBankUrl(tb){ const u=tb? (LESSON_BANKS[tb.pub+'|'+tb.grade+'|國語|'+curSemester()]||'') : ''; return u? u+'?v='+LB_VER : ''; }
 function lessonBankList(){ return Object.keys(LESSON_BANKS).map(k=>{ const [p,g,,s]=k.split('|'); return p+' '+g+s+'學期'; }).join('、'); }
 const _lbCache={};
 function loadLessonBank(url){
   if(_lbCache[url]) return Promise.resolve(_lbCache[url]);
   return fetch(url).then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
-    .then(d=>{ if(!d || !Array.isArray(d.lessons)) throw new Error('bad'); _lbCache[url]=d; return d; });
+    .then(d=>{ if(!d || !Array.isArray(d.lessons)) throw new Error('bad');
+      /* 課外短文：短文只存一份在 d.ps，題目的 p 是第幾篇；這裡換成短文本身 */
+      if(Array.isArray(d.ps)) d.lessons.forEach(l=>(l.q||[]).forEach(q=>{ if(typeof q.p==='number') q.p=d.ps[q.p]||null; }));
+      _lbCache[url]=d; return d; });
 }
 let lbLesson=null, lbType='all';
 function renderLessonBank(){
@@ -11230,6 +11234,7 @@ function lessonRound(les){
     }
     const q=lbQObj(queue[i]);
     box.innerHTML=`<div class="hint">第 ${i+1}/${queue.length} 題・${(LB_TYPES.find(t=>t[0]===queue[i].t)||[,''])[1]}</div>
+      ${queue[i].p&&queue[i].p.b?`<div class="lb-passage" style="white-space:pre-line;text-align:left;line-height:1.75;font-size:16px;background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.12);border-radius:10px;padding:10px 12px;margin:6px 0 10px;"><b>〈${escapeHtml(queue[i].p.h||'')}〉</b>\n${escapeHtml(queue[i].p.b)}</div>`:''}
       <div class="q-row"><span class="q-text" style="white-space:pre-line;">${escapeHtml(q.q)}</span></div>
       <div class="choices" id="lbQ"></div><div class="feedback" id="lbF"></div>
       <button class="next-btn" id="lbN" style="display:none;" type="button">${i+1<queue.length?'下一題 ▶':'看結果 ▶'}</button>`;
@@ -11237,7 +11242,7 @@ function lessonRound(les){
       rightMsg:'🎉 答對了！', wrongPrefix:'💡 正確是：',
       onDone:(ok)=>{
         if(ok) right++;
-        else $('#lbF').insertAdjacentHTML('beforeend', `<div class="hint" style="margin-top:6px;">看不懂？<a href="${LB_LEARN_URL}" target="_blank" rel="noopener">到「看懂了教室」看動畫解說 ↗</a>　也可以翻課本再讀一次。</div>`);
+        else $('#lbF').insertAdjacentHTML('beforeend', `<div class="hint" style="margin-top:6px;">看不懂？<a href="${LB_LEARN_URL}" target="_blank" rel="noopener">到「看懂了教室」看動畫解說 ↗</a>　${queue[i].p?'也可以回頭再讀一次短文。':'也可以翻課本再讀一次。'}</div>`);
         const nb=$('#lbN'); nb.style.display='inline-block'; nb.onclick=()=>{ i++; one(); };
       } });
   };
