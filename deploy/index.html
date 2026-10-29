@@ -1463,7 +1463,11 @@ window.addEventListener('storage', e=>{
      被當成「別的分頁存了新進度」而擋住整個畫面（模擬器實測第 22 毫秒觸發）。剛打開的頭 2.5 秒內，
      直接讀進這份最新的資料，不跳提示；真的同時開兩個分頁仍照舊擋住 */
   if(e.key===SAVE_KEY && e.newValue && performance.now()<2500 && !_onboardStarted){
-    try{ const s=JSON.parse(e.newValue); if(s && typeof s==='object'){ state=load(s); bootApp(); return; } }catch(_){}
+    try{ const s=JSON.parse(e.newValue); if(s && typeof s==='object'){
+      state=load(s);
+      /* 2026-10-30：孩子正在開場畫面打名字、對方存檔還是沒名字時，不重畫（不然剛打的名字會被清空）；其餘照舊重新決策 */
+      if(C().name || !document.getElementById('nameInput')) bootApp();
+      return; } }catch(_){}
   }
   _otherTabChanged=true; showOtherTabLock();
 });
