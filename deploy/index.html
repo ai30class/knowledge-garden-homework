@@ -8203,11 +8203,13 @@ function renderOnboarding(){
       app.innerHTML = `
       <div class="panel" style="text-align:center;">
         <h2>🌻 歡迎來到小花園</h2>
+        <p style="font-size:15px;line-height:1.75;margin:10px 4px 6px;color:#5a4a2a;">把寫功課變成守護花園的遊戲：寫完功課、請爸媽簽名就能賺陽光、換獎勵，還有國語、數學、英文練習題。</p>
         <p class="hint">先告訴我你的名字，我們一起種下屬於你的小花園吧！</p>
         <div style="margin:20px 0;">
           <input id="nameInput" class="name-input" placeholder="輸入你的名字" maxlength="10">
         </div>
         <button class="next-btn" id="startBtn">🌱 開始種花園</button>
+        <div style="margin-top:12px;"><button class="reset-btn" id="obHow">📖 先看看怎麼玩</button></div>   <!-- 2026-10-30：新來的人不知道這是什麼，開場就能看說明書（Janice） -->
         ${IS_OLD_SITE?`<div class="alert2 holiday" style="margin-top:18px;">${ico('flag')}<span style="flex:1;"><b>小花園搬新家了</b>舊網址 11/16（一）起停用，請到新網址開始，之後就不用再搬一次。<br><a class="next-btn" href="${NEW_SITE_URL}" style="display:inline-block;margin-top:8px;padding:6px 14px;font-size:14px;text-decoration:none;">🌱 到新網址 garden.ai30class.com</a></span></div>`:''}
         <div style="margin-top:22px;border-top:1px dashed #d9d2bf;padding-top:14px;">
           <p class="hint" style="margin:0 0 8px;">${IS_OLD_SITE?'已經有小花園的備份檔？':'用過舊網址的小花園？有搬家檔或備份檔的話，可以把資料帶過來'}</p>
@@ -8215,6 +8217,7 @@ function renderOnboarding(){
           <button class="reset-btn" id="obImport">📦 ${IS_OLD_SITE?'從備份檔還原':'從舊版搬過來'}</button>
         </div>
       </div>`;
+      $('#obHow').onclick=openManual;
       $('#obImport').onclick=()=>$('#obImportFile').click();
       $('#obImportFile').onchange=(e)=>{ const f=e.target.files[0]; e.target.value=''; if(f) restoreFromBackupFile(f); };
       $('#startBtn').onclick=()=>{
