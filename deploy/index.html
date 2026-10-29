@@ -1510,8 +1510,11 @@ function hydrateFromIDB(){
         if(s && typeof s==='object'){
           state = load(s);   // 走 load() 做欄位遷移補預設值，避免舊檔缺欄位
           if(!!C().name !== hadName) bootApp();   // IDB 有檔但首屏無名字 → 重新決策（跳過引導）
-          if(typeof renderHome==='function') renderHome();
-          setTimeout(()=>{ if(typeof renderHome==='function') renderHome(); },80);
+          /* 2026-10-29：還沒輸入名字（開場畫面）不能畫首頁，否則重開會跳過名字、變成沒名字的「小朋友」（Janice 回報） */
+          if(C().name){
+            if(typeof renderHome==='function') renderHome();
+            setTimeout(()=>{ if(typeof renderHome==='function') renderHome(); },80);
+          }
         }
       }catch(e){}
     } else {
@@ -2267,6 +2270,7 @@ function openManual(){
   if(document.querySelector('.modal-ov.manual-ov')) return; // 避免重複彈出
   const ov=document.createElement('div'); ov.className='modal-ov manual-ov';
   ov.innerHTML=`<div class="modal">
+    <button id="manX" aria-label="關閉" style="position:sticky;top:0;float:right;margin:-6px -6px 0 0;width:40px;height:40px;border-radius:50%;border:none;background:#efe8d6;color:#5a4a2a;font-size:20px;cursor:pointer;z-index:2;">✕</button>
     <h2 style="text-align:center;margin:0 0 4px;">🌻 怎麼玩小花園？</h2>
     <p style="text-align:center;color:#8a7a55;font-size:13px;margin:0 0 12px;">3 分鐘搞懂，陪孩子一起守護植物！</p>
     <div class="man-sec">
@@ -2332,6 +2336,7 @@ function openManual(){
   </div>`;
   document.body.appendChild(ov);
   ov.querySelector('#manClose').onclick=()=>ov.remove();
+  ov.querySelector('#manX').onclick=()=>ov.remove();   /* 2026-10-29：說明書很長，只有最下面能關，孩子以為卡住 */
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
 }
 
