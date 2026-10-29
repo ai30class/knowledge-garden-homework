@@ -14,6 +14,11 @@ check "manifest 在" "/manifest.json" 200
 check "離線快取程式在" "/sw.js" 200
 check "亂打的網址回「不存在」、不當掉" "/check-not-exist-$(date +%s)" 404
 check "亂打的網址（.npmrc）回「不存在」" "/.npmrc" 404
+# 2026-10-30：沒加 s 的 http 網址要轉到 https（不然 Safari 標「不安全」）
+case "$BASE" in https://*)
+  loc=$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' --max-time 20 "http://${BASE#https://}/")
+  if [ "$loc" = "301 $BASE/" ]; then echo "✓ http 會轉成 https（$loc）"; else echo "✗ http 沒有轉成 https（$loc）"; fail=1; fi ;;
+esac
 # 同源規矩：不准有第三方程式（只允許 Google Fonts 字型）
 ext=$(curl -s --max-time 20 "$BASE/" | grep -oE '<script[^>]+src="https?://[^"]+"' | grep -v 'fonts.googleapis.com' )
 if [ -z "$ext" ]; then echo "✓ 沒有載入第三方程式"; else echo "✗ 有第三方程式：$ext"; fail=1; fi

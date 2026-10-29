@@ -1,9 +1,11 @@
 {
   // 知識小花園新網址 garden.ai30class.com（2026-10-26 定；跟同在 ai30class.github.io 的 Charis 分開，同源規矩 E2）
-  // 純靜態：只放 deploy/ 的檔案，沒有程式（沒有 main），不存在的網址 Cloudflare 直接回 404
+  // 靜態檔案放 deploy/；2026-10-30 起加一支小程式 worker/index.js 只負責 http 轉 https（Safari 私密瀏覽標「不安全」），
+  // run_worker_first 讓每個請求都先經過它；binding ASSETS 交回靜態檔案，不存在的網址由 ASSETS 回 404（全域規矩：有 env.ASSETS 一定要有 binding）
   // 舊網址 ai30class.github.io/knowledge-garden-homework/ 照舊由 GitHub Pages 的 docs/ 提供（不要在 GitHub 設自訂網域，怕舊網址被轉走、舊資料拿不出來）
   "name": "knowledge-garden",
   "compatibility_date": "2025-09-01",
-  "assets": { "directory": "./deploy" },
+  "main": "worker/index.js",
+  "assets": { "directory": "./deploy", "binding": "ASSETS", "run_worker_first": true },
   "routes": [{ "pattern": "garden.ai30class.com", "custom_domain": true }]
 }
