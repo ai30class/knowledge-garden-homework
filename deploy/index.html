@@ -11238,13 +11238,13 @@ function lbSpot(it, box, fb, onDone){
   const finish=()=>{
     if(ended) return; ended=true; ask.innerHTML=''; box.querySelector('#spGive').style.display='none';
     box.querySelectorAll('.sp-ch').forEach(el=>{ el.onclick=null; if(!err[el.dataset.k]) el.style.cursor='default'; });
-    const ok=Object.values(err).every(e=>e.st===1); box.querySelector('#spN').textContent=Object.values(err).filter(e=>e.st===1).length;
+    const ok=Object.values(err).every(e=>e.st===1);
     if(ok){ const ps=practiceSun(4,'lessonbank'); goodSound(); addSun(ps); onCorrect(ps); record('lessonbank',true); fb.textContent='🎉 '+total+' 個錯字全部找到、改對了！'; }
     else { badSound(); record('lessonbank',false);
       /* 一段只算錯一次：粗心大王看連錯次數，前面幾個字先把連錯壓住，最後一個再照原本的次數加 1 */
       const c=C(), ws=c.wrongStreak||0, miss=Object.keys(err).filter(k=>err[k].st!==1);
       miss.forEach((k,j)=>{ const e=err[k]; c.wrongStreak= j<miss.length-1? -1 : ws;
-        const qt='找出【 】裡的錯字，寫出正確的字：\n'+chars.map((c,j)=>j==k?'【'+c+'】':c).join('');
+        const qt='找出【 】裡的錯字，寫出正確的字：\n'+chars.map((ch,n)=>n==k?'【'+ch+'】':(err[n]?err[n].b:ch)).join('');   /* 其他錯字換回正確的字，只留要考的這個 */
         logWrong('lessonbank', qt, e.your||'（沒找到）', e.b, [e.b], {type:'fill', accept:[e.b]}); });
       fb.textContent='💡 紅色的是沒找到或沒改對的字，正確的字寫在旁邊。'; }
     onDone(ok);
