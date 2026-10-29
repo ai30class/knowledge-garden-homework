@@ -1459,6 +1459,12 @@ window.addEventListener('storage', e=>{
   try{ if(e.storageArea && e.storageArea!==localStorage) return; }catch(_){ return; }
   if(e.key!==null && e.key!==SAVE_KEY) return;            /* 別的資料（例如還原前的備份）不管；key 是 null＝整個被清空 */
   if(e.key===SAVE_KEY && e.newValue!==null && e.newValue===_lastSavedRaw) return;
+  /* 2026-10-30：iPhone Safari 重新整理時，舊頁面離開前存的檔會在新頁面打開後幾十毫秒才通知過來，
+     被當成「別的分頁存了新進度」而擋住整個畫面（模擬器實測第 22 毫秒觸發）。剛打開的頭 2.5 秒內，
+     直接讀進這份最新的資料，不跳提示；真的同時開兩個分頁仍照舊擋住 */
+  if(e.key===SAVE_KEY && e.newValue && performance.now()<2500 && !_onboardStarted){
+    try{ const s=JSON.parse(e.newValue); if(s && typeof s==='object'){ state=load(s); bootApp(); return; } }catch(_){}
+  }
   _otherTabChanged=true; showOtherTabLock();
 });
 
