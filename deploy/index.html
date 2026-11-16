@@ -1071,6 +1071,8 @@
   .pill{ box-shadow:0 1px 3px rgba(37,58,54,.10); }
 
   .btn-primary, .next-btn{ background:linear-gradient(180deg,#3a8560 0%,#2f6f4e 100%); box-shadow:0 3px 0 var(--green-pressed), 0 8px 16px rgba(47,111,78,.25), inset 0 1px 0 rgba(255,255,255,.28); transition:transform .12s, box-shadow .12s; }
+  /* 2026-11-17：手機點過按鈕後會「黏住 hover」，舊的 .next-btn:hover（第 905 行附近）會把它變回平的綠色；這裡先讓 hover 維持原本漸層，電腦滑鼠的亮一點效果由下一行 (hover:hover) 蓋過 */
+  .next-btn:hover{ background:linear-gradient(180deg,#3a8560 0%,#2f6f4e 100%); box-shadow:0 3px 0 var(--green-pressed), 0 8px 16px rgba(47,111,78,.25), inset 0 1px 0 rgba(255,255,255,.28); }
   @media (hover:hover){ .next-btn:hover{ background:linear-gradient(180deg,#3f8c66 0%,#327552 100%); box-shadow:0 3px 0 var(--green-pressed), 0 8px 16px rgba(47,111,78,.25), inset 0 1px 0 rgba(255,255,255,.28); } }
   .btn-primary:active, .next-btn:active{ background:var(--green-pressed); box-shadow:none; }
   .btn-primary:disabled, .next-btn:disabled, .next-btn[disabled]{ background:var(--disabled-bg); box-shadow:none; }
